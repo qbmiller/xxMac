@@ -19,6 +19,39 @@ bash bundle_app.sh
 SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 ```
 
+## 打包 DMG
+
+生成可分发的 DMG：
+
+```bash
+bash publish_dmg.sh
+```
+
+脚本会先调用 `bundle_app.sh` 重新生成 `xxMac.app`，再创建包含 `xxMac.app` 和 `Applications` 快捷方式的压缩镜像，并执行校验。生成文件默认是 `xxMac.dmg`。
+
+如果已经有现成的 `xxMac.app`，只想重新生成 DMG：
+
+```bash
+SKIP_BUILD=1 bash publish_dmg.sh
+```
+
+可通过环境变量覆盖输出名：
+
+```bash
+DMG_NAME="xxMac-0.0.1.dmg" VOLUME_NAME="xxMac" bash publish_dmg.sh
+```
+
+## 没有开发者账号时打不开 App
+
+如果使用默认 ad-hoc 签名，且把 `xxMac.app` 拷贝到了 `/Applications`，macOS 可能会因为隔离属性阻止打开。先清理隔离属性，再重新打开：
+
+```bash
+xattr -cr /Applications/xxMac.app
+open /Applications/xxMac.app
+```
+
+如果 App 不在 `/Applications`，把命令里的路径替换成实际的 `xxMac.app` 路径。
+
 ## 快捷键不工作的解决方案
 
 打包后，快捷键可能不会立即工作。优先按下面顺序检查。
@@ -108,6 +141,12 @@ codesign -v xxMac.app
 
 ```bash
 ps aux | grep xxMac
+```
+
+清理隔离属性：
+
+```bash
+xattr -cr /Applications/xxMac.app
 ```
 
 ## 下次打包时
