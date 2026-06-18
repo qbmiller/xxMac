@@ -1,0 +1,163 @@
+"menu.toggle_launcher" = "Toggle Launcher";
+"menu.calendar" = "Calendar";
+"menu.settings" = "Settings...";
+"menu.quit" = "Quit";
+
+"window.settings" = "Settings";
+
+"settings.tools" = "Tools";
+"settings.select_tool" = "Select a Tool";
+"settings.select_function" = "Select a Function";
+"settings.configuration_coming_soon" = "Configuration for %@ is coming soon.";
+
+"common.manage_configurations" = "Manage application configurations.";
+"common.global_hotkey" = "Global Hotkey";
+"common.global_hotkey_desc" = "Set the hotkey to show or hide the main launcher window.";
+"common.toggle_launcher" = "Toggle Launcher";
+"common.backup_config" = "Backup Configuration";
+"common.backup_desc" = "Save all current settings and paths to a file.";
+"common.export_config" = "Export Configuration...";
+"common.export_success" = "Configuration exported successfully!";
+"common.restore_config" = "Restore Configuration";
+"common.restore_desc" = "Load settings from a previously saved file.";
+"common.import_config" = "Import Configuration...";
+"common.import_success" = "Configuration imported successfully!";
+"common.error_format" = "Error: %@";
+"common.export_filename" = "xxMac_Config.json";
+
+"language.title" = "Language";
+"language.description" = "Choose the interface language for the app.";
+"language.current" = "Current Language";
+"language.english" = "English";
+"language.simplified" = "Simplified Chinese";
+"language.traditional" = "Traditional Chinese";
+
+"searchpaths.description" = "Add directories where the launcher should look for applications.";
+"searchpaths.add_path" = "Add Path...";
+"searchpaths.reset_defaults" = "Reset to Defaults";
+
+"hotkey.restore_defaults" = "Restore defaults";
+"hotkey.type_hotkey" = "Type Hotkey...";
+"hotkey.click_to_record" = "Click to record";
+
+"shortcut.enable" = "Enable ShortcutDetective";
+"shortcut.desc" = "Detects which app receives a keyboard shortcut (hotkey).";
+"shortcut.last_detection" = "Last Detection";
+"shortcut.action_format" = "Action: %@";
+"shortcut.hotkey_format" = "Hotkey: %@";
+"shortcut.app_format" = "App: %@";
+"shortcut.bundle_format" = "Bundle ID: %@";
+"shortcut.time_format" = "Time: %@";
+"shortcut.none" = "No hotkey detected yet.";
+"shortcut.clear" = "Clear Detection";
+"shortcut.tip_message" = "%@ captured %@ shortcut";
+"shortcut.unknown_app" = "Unknown App";
+"shortcut.unknown_bundle" = "Unknown Bundle ID";
+
+"about.author_label" = "Author";
+"about.version_label" = "Version";
+"about.build_label" = "Build";
+"about.last_updated_label" = "Last Updated";
+"about.checking" = "Checking...";
+"about.check_updates" = "Check for Updates";
+"about.up_to_date" = "Your version is up to date.";
+"about.copyright" = "© 2026 Miller. All rights reserved.";
+
+"launcher_settings.desc" = "Assign shortcuts to launch or switch to applications quickly.";
+"launcher_settings.empty" = "No shortcuts configured. Click '+' to add an application.";
+"launcher_settings.add_app" = "Add Application...";
+"launcher_settings.type" = "Type...";
+"launcher_settings.record_hotkey" = "Record Hotkey";
+
+"clipboard.enable" = "Enable Clipboard History";
+"clipboard.enable_desc" = "Applies to both plain text and images";
+"clipboard.section_history" = "Clipboard History";
+"clipboard.section_plain" = "Plain Text";
+"clipboard.section_images" = "Images";
+"clipboard.section_shortcuts" = "Shortcuts";
+"clipboard.cache_duration" = "Cache Duration";
+"clipboard.clear_history" = "Clear History";
+"clipboard.save_images" = "Save Images";
+"clipboard.max_image_size" = "Max Image Size";
+"clipboard.toggle_history" = "Toggle Clipboard History";
+"clipboard.type_hotkey" = "Type Hotkey...";
+"clipboard.none" = "None";
+"clipboard.days_1" = "1 Day";
+"clipboard.days_3" = "3 Days";
+"clipboard.days_7" = "7 Days";
+"clipboard.days_14" = "14 Days";
+"clipboard.days_30" = "30 Days";
+"clipboard.days_90" = "90 Days";
+"clipboard.max_size_format" = "%d MB";
+"clipboard.image_unavailable" = "Image unavailable";
+"clipboard.select_item_preview" = "Select a clipboard item to preview";
+"clipboard.indexing_apps" = "Indexing apps...";
+"clipboard.item.text_format" = "Text • %@";
+"clipboard.item.image_title" = "Image";
+"clipboard.item.image_subtitle_format" = "%@ • %@";
+
+"launcher.search_placeholder" = "Search apps, commands...";
+"launcher.search_clipboard_placeholder" = "Search clipboard history...";
+
+"tool.common" = "Common";
+"tool.search" = "Search";
+"tool.window" = "Window Management";
+"tool.shortcut_detective" = "Shortcut Detective";
+"tool.clipboard" = "Clipboard";
+"tool.launcher" = "App Launcher";
+"tool.calendar" = "Calendar";
+"tool.about" = "About";
+
+"function.configuration" = "Configuration";
+"function.language" = "Language";
+"function.search.general" = "General";
+"function.search.paths" = "Search Paths";
+"function.search.excluded" = "Excluded Paths";
+"function.window.shortcuts" = "Shortcuts";
+"function.window.snap_zones" = "Snap Zones";
+"function.window.behavior" = "Window Behavior";
+"function.shortcut.detective" = "Detective";
+"function.clipboard.general" = "Clipboard General";
+"function.clipboard.history" = "History";
+"function.clipboard.ignored" = "Ignored Apps";
+"function.launcher.applications" = "Applications";
+"function.calendar.general" = "Month";
+"function.about.info" = "About Info";
+
+"calendar.title" = "Calendar";
+"calendar.today" = "Today";
+"calendar.previous_month" = "Previous Month";
+"calendar.next_month" = "Next Month";
+"calendar.menu_bar_tooltip" = "Calendar";
+"calendar.lunar_unavailable" = "Lunar date unavailable";
+"calendar.lunar_format" = "Lunar %@";
+"calendar.first_weekday" = "Week starts on";
+"calendar.weekday_sunday" = "Sunday";
+"calendar.weekday_monday" = "Monday";
+"calendar.show_lunar" = "Show lunar date";
+"calendar.show_week_numbers" = "Show week numbers";
+"calendar.menu_bar_style" = "Menu bar style";
+"calendar.icon_style.weekday_day" = "Thu / 18";
+"calendar.icon_style.month_day" = "Jun / 18";
+"calendar.icon_style.lunar_month_day" = "Lunar month / day";
+
+"window_action.left" = "Left";
+"window_action.right" = "Right";
+"window_action.top" = "Top";
+"window_action.bottom" = "Bottom";
+"window_action.top_left" = "Top Left";
+"window_action.top_right" = "Top Right";
+"window_action.bottom_left" = "Bottom Left";
+"window_action.bottom_right" = "Bottom Right";
+"window_action.center" = "Center";
+"window_action.toggle_zoom" = "Toggle Zoom";
+"window_action.maximize" = "Maximize";
+"window_action.toggle_fullscreen" = "Toggle Full Screen";
+"window_action.increase" = "Increase";
+"window_action.reduce" = "Reduce";
+"window_action.next_screen" = "Next Screen";
+"window_action.previous_screen" = "Previous Screen";
+"window_action.toggle_launcher" = "Toggle Launcher";
+
+"key.space" = "Space";
+"general.unknown" = "Unknown";

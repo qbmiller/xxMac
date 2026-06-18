@@ -1,0 +1,5 @@
+ref/
+.build/
+.swiftpm
+.DS_Store
+xxMac.app/

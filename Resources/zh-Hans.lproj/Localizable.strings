@@ -1,0 +1,163 @@
+"menu.toggle_launcher" = "切换启动器";
+"menu.calendar" = "日历";
+"menu.settings" = "设置...";
+"menu.quit" = "退出";
+
+"window.settings" = "设置";
+
+"settings.tools" = "工具";
+"settings.select_tool" = "请选择工具";
+"settings.select_function" = "请选择功能";
+"settings.configuration_coming_soon" = "“%@”的配置即将上线。";
+
+"common.manage_configurations" = "管理应用配置。";
+"common.global_hotkey" = "全局热键";
+"common.global_hotkey_desc" = "设置用于显示或隐藏主启动器窗口的热键。";
+"common.toggle_launcher" = "切换启动器";
+"common.backup_config" = "备份配置";
+"common.backup_desc" = "将当前设置和路径保存到文件。";
+"common.export_config" = "导出配置...";
+"common.export_success" = "配置导出成功！";
+"common.restore_config" = "恢复配置";
+"common.restore_desc" = "从已保存的文件加载设置。";
+"common.import_config" = "导入配置...";
+"common.import_success" = "配置导入成功！";
+"common.error_format" = "错误：%@";
+"common.export_filename" = "xxMac_Config.json";
+
+"language.title" = "语言";
+"language.description" = "选择应用界面语言。";
+"language.current" = "当前语言";
+"language.english" = "英文";
+"language.simplified" = "简体中文";
+"language.traditional" = "繁体中文";
+
+"searchpaths.description" = "添加启动器搜索应用的目录。";
+"searchpaths.add_path" = "添加路径...";
+"searchpaths.reset_defaults" = "恢复默认";
+
+"hotkey.restore_defaults" = "恢复默认";
+"hotkey.type_hotkey" = "请输入快捷键...";
+"hotkey.click_to_record" = "点击录制";
+
+"shortcut.enable" = "启用 ShortcutDetective";
+"shortcut.desc" = "检测哪个应用接收了键盘快捷键。";
+"shortcut.last_detection" = "上次检测";
+"shortcut.action_format" = "操作：%@";
+"shortcut.hotkey_format" = "快捷键：%@";
+"shortcut.app_format" = "应用：%@";
+"shortcut.bundle_format" = "Bundle ID：%@";
+"shortcut.time_format" = "时间：%@";
+"shortcut.none" = "暂无检测记录。";
+"shortcut.clear" = "清除记录";
+"shortcut.tip_message" = "%@ 捕获了 %@ 快捷键";
+"shortcut.unknown_app" = "未知应用";
+"shortcut.unknown_bundle" = "未知 Bundle ID";
+
+"about.author_label" = "作者";
+"about.version_label" = "版本";
+"about.build_label" = "构建号";
+"about.last_updated_label" = "最近更新";
+"about.checking" = "检查中...";
+"about.check_updates" = "检查更新";
+"about.up_to_date" = "当前版本已是最新。";
+"about.copyright" = "© 2026 Miller. 保留所有权利。";
+
+"launcher_settings.desc" = "为应用设置快捷键以快速启动或切换。";
+"launcher_settings.empty" = "暂无快捷键配置。点击“+”添加应用。";
+"launcher_settings.add_app" = "添加应用...";
+"launcher_settings.type" = "输入...";
+"launcher_settings.record_hotkey" = "录制快捷键";
+
+"clipboard.enable" = "启用剪贴板历史";
+"clipboard.enable_desc" = "同时适用于文本与图片";
+"clipboard.section_history" = "剪贴板历史";
+"clipboard.section_plain" = "纯文本";
+"clipboard.section_images" = "图片";
+"clipboard.section_shortcuts" = "快捷键";
+"clipboard.cache_duration" = "缓存时长";
+"clipboard.clear_history" = "清空历史";
+"clipboard.save_images" = "保存图片";
+"clipboard.max_image_size" = "图片最大尺寸";
+"clipboard.toggle_history" = "切换剪贴板历史";
+"clipboard.type_hotkey" = "请输入快捷键...";
+"clipboard.none" = "无";
+"clipboard.days_1" = "1 天";
+"clipboard.days_3" = "3 天";
+"clipboard.days_7" = "7 天";
+"clipboard.days_14" = "14 天";
+"clipboard.days_30" = "30 天";
+"clipboard.days_90" = "90 天";
+"clipboard.max_size_format" = "%d MB";
+"clipboard.image_unavailable" = "图片不可用";
+"clipboard.select_item_preview" = "选择剪贴板项以预览";
+"clipboard.indexing_apps" = "正在索引应用...";
+"clipboard.item.text_format" = "文本 • %@";
+"clipboard.item.image_title" = "图片";
+"clipboard.item.image_subtitle_format" = "%@ • %@";
+
+"launcher.search_placeholder" = "搜索应用、命令...";
+"launcher.search_clipboard_placeholder" = "搜索剪贴板历史...";
+
+"tool.common" = "通用";
+"tool.search" = "搜索";
+"tool.window" = "窗口管理";
+"tool.shortcut_detective" = "快捷键侦测";
+"tool.clipboard" = "剪贴板";
+"tool.launcher" = "应用启动";
+"tool.calendar" = "日历";
+"tool.about" = "关于";
+
+"function.configuration" = "配置";
+"function.language" = "语言";
+"function.search.general" = "通用";
+"function.search.paths" = "搜索路径";
+"function.search.excluded" = "排除路径";
+"function.window.shortcuts" = "快捷键";
+"function.window.snap_zones" = "吸附区域";
+"function.window.behavior" = "窗口行为";
+"function.shortcut.detective" = "侦测";
+"function.clipboard.general" = "剪贴板通用";
+"function.clipboard.history" = "历史记录";
+"function.clipboard.ignored" = "忽略应用";
+"function.launcher.applications" = "应用列表";
+"function.calendar.general" = "月历";
+"function.about.info" = "关于信息";
+
+"calendar.title" = "日历";
+"calendar.today" = "今天";
+"calendar.previous_month" = "上个月";
+"calendar.next_month" = "下个月";
+"calendar.menu_bar_tooltip" = "日历";
+"calendar.lunar_unavailable" = "农历不可用";
+"calendar.lunar_format" = "农历 %@";
+"calendar.first_weekday" = "星期开始于";
+"calendar.weekday_sunday" = "周日";
+"calendar.weekday_monday" = "周一";
+"calendar.show_lunar" = "显示阴历";
+"calendar.show_week_numbers" = "显示周数";
+"calendar.menu_bar_style" = "菜单栏样式";
+"calendar.icon_style.weekday_day" = "周四 / 18";
+"calendar.icon_style.month_day" = "6月 / 18";
+"calendar.icon_style.lunar_month_day" = "五月 / 初四";
+
+"window_action.left" = "左侧";
+"window_action.right" = "右侧";
+"window_action.top" = "上方";
+"window_action.bottom" = "下方";
+"window_action.top_left" = "左上";
+"window_action.top_right" = "右上";
+"window_action.bottom_left" = "左下";
+"window_action.bottom_right" = "右下";
+"window_action.center" = "居中";
+"window_action.toggle_zoom" = "切换缩放";
+"window_action.maximize" = "最大化";
+"window_action.toggle_fullscreen" = "切换全屏";
+"window_action.increase" = "放大";
+"window_action.reduce" = "缩小";
+"window_action.next_screen" = "下一屏";
+"window_action.previous_screen" = "上一屏";
+"window_action.toggle_launcher" = "切换启动器";
+
+"key.space" = "空格";
+"general.unknown" = "未知";
