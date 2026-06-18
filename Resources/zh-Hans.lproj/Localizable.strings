@@ -98,6 +98,13 @@
 
 "launcher.search_placeholder" = "搜索应用、命令...";
 "launcher.search_clipboard_placeholder" = "搜索剪贴板历史...";
+"launcher_appearance.desc" = "调整 Control + Option + Space 唤起面板的半透明底色。";
+"launcher_appearance.background" = "底色";
+"launcher_appearance.size" = "大小";
+"launcher_appearance.width" = "宽度";
+"launcher_appearance.height" = "高度";
+"launcher_appearance.opacity" = "透明度";
+"launcher_appearance.restore_defaults" = "恢复默认";
 
 "tool.common" = "通用";
 "tool.search" = "搜索";
@@ -121,6 +128,7 @@
 "function.clipboard.history" = "历史记录";
 "function.clipboard.ignored" = "忽略应用";
 "function.launcher.applications" = "应用列表";
+"function.launcher.appearance" = "启动器外观";
 "function.calendar.general" = "月历";
 "function.about.info" = "关于信息";
 

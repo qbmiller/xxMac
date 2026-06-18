@@ -94,10 +94,16 @@ class LauncherViewModel: ObservableObject {
     
     private func performLauncherSearch(query: String) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedQuery.isEmpty else {
+            results = []
+            selectedIndex = 0
+            return
+        }
         
         // 1. Window Commands (only if query is not empty)
         let windowSubtitle = L10n.t("tool.window")
-        let windowCommands = trimmedQuery.isEmpty ? [] : [
+        let windowCommands = [
             SearchItem(id: "window.left", title: L10n.t("window_action.left"), subtitle: windowSubtitle, iconName: "rectangle.leadinghalf.inset.filled", type: .windowAction, action: { AccessibilityManager.shared.leftHalf() }),
             SearchItem(id: "window.right", title: L10n.t("window_action.right"), subtitle: windowSubtitle, iconName: "rectangle.trailinghalf.inset.filled", type: .windowAction, action: { AccessibilityManager.shared.rightHalf() }),
             SearchItem(id: "window.top", title: L10n.t("window_action.top"), subtitle: windowSubtitle, iconName: "rectangle.tophalf.inset.filled", type: .windowAction, action: { AccessibilityManager.shared.topHalf() }),

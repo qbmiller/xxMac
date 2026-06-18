@@ -98,6 +98,13 @@
 
 "launcher.search_placeholder" = "搜尋應用、命令...";
 "launcher.search_clipboard_placeholder" = "搜尋剪貼簿歷史...";
+"launcher_appearance.desc" = "調整 Control + Option + Space 喚起面板的半透明底色。";
+"launcher_appearance.background" = "底色";
+"launcher_appearance.size" = "大小";
+"launcher_appearance.width" = "寬度";
+"launcher_appearance.height" = "高度";
+"launcher_appearance.opacity" = "透明度";
+"launcher_appearance.restore_defaults" = "恢復預設";
 
 "tool.common" = "通用";
 "tool.search" = "搜尋";
@@ -121,6 +128,7 @@
 "function.clipboard.history" = "歷史記錄";
 "function.clipboard.ignored" = "忽略應用";
 "function.launcher.applications" = "應用清單";
+"function.launcher.appearance" = "啟動器外觀";
 "function.calendar.general" = "月曆";
 "function.about.info" = "關於資訊";
 

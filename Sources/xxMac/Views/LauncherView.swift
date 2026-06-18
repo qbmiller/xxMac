@@ -4,6 +4,8 @@ struct LauncherView: View {
     @ObservedObject var viewModel: LauncherViewModel
     @ObservedObject private var appSearchManager = AppSearchManager.shared
     @ObservedObject private var localization = LocalizationManager.shared
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @FocusState private var isSearchFocused: Bool
 
     private func focusSearch() {
@@ -18,20 +20,49 @@ struct LauncherView: View {
         guard viewModel.mode == .clipboard, viewModel.results.indices.contains(viewModel.selectedIndex) else { return nil }
         return viewModel.results[viewModel.selectedIndex]
     }
-    
+
+    private var sizeScale: CGFloat {
+        CGFloat(appearance.sizeScale)
+    }
+
+    private var launcherWidth: CGFloat {
+        CGFloat(appearance.launcherWidth)
+    }
+
+    private var launcherHeight: CGFloat {
+        CGFloat(appearance.launcherHeight)
+    }
+
+    private var launcherHasQuery: Bool {
+        !viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var shouldShowLauncherIndexing: Bool {
+        viewModel.mode == .launcher && launcherHasQuery && appSearchManager.isIndexing
+    }
+
+    private var shouldShowLauncherResults: Bool {
+        viewModel.mode == .launcher && launcherHasQuery && !viewModel.results.isEmpty
+    }
+
+    private func scaled(_ value: CGFloat) -> CGFloat {
+        value * sizeScale
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Search Field
-            HStack {
+            HStack(spacing: scaled(18)) {
                 Image(systemName: viewModel.mode == .clipboard ? "doc.on.clipboard" : "magnifyingglass")
-                    .font(.title2)
-                    .foregroundColor(viewModel.mode == .clipboard ? .blue : .gray)
+                    .font(.system(size: scaled(34), weight: .medium))
+                    .foregroundColor(.white.opacity(0.72))
+                    .frame(width: scaled(42), height: scaled(42))
                 
                 TextField(viewModel.mode == .clipboard ? L10n.t("launcher.search_clipboard_placeholder") : L10n.t("launcher.search_placeholder"), text: $viewModel.query)
-                    .font(.title2)
+                    .font(.system(size: scaled(36), weight: .light))
                     .textFieldStyle(PlainTextFieldStyle())
                     .id(viewModel.searchID) // Force recreation when session resets
                     .focused($isSearchFocused)
+                    .foregroundColor(.white)
                     .onAppear {
                         focusSearch()
                     }
@@ -39,26 +70,30 @@ struct LauncherView: View {
                         viewModel.executeSelection()
                     }
             }
-            .padding()
-            .background(Color(NSColor.windowBackgroundColor))
-            
-            Divider()
+            .padding(.horizontal, scaled(28))
+            .padding(.vertical, scaled(22))
+            .background(Color.white.opacity(0.08))
 
-            if viewModel.mode == .launcher && appSearchManager.isIndexing {
+            if shouldShowLauncherIndexing {
+                Divider()
+                    .overlay(Color.white.opacity(0.12))
+
                 HStack {
                     ProgressView()
                         .controlSize(.small)
                     Text(L10n.t("clipboard.indexing_apps"))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.78))
                     Spacer()
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 6)
-                Divider()
+                .padding(.horizontal, scaled(28))
+                .padding(.vertical, scaled(6))
             }
             
             if viewModel.mode == .clipboard {
+                Divider()
+                    .overlay(Color.white.opacity(0.12))
+
                 HStack(spacing: 0) {
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -83,15 +118,19 @@ struct LauncherView: View {
                             }
                         }
                     }
-                    .frame(width: 360)
-                    .frame(maxHeight: 400)
+                    .frame(width: min(360, launcherWidth * 0.45))
+                    .frame(maxHeight: launcherHeight)
 
                     Divider()
+                        .overlay(Color.white.opacity(0.12))
 
                     ClipboardDetailPane(item: selectedClipboardItem)
-                        .frame(maxWidth: .infinity, maxHeight: 400)
+                        .frame(maxWidth: .infinity, maxHeight: launcherHeight)
                 }
-            } else {
+            } else if shouldShowLauncherResults {
+                Divider()
+                    .overlay(Color.white.opacity(0.12))
+
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
@@ -106,22 +145,33 @@ struct LauncherView: View {
                             }
                         }
                     }
-                    .frame(maxHeight: 400)
+                    .frame(maxHeight: launcherHeight)
                     .onChange(of: viewModel.selectedIndex) { newIndex in
                         withAnimation {
                             proxy.scrollTo(newIndex, anchor: .center)
                         }
                     }
                 }
+                .frame(maxHeight: launcherHeight)
             }
         }
-        .frame(width: viewModel.mode == .clipboard ? 920 : 600)
-        .background(EffectView(material: .sidebar, blendingMode: .behindWindow))
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        .frame(width: viewModel.mode == .clipboard ? max(launcherWidth, 920) : launcherWidth)
+        .background(
+            ZStack {
+                if reduceTransparency {
+                    appearance.backgroundColor
+                } else {
+                    EffectView(material: .hudWindow, blendingMode: .behindWindow)
+                    appearance.backgroundColor.opacity(appearance.opacity)
+                }
+            }
         )
+        .clipShape(RoundedRectangle(cornerRadius: scaled(18), style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: scaled(18), style: .continuous)
+                .stroke(Color.white.opacity(0.20), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.32), radius: scaled(26), x: 0, y: scaled(18))
         .id(localization.language)
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FocusLauncherSearch"))) { _ in
             focusSearch()
@@ -132,22 +182,30 @@ struct LauncherView: View {
 struct SearchResultRow: View {
     let item: SearchItem
     let isSelected: Bool
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+
+    private var sizeScale: CGFloat {
+        CGFloat(appearance.sizeScale)
+    }
+
+    private func scaled(_ value: CGFloat) -> CGFloat {
+        value * sizeScale
+    }
     
     var body: some View {
-        HStack {
-            Image(systemName: item.iconName)
-                .resizable()
-                .frame(width: 24, height: 24)
-                .foregroundColor(.blue)
+        HStack(spacing: scaled(18)) {
+            SearchResultIcon(item: item)
             
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
-                    .font(.headline)
-                    .foregroundColor(isSelected ? .white : .primary)
+                    .font(.system(size: scaled(27), weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(.white.opacity(isSelected ? 1 : 0.86))
+                    .lineLimit(1)
                 if !item.subtitle.isEmpty {
                     Text(item.subtitle)
-                        .font(.caption)
-                        .foregroundColor(isSelected ? .white.opacity(0.8) : .secondary)
+                        .font(.system(size: scaled(17), weight: .medium))
+                        .foregroundColor(.white.opacity(isSelected ? 0.78 : 0.56))
+                        .lineLimit(1)
                 }
             }
             
@@ -155,13 +213,53 @@ struct SearchResultRow: View {
             
             if isSelected {
                 Image(systemName: "return")
-                    .foregroundColor(.white)
+                    .font(.system(size: scaled(18), weight: .semibold))
+                    .foregroundColor(.white.opacity(0.68))
             }
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.blue : Color.clear)
+        .padding(.horizontal, scaled(28))
+        .padding(.vertical, scaled(10))
+        .frame(height: scaled(86))
+        .background(isSelected ? Color.white.opacity(0.14) : Color.clear)
         .contentShape(Rectangle())
+    }
+}
+
+struct SearchResultIcon: View {
+    let item: SearchItem
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+
+    private var sizeScale: CGFloat {
+        CGFloat(appearance.sizeScale)
+    }
+
+    private func scaled(_ value: CGFloat) -> CGFloat {
+        value * sizeScale
+    }
+
+    var body: some View {
+        Group {
+            if item.type == .app, let image = appIcon {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: item.iconName)
+                    .resizable()
+                    .scaledToFit()
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(.white.opacity(0.84))
+                    .padding(scaled(10))
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: scaled(12), style: .continuous))
+            }
+        }
+        .frame(width: scaled(50), height: scaled(50))
+    }
+
+    private var appIcon: NSImage? {
+        guard item.type == .app else { return nil }
+        return NSWorkspace.shared.icon(forFile: item.subtitle)
     }
 }
 
@@ -192,7 +290,7 @@ struct ClipboardDetailPane: View {
                 }
             }
         }
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.55))
+        .background(Color.white.opacity(0.08))
     }
 }
 

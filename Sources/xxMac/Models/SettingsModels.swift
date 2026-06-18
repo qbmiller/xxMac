@@ -98,6 +98,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
     // Common
     case commonConfig = "function.configuration"
     case commonLanguage = "function.language"
+    case launcherAppearance = "function.launcher.appearance"
 
     // Search
     case searchGeneral = "function.search.general"
@@ -134,6 +135,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
         switch self {
         case .commonConfig: return "slider.horizontal.3"
         case .commonLanguage: return "globe"
+        case .launcherAppearance: return "paintpalette"
         case .searchPaths: return "folder"
         case .wmShortcuts: return "keyboard"
         case .shortcutDetectiveGeneral: return "eye"
@@ -165,7 +167,8 @@ struct ToolOption: Identifiable, Hashable {
     static let allTools: [ToolOption] = [
         ToolOption(type: .common, functions: [
             ToolFunction(type: .commonConfig),
-            ToolFunction(type: .commonLanguage)
+            ToolFunction(type: .commonLanguage),
+            ToolFunction(type: .launcherAppearance)
         ]),
         ToolOption(type: .search, functions: [
             ToolFunction(type: .searchGeneral),

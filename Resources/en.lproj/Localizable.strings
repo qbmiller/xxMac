@@ -98,6 +98,13 @@
 
 "launcher.search_placeholder" = "Search apps, commands...";
 "launcher.search_clipboard_placeholder" = "Search clipboard history...";
+"launcher_appearance.desc" = "Adjust the translucent background for the Control + Option + Space launcher panel.";
+"launcher_appearance.background" = "Background";
+"launcher_appearance.size" = "Size";
+"launcher_appearance.width" = "Width";
+"launcher_appearance.height" = "Height";
+"launcher_appearance.opacity" = "Opacity";
+"launcher_appearance.restore_defaults" = "Restore Defaults";
 
 "tool.common" = "Common";
 "tool.search" = "Search";
@@ -121,6 +128,7 @@
 "function.clipboard.history" = "History";
 "function.clipboard.ignored" = "Ignored Apps";
 "function.launcher.applications" = "Applications";
+"function.launcher.appearance" = "Launcher Appearance";
 "function.calendar.general" = "Month";
 "function.about.info" = "About Info";
 

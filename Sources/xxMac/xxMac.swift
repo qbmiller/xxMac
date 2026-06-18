@@ -52,6 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var settingsMenuItem: NSMenuItem?
     private var quitMenuItem: NSMenuItem?
     private var localizationCancellable: AnyCancellable?
+    private var launcherPanelCancellables = Set<AnyCancellable>()
     private var isOpeningLauncher = false
     private var pendingLauncherRestore = false
     private var previousFrontmostApp: NSRunningApplication?
@@ -170,6 +171,75 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             guard let self = self else { return false }
             return self.handleLauncherKeyDown(event)
         }
+
+        bindLauncherPanelSizing()
+        updateLauncherPanelFrame(keepingCenter: false)
+    }
+
+    private func bindLauncherPanelSizing() {
+        let appearance = LauncherAppearanceManager.shared
+        let updates: [AnyPublisher<Void, Never>] = [
+            launcherViewModel.$query.map { _ in () }.eraseToAnyPublisher(),
+            launcherViewModel.$results.map { _ in () }.eraseToAnyPublisher(),
+            launcherViewModel.$mode.map { _ in () }.eraseToAnyPublisher(),
+            AppSearchManager.shared.$isIndexing.map { _ in () }.eraseToAnyPublisher(),
+            appearance.$launcherWidth.map { _ in () }.eraseToAnyPublisher(),
+            appearance.$launcherHeight.map { _ in () }.eraseToAnyPublisher(),
+            appearance.$sizeScale.map { _ in () }.eraseToAnyPublisher()
+        ]
+
+        Publishers.MergeMany(updates)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateLauncherPanelFrame(keepingCenter: self?.launcherPanel.isVisible == true)
+            }
+            .store(in: &launcherPanelCancellables)
+    }
+
+    private func updateLauncherPanelFrame(keepingCenter: Bool) {
+        guard launcherPanel != nil else { return }
+
+        let appearance = LauncherAppearanceManager.shared
+        let scale = appearance.sizeScale
+        let searchRowHeight = 86 * scale
+        let resultRowHeight = 86 * scale
+        let dividerHeight = 1.0
+        let indexingHeight = 31 * scale
+        let hasQuery = !launcherViewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        let width: CGFloat
+        let height: CGFloat
+
+        switch launcherViewModel.mode {
+        case .clipboard:
+            width = CGFloat(max(appearance.launcherWidth, 920))
+            height = CGFloat(searchRowHeight + dividerHeight + appearance.launcherHeight)
+        case .launcher:
+            width = CGFloat(appearance.launcherWidth)
+            var contentHeight = searchRowHeight
+
+            if hasQuery && AppSearchManager.shared.isIndexing {
+                contentHeight += dividerHeight + indexingHeight
+            }
+
+            if hasQuery && !launcherViewModel.results.isEmpty {
+                let resultHeight = min(Double(launcherViewModel.results.count) * resultRowHeight, appearance.launcherHeight)
+                contentHeight += dividerHeight + resultHeight
+            }
+
+            height = CGFloat(contentHeight)
+        }
+
+        let currentFrame = launcherPanel.frame
+        let center = NSPoint(x: currentFrame.midX, y: currentFrame.midY)
+        var newFrame = NSRect(origin: currentFrame.origin, size: NSSize(width: width, height: height))
+
+        if keepingCenter {
+            newFrame.origin.x = center.x - width / 2
+            newFrame.origin.y = center.y - height / 2
+        }
+
+        launcherPanel.setFrame(newFrame, display: true)
     }
 
     private func handleLauncherKeyDown(_ event: NSEvent) -> Bool {
@@ -413,6 +483,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
               NSApp.isHidden.description,
               launcherPanel.isVisible.description)
         NSApp.activate(ignoringOtherApps: true)
+        updateLauncherPanelFrame(keepingCenter: false)
         launcherPanel.center()
         launcherPanel.makeKeyAndOrderFront(nil)
         launcherPanel.orderFrontRegardless()

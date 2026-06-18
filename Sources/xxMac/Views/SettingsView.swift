@@ -226,6 +226,8 @@ struct ConfigurationView: View {
                         ClipboardSettingsView()
                     case .launcherApps:
                         AppLauncherSettingsView()
+                    case .launcherAppearance:
+                        LauncherAppearanceSettingsView()
                     case .calendarGeneral:
                         CalendarFeatureView(showsSettings: true)
                     case .aboutInfo:
@@ -411,6 +413,147 @@ struct ShortcutDetectiveSettingsView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+struct LauncherAppearanceSettingsView: View {
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+
+    private var colorBinding: Binding<Color> {
+        Binding(
+            get: { appearance.backgroundColor },
+            set: { newValue in
+                if let nsColor = NSColor(newValue).usingColorSpace(.sRGB) {
+                    appearance.setBackgroundColor(nsColor)
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(L10n.t("launcher_appearance.desc"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 16) {
+                ColorPicker(L10n.t("launcher_appearance.background"), selection: colorBinding, supportsOpacity: false)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L10n.t("launcher_appearance.size"))
+                        Spacer()
+                        Text("\(Int(appearance.sizeScale * 100))%")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $appearance.sizeScale, in: 0.70...1.05, step: 0.01)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L10n.t("launcher_appearance.width"))
+                        Spacer()
+                        Text("\(Int(appearance.launcherWidth)) px")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $appearance.launcherWidth, in: 560...980, step: 10)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L10n.t("launcher_appearance.height"))
+                        Spacer()
+                        Text("\(Int(appearance.launcherHeight)) px")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $appearance.launcherHeight, in: 220...520, step: 10)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L10n.t("launcher_appearance.opacity"))
+                        Spacer()
+                        Text("\(Int(appearance.opacity * 100))%")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $appearance.opacity, in: 0.35...0.95, step: 0.01)
+                }
+
+                LauncherAppearancePreview()
+
+                HStack {
+                    Button(L10n.t("launcher_appearance.restore_defaults")) {
+                        appearance.reset()
+                    }
+                    Spacer()
+                }
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+
+            Spacer()
+        }
+    }
+}
+
+private struct LauncherAppearancePreview: View {
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+
+    private var sizeScale: CGFloat {
+        CGFloat(appearance.sizeScale)
+    }
+
+    private func scaled(_ value: CGFloat) -> CGFloat {
+        value * sizeScale
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: scaled(12)) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: scaled(22), weight: .medium))
+                    .foregroundColor(.white.opacity(0.72))
+                Text("xxMac")
+                    .font(.system(size: scaled(28), weight: .light))
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            .padding(scaled(16))
+            .background(Color.white.opacity(0.08))
+
+            HStack(spacing: scaled(12)) {
+                Image(systemName: "app.fill")
+                    .font(.system(size: scaled(22), weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
+                    .frame(width: scaled(36), height: scaled(36))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MacEfficiencyTool")
+                        .font(.system(size: scaled(17), weight: .semibold))
+                        .foregroundColor(.white)
+                    Text("/Applications/MacEfficiencyTool.app")
+                        .font(.system(size: scaled(12)))
+                        .foregroundColor(.white.opacity(0.64))
+                }
+                Spacer()
+                Image(systemName: "return")
+                    .font(.system(size: scaled(16), weight: .semibold))
+                    .foregroundColor(.white.opacity(0.68))
+            }
+            .padding(scaled(16))
+            .background(Color.white.opacity(0.14))
+        }
+        .frame(width: 420)
+        .background(appearance.backgroundColor.opacity(appearance.opacity))
+        .clipShape(RoundedRectangle(cornerRadius: scaled(14), style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: scaled(14), style: .continuous)
+                .stroke(Color.white.opacity(0.22), lineWidth: 1)
         )
     }
 }
