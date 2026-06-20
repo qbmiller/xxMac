@@ -31,6 +31,12 @@ Usage notes:
 <available_skills>
 
 <skill>
+<name>karpathy-guidelines</name>
+<description>Behavioral guidelines to reduce common LLM coding mistakes. Use when writing, reviewing, or refactoring code to avoid overcomplication, make surgical changes, surface assumptions, and define verifiable success criteria.</description>
+<location>global</location>
+</skill>
+
+<skill>
 <name>macos</name>
 <description>Apple Human Interface Guidelines for Mac. Use when building macOS apps with SwiftUI or AppKit, implementing menu bars, toolbars, window management, or keyboard shortcuts. Triggers on tasks involving Mac UI, desktop apps, or Mac Catalyst.</description>
 <location>global</location>
@@ -44,7 +50,7 @@ Usage notes:
 
 <skill>
 <name>using-superpowers</name>
-<description>Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions</description>
+<description>Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY response including clarifying questions</description>
 <location>global</location>
 </skill>
 
