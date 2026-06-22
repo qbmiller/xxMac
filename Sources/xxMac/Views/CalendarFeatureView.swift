@@ -770,6 +770,7 @@ final class CalendarMenuBarController {
 
     private func showPopover(_ sender: Any?) {
         guard let button = sender as? NSStatusBarButton else { return }
+        popover.contentViewController = NSHostingController(rootView: CalendarFeatureView())
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.becomeKey()
         startEventMonitor()
