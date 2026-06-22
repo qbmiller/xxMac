@@ -49,6 +49,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var launcherViewModel = LauncherViewModel()
     var eventMonitor: Any?
     private var toggleLauncherMenuItem: NSMenuItem?
+    private var lockAIMenuItem: NSMenuItem?
     private var settingsMenuItem: NSMenuItem?
     private var quitMenuItem: NSMenuItem?
     private var localizationCancellable: AnyCancellable?
@@ -83,6 +84,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         _ = AppLauncherManager.shared
         // Initialize ClipboardManager
         _ = ClipboardManager.shared
+        // Initialize LockAIManager
+        _ = LockAIManager.shared
         
         // Request accessibility permissions (critical for hotkeys to work)
         _ = AccessibilityManager.shared.checkAccessibilityPermissions()
@@ -109,6 +112,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         toggleItem.keyEquivalentModifierMask = [.control, .option]
         toggleLauncherMenuItem = toggleItem
         menu.addItem(toggleItem)
+        let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "l")
+        lockAIItem.keyEquivalentModifierMask = [.control, .option, .command]
+        lockAIMenuItem = lockAIItem
+        menu.addItem(lockAIItem)
         let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
         settingsMenuItem = settingsItem
         menu.addItem(settingsItem)
@@ -305,6 +312,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
+    @objc func lockAI() {
+        LockAIManager.shared.lock()
+    }
+
     @MainActor
     @objc func openCalendar() {
         calendarMenuBarController?.showCalendarWindow()
@@ -313,6 +324,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @MainActor
     private func updateMenuTitles() {
         toggleLauncherMenuItem?.title = L10n.t("menu.toggle_launcher")
+        lockAIMenuItem?.title = L10n.t("menu.lock_ai")
         settingsMenuItem?.title = L10n.t("menu.settings")
         quitMenuItem?.title = L10n.t("menu.quit")
         settingsWindow?.title = L10n.t("window.settings")

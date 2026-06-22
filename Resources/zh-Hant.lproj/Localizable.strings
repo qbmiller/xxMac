@@ -1,5 +1,6 @@
 "menu.toggle_launcher" = "切換啟動器";
 "menu.calendar" = "日曆";
+"menu.lock_ai" = "LockJob";
 "menu.settings" = "設定...";
 "menu.quit" = "退出";
 
@@ -106,6 +107,16 @@
 "launcher_appearance.opacity" = "透明度";
 "launcher_appearance.restore_defaults" = "恢復預設";
 
+"lock_ai.desc" = "遮住所有螢幕並阻止系統睡眠，讓 Claude、Codex、建置、下載與 SSH 工作階段繼續執行。";
+"lock_ai.hotkey" = "鎖定快速鍵";
+"lock_ai.screen_desc" = "自訂 LockJob 遮罩螢幕上顯示的內容。";
+"lock_ai.status_text" = "狀態文字";
+"lock_ai.lock_now" = "立即 LockJob";
+"lock_ai.note" = "解鎖使用 Touch ID 或本機密碼。遮罩視窗會接管前台輸入；若要阻斷其他應用層級輸入，請確保已授予輔助使用權限。";
+"lock_ai.cover_hint" = "按 Return 或點擊後使用 Touch ID / 密碼解鎖";
+"lock_ai.unlock_cancel" = "取消";
+"lock_ai.unlock_reason" = "解鎖 LockJob 並恢復螢幕";
+
 "tool.common" = "通用";
 "tool.search" = "搜尋";
 "tool.window" = "視窗管理";
@@ -113,6 +124,7 @@
 "tool.clipboard" = "剪貼簿";
 "tool.launcher" = "應用啟動";
 "tool.calendar" = "日曆";
+"tool.lock_ai" = "LockJob";
 "tool.about" = "關於";
 
 "function.configuration" = "設定";
@@ -130,6 +142,8 @@
 "function.launcher.applications" = "應用清單";
 "function.launcher.appearance" = "啟動器外觀";
 "function.calendar.general" = "月曆";
+"function.lock_ai.general" = "鎖定";
+"function.lock_ai.screen" = "螢幕定制";
 "function.about.info" = "關於資訊";
 
 "calendar.title" = "日曆";
@@ -166,6 +180,7 @@
 "window_action.next_screen" = "下一螢幕";
 "window_action.previous_screen" = "上一螢幕";
 "window_action.toggle_launcher" = "切換啟動器";
+"window_action.lock_ai" = "LockJob";
 
 "key.space" = "空白鍵";
 "general.unknown" = "未知";

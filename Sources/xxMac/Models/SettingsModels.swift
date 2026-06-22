@@ -72,6 +72,7 @@ enum ToolType: String, CaseIterable, Identifiable {
     case clipboard = "tool.clipboard"
     case launcher = "tool.launcher"
     case calendar = "tool.calendar"
+    case lockAI = "tool.lock_ai"
     case about = "tool.about"
     
     var id: String { rawValue }
@@ -87,6 +88,7 @@ enum ToolType: String, CaseIterable, Identifiable {
         case .clipboard: return "doc.on.clipboard"
         case .launcher: return "command"
         case .calendar: return "calendar"
+        case .lockAI: return "lock.shield"
         case .about: return "info.circle"
         }
     }
@@ -123,6 +125,10 @@ enum FunctionType: String, CaseIterable, Identifiable {
 
     // Calendar
     case calendarGeneral = "function.calendar.general"
+
+    // LockJob
+    case lockAIGeneral = "function.lock_ai.general"
+    case lockAIScreen = "function.lock_ai.screen"
     
     // About
     case aboutInfo = "function.about.info"
@@ -142,6 +148,8 @@ enum FunctionType: String, CaseIterable, Identifiable {
         case .clipboardHistory: return "clock"
         case .launcherApps: return "command.square"
         case .calendarGeneral: return "calendar"
+        case .lockAIGeneral: return "lock.shield"
+        case .lockAIScreen: return "display"
         case .aboutInfo: return "info.circle"
         default: return "gear"
         }
@@ -193,6 +201,10 @@ struct ToolOption: Identifiable, Hashable {
         ]),
         ToolOption(type: .calendar, functions: [
             ToolFunction(type: .calendarGeneral)
+        ]),
+        ToolOption(type: .lockAI, functions: [
+            ToolFunction(type: .lockAIGeneral),
+            ToolFunction(type: .lockAIScreen)
         ]),
         ToolOption(type: .about, functions: [
             ToolFunction(type: .aboutInfo)

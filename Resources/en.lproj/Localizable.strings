@@ -1,5 +1,6 @@
 "menu.toggle_launcher" = "Toggle Launcher";
 "menu.calendar" = "Calendar";
+"menu.lock_ai" = "LockJob";
 "menu.settings" = "Settings...";
 "menu.quit" = "Quit";
 
@@ -106,6 +107,16 @@
 "launcher_appearance.opacity" = "Opacity";
 "launcher_appearance.restore_defaults" = "Restore Defaults";
 
+"lock_ai.desc" = "Cover every screen and prevent system sleep while Claude,Codex, builds, downloads, and SSH sessions keep running.";
+"lock_ai.hotkey" = "Lock Hotkey";
+"lock_ai.screen_desc" = "Customize what appears on the LockJob cover screen.";
+"lock_ai.status_text" = "Status Text";
+"lock_ai.lock_now" = "LockJob Now";
+"lock_ai.note" = "Unlock with Touch ID or your Mac password. The cover window takes over foreground input; grant Accessibility permission if you need stronger app-level input blocking.";
+"lock_ai.cover_hint" = "Press Return or click, then unlock with Touch ID / password";
+"lock_ai.unlock_cancel" = "Cancel";
+"lock_ai.unlock_reason" = "Unlock LockJob and restore the screen";
+
 "tool.common" = "Common";
 "tool.search" = "Search";
 "tool.window" = "Window Management";
@@ -113,6 +124,7 @@
 "tool.clipboard" = "Clipboard";
 "tool.launcher" = "App Launcher";
 "tool.calendar" = "Calendar";
+"tool.lock_ai" = "LockJob";
 "tool.about" = "About";
 
 "function.configuration" = "Configuration";
@@ -130,6 +142,8 @@
 "function.launcher.applications" = "Applications";
 "function.launcher.appearance" = "Launcher Appearance";
 "function.calendar.general" = "Month";
+"function.lock_ai.general" = "Lock";
+"function.lock_ai.screen" = "Screen";
 "function.about.info" = "About Info";
 
 "calendar.title" = "Calendar";
@@ -166,6 +180,7 @@
 "window_action.next_screen" = "Next Screen";
 "window_action.previous_screen" = "Previous Screen";
 "window_action.toggle_launcher" = "Toggle Launcher";
+"window_action.lock_ai" = "LockJob";
 
 "key.space" = "Space";
 "general.unknown" = "Unknown";

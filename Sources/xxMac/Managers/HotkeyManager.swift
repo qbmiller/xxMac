@@ -20,6 +20,7 @@ enum WindowAction: String, CaseIterable, Codable {
     case nextScreen = "Next Screen"
     case previousScreen = "Previous Screen"
     case toggleLauncher = "Toggle Launcher"
+    case lockAI = "LockAI"
 
     var displayName: String {
         switch self {
@@ -40,6 +41,7 @@ enum WindowAction: String, CaseIterable, Codable {
         case .nextScreen: return L10n.t("window_action.next_screen")
         case .previousScreen: return L10n.t("window_action.previous_screen")
         case .toggleLauncher: return L10n.t("window_action.toggle_launcher")
+        case .lockAI: return L10n.t("window_action.lock_ai")
         }
     }
 }
@@ -103,7 +105,8 @@ class HotKeyManager: ObservableObject {
             .reduce: HotKeyConfiguration(key: .minus, modifiers: defaultModifiers),
             .nextScreen: HotKeyConfiguration(key: .n, modifiers: defaultModifiers),
             .previousScreen: HotKeyConfiguration(key: .p, modifiers: defaultModifiers),
-            .toggleLauncher: HotKeyConfiguration(key: .space, modifiers: [.control, .option])
+            .toggleLauncher: HotKeyConfiguration(key: .space, modifiers: [.control, .option]),
+            .lockAI: HotKeyConfiguration(key: .l, modifiers: defaultModifiers)
         ]
         
         // Adjust for non-keypad numbers if needed, but ShiftIt screenshot shows ^⌥⌘1 etc.
@@ -176,6 +179,10 @@ class HotKeyManager: ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     NotificationCenter.default.post(name: NSNotification.Name("ToggleLauncher"), object: nil)
                 }
+            }
+        case .lockAI:
+            DispatchQueue.main.async {
+                LockAIManager.shared.lock()
             }
         }
     }

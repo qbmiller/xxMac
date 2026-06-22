@@ -230,6 +230,10 @@ struct ConfigurationView: View {
                         LauncherAppearanceSettingsView()
                     case .calendarGeneral:
                         CalendarFeatureView(showsSettings: true)
+                    case .lockAIGeneral:
+                        LockAISettingsView()
+                    case .lockAIScreen:
+                        LockAIScreenSettingsView()
                     case .aboutInfo:
                         AboutSettingsView()
                     default:
@@ -362,6 +366,79 @@ struct HotKeySettingsView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
         )
+    }
+}
+
+struct LockAISettingsView: View {
+    @ObservedObject private var manager = LockAIManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(L10n.t("lock_ai.desc"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(L10n.t("lock_ai.hotkey"))
+                        .foregroundColor(.secondary)
+                        .frame(width: 120, alignment: .trailing)
+                    HotKeyRecorderView(action: .lockAI)
+                        .frame(maxWidth: 200)
+                    Spacer()
+                }
+
+                HStack {
+                    Button {
+                        manager.lock()
+                    } label: {
+                        Label(L10n.t("lock_ai.lock_now"), systemImage: "lock.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Spacer()
+                }
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+
+            Text(L10n.t("lock_ai.note"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Spacer()
+        }
+    }
+}
+
+struct LockAIScreenSettingsView: View {
+    @ObservedObject private var manager = LockAIManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(L10n.t("lock_ai.screen_desc"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 16) {
+                TextField(L10n.t("lock_ai.status_text"), text: $manager.statusText)
+                    .textFieldStyle(.roundedBorder)
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+
+            Spacer()
+        }
     }
 }
 

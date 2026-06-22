@@ -159,6 +159,7 @@ struct CommonSettingsView: View {
         let hotKeyConfigurations: Data?
         let appLauncherShortcuts: Data?
         let shortcutDetectiveEnabled: Bool?
+        let lockAIStatusText: String?
     }
     
     private func collectConfigurations() throws -> AppConfiguration {
@@ -168,12 +169,14 @@ struct CommonSettingsView: View {
         let hotKeyConfig = defaults.data(forKey: "HotKeyConfigurations")
         let appLauncherShortcuts = defaults.data(forKey: "AppLauncherShortcuts")
         let shortcutDetectiveEnabled = defaults.object(forKey: "ShortcutDetectiveEnabled") as? Bool
+        let lockAIStatusText = defaults.string(forKey: "LockAIStatusText")
         
         return AppConfiguration(
             searchPaths: searchPaths,
             hotKeyConfigurations: hotKeyConfig,
             appLauncherShortcuts: appLauncherShortcuts,
-            shortcutDetectiveEnabled: shortcutDetectiveEnabled
+            shortcutDetectiveEnabled: shortcutDetectiveEnabled,
+            lockAIStatusText: lockAIStatusText
         )
     }
     
@@ -199,6 +202,10 @@ struct CommonSettingsView: View {
 
         if let shortcutDetectiveEnabled = config.shortcutDetectiveEnabled {
             ShortcutDetectiveManager.shared.isEnabled = shortcutDetectiveEnabled
+        }
+
+        if let lockAIStatusText = config.lockAIStatusText {
+            LockAIManager.shared.statusText = lockAIStatusText
         }
     }
 }
