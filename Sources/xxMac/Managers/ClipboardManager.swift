@@ -225,15 +225,22 @@ class ClipboardManager: ObservableObject {
         logClipboardFlow("paste.begin type=\(item.type.rawValue)")
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
+        var didWritePasteboard = false
         
         switch item.type {
         case .text:
-            pasteboard.setString(item.content, forType: .string)
+            didWritePasteboard = pasteboard.setString(item.content, forType: .string)
         case .image:
             let url = storage.getImagePath(filename: item.content)
             if let image = NSImage(contentsOf: url) {
-                pasteboard.writeObjects([image])
+                didWritePasteboard = pasteboard.writeObjects([image])
             }
+        }
+
+        if didWritePasteboard {
+            storage.markItemUsed(item)
+            changeCount = pasteboard.changeCount
+            refreshHistory()
         }
         
         logClipboardFlow("paste.afterPasteboardWrite")

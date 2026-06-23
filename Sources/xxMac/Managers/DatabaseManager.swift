@@ -151,6 +151,19 @@ class DatabaseManager {
         }
     }
 
+    func updateItemTimestamp(id: String) {
+        withDatabase {
+            let sql = "UPDATE clipboard_items SET timestamp = ? WHERE id = ?;"
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_double(statement, 1, Date().timeIntervalSince1970)
+                sqlite3_bind_text(statement, 2, (id as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
+
     func getAllItems(limit: Int = 100) -> [ClipboardItem] {
         return withDatabase {
             let sql = "SELECT id, type, content, timestamp, size FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"

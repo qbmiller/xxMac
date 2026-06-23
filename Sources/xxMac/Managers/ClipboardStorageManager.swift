@@ -50,6 +50,10 @@ class ClipboardStorageManager {
             try? FileManager.default.removeItem(at: fileURL)
         }
     }
+
+    func markItemUsed(_ item: ClipboardItem) {
+        dbManager.updateItemTimestamp(id: item.id.uuidString)
+    }
     
     func clearHistory(type: ClipboardContentType? = nil) {
         let items = dbManager.getAllItems(limit: 10000)
