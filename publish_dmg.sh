@@ -5,6 +5,7 @@ set -euo pipefail
 APP_NAME="${APP_NAME:-xxMac}"
 APP_BUNDLE="${APP_NAME}.app"
 SKIP_BUILD="${SKIP_BUILD:-0}"
+SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller-dev}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFO_PLIST="${SCRIPT_DIR}/Sources/xxMac/Info.plist"
@@ -20,6 +21,12 @@ cd "$SCRIPT_DIR"
 
 if [[ ! -f "$INFO_PLIST" ]]; then
   echo "Missing Info.plist: $INFO_PLIST"
+  exit 1
+fi
+
+if [[ -z "$SIGNING_IDENTITY" || "$SIGNING_IDENTITY" == "-" ]]; then
+  echo "Missing fixed SIGNING_IDENTITY for DMG publishing."
+  echo 'Example: SIGNING_IDENTITY="qbmiller-dev" bash publish_dmg.sh'
   exit 1
 fi
 
@@ -65,7 +72,7 @@ fi
 
 if [[ "$SKIP_BUILD" != "1" ]]; then
   echo "1) Build app bundle..."
-  bash bundle_app.sh
+  REQUIRE_SIGNING_IDENTITY=1 SIGNING_IDENTITY="$SIGNING_IDENTITY" bash bundle_app.sh
 else
   echo "1) Skip build; use existing ${APP_BUNDLE}."
   echo "   Note: existing ${APP_BUNDLE} may still contain the previous version if it was built before this prompt."
@@ -73,6 +80,19 @@ fi
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "Missing ${APP_BUNDLE}. Run bash bundle_app.sh first, or set SKIP_BUILD=0."
+  exit 1
+fi
+
+echo "Verify app signature identity..."
+SIGNATURE_INFO="$(codesign -dv --verbose=4 "$APP_PATH" 2>&1)"
+if [[ "$SIGNATURE_INFO" == *"Signature=adhoc"* ]]; then
+  echo "App is ad-hoc signed, expected fixed identity: $SIGNING_IDENTITY"
+  echo "$SIGNATURE_INFO"
+  exit 1
+fi
+if ! codesign -d -r- "$APP_PATH" 2>&1 | grep -q "certificate leaf"; then
+  echo "App signature does not contain a certificate leaf requirement."
+  codesign -d -r- "$APP_PATH" 2>&1 || true
   exit 1
 fi
 
@@ -96,5 +116,5 @@ echo "Done."
 echo "DMG: $DMG_PATH"
 echo "Version: $RELEASE_VERSION"
 echo ""
-echo "Install note for ad-hoc signed builds:"
+echo "Install note for locally signed builds:"
 echo "  xattr -cr /Applications/${APP_BUNDLE}"

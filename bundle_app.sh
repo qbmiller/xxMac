@@ -10,6 +10,12 @@ APP_BUNDLE="$APP_NAME.app"
 # And set SIGNING_IDENTITY to the name of your certificate, e.g.:
 # SIGNING_IDENTITY="Apple Development: Your Name (XXXXXXXXXX)"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:--}"
+REQUIRE_SIGNING_IDENTITY="${REQUIRE_SIGNING_IDENTITY:-0}"
+
+if [ "$REQUIRE_SIGNING_IDENTITY" = "1" ] && [ "$SIGNING_IDENTITY" = "-" ]; then
+    echo "REQUIRE_SIGNING_IDENTITY=1 requires a fixed SIGNING_IDENTITY."
+    exit 1
+fi
 
 # 1. Build
 echo "Building..."
@@ -36,8 +42,12 @@ chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 
 # 7. Code Sign the app (required for global hotkeys to work)
 echo "Code signing with identity: $SIGNING_IDENTITY"
-codesign --deep --force --verify --verbose --sign "$SIGNING_IDENTITY" --options runtime "$APP_BUNDLE" 2>/dev/null || {
+codesign --deep --force --verbose --sign "$SIGNING_IDENTITY" --options runtime "$APP_BUNDLE" 2>/dev/null || {
     echo "Warning: Code signing failed with identity: $SIGNING_IDENTITY"
+    if [ "$REQUIRE_SIGNING_IDENTITY" = "1" ]; then
+        echo "Fixed signing is required; refusing to fall back to ad-hoc signing."
+        exit 1
+    fi
     if [ "$SIGNING_IDENTITY" != "-" ]; then
         echo "Falling back to ad-hoc signing (-)..."
         codesign --deep --force --verify --verbose --sign - "$APP_BUNDLE"

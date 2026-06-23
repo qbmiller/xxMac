@@ -26,6 +26,8 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 bash publish_dmg.sh
 ```
 
+`publish_dmg.sh` 默认使用固定签名身份 `qbmiller-dev`，不支持使用 ad-hoc 签名发布 DMG。脚本会校验生成的 `xxMac.app` 不是 ad-hoc 签名，并包含证书要求，避免 macOS 把重新打包后的 App 当成新的辅助功能授权主体。需要临时换证书时，可以通过 `SIGNING_IDENTITY` 环境变量覆盖。
+
 脚本会：
 
 1. 读取并打印 `Sources/xxMac/Info.plist` 中的当前版本。
@@ -82,7 +84,7 @@ open /Applications/xxMac.app
 3. 进入 Accessibility。
 4. 添加并启用当前路径下的 `xxMac.app`。
 
-重新打包或移动 App 后，如果快捷键、窗口控制或剪贴板回贴失效，优先检查 Accessibility 列表里授权的是否是当前路径下的 `xxMac.app`。必要时删除旧条目后重新添加。
+重新打包或移动 App 后，如果快捷键、窗口控制或剪贴板回贴失效，优先检查 Accessibility 列表里授权的是否是当前路径下的 `xxMac.app`，并确认每次发布使用同一个 `SIGNING_IDENTITY`。必要时删除旧条目后重新添加。
 
 ## 常用排障命令
 
