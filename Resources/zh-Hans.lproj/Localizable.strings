@@ -25,6 +25,11 @@
 "common.import_success" = "配置导入成功！";
 "common.error_format" = "错误：%@";
 "common.export_filename" = "xxMac_Config.json";
+"general.cancel" = "取消";
+
+"accessibility.required_title" = "需要辅助功能权限";
+"accessibility.required_message" = "窗口管理快捷键已经触发，但 xxMac 没有权限控制其他应用窗口。请在“系统设置 > 隐私与安全性 > 辅助功能”中启用当前路径下的 xxMac，删除旧的，再添加然后重新尝试。";
+"accessibility.open_settings" = "打开系统设置";
 
 "language.title" = "语言";
 "language.description" = "选择应用界面语言。";
@@ -42,16 +47,21 @@
 "hotkey.click_to_record" = "点击录制";
 
 "shortcut.enable" = "启用 ShortcutDetective";
-"shortcut.desc" = "检测哪个应用接收了键盘快捷键。";
+"shortcut.desc" = "监听系统键盘事件，检测快捷键被哪个应用捕获，包括后台全局快捷键和重映射工具。";
 "shortcut.last_detection" = "上次检测";
 "shortcut.action_format" = "操作：%@";
 "shortcut.hotkey_format" = "快捷键：%@";
-"shortcut.app_format" = "应用：%@";
+"shortcut.app_format" = "捕获应用：%@";
 "shortcut.bundle_format" = "Bundle ID：%@";
+"shortcut.frontmost_format" = "前台应用：%@";
+"shortcut.background_handler" = "后台应用捕获了该快捷键";
+"shortcut.synthesized" = "检测到软件合成/重映射快捷键";
+"shortcut.suspects_format" = "可能相关的全局快捷键应用：%@";
 "shortcut.time_format" = "时间：%@";
 "shortcut.none" = "暂无检测记录。";
 "shortcut.clear" = "清除记录";
 "shortcut.tip_message" = "%@ 捕获了 %@ 快捷键";
+"shortcut.detected_shortcut" = "检测到快捷键";
 "shortcut.unknown_app" = "未知应用";
 "shortcut.unknown_bundle" = "未知 Bundle ID";
 
@@ -61,7 +71,9 @@
 "about.last_updated_label" = "最近更新";
 "about.checking" = "检查中...";
 "about.check_updates" = "检查更新";
-"about.up_to_date" = "当前版本已是最新。";
+"about.up_to_date_format" = "当前版本 %@ 已是最新。";
+"about.update_available_format" = "发现新版本 %@。请打开上方 GitHub Release 页面下载。";
+"about.update_check_failed" = "检查更新失败，请稍后重试。";
 "about.copyright" = "© 2026 Miller. 保留所有权利。";
 
 "launcher_settings.desc" = "为应用设置快捷键以快速启动或切换。";

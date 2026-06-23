@@ -25,6 +25,11 @@
 "common.import_success" = "Configuration imported successfully!";
 "common.error_format" = "Error: %@";
 "common.export_filename" = "xxMac_Config.json";
+"general.cancel" = "Cancel";
+
+"accessibility.required_title" = "Accessibility Permission Required";
+"accessibility.required_message" = "The window-management hotkey was triggered, but xxMac is not allowed to control other apps' windows. In System Settings > Privacy & Security > Accessibility, enable the xxMac app at the current path. Remove the old entry, add the current app again, then try again.";
+"accessibility.open_settings" = "Open System Settings";
 
 "language.title" = "Language";
 "language.description" = "Choose the interface language for the app.";
@@ -42,16 +47,21 @@
 "hotkey.click_to_record" = "Click to record";
 
 "shortcut.enable" = "Enable ShortcutDetective";
-"shortcut.desc" = "Detects which app receives a keyboard shortcut (hotkey).";
+"shortcut.desc" = "Monitors system keyboard events to detect which app captures a shortcut, including background global-hotkey and remapping tools.";
 "shortcut.last_detection" = "Last Detection";
 "shortcut.action_format" = "Action: %@";
 "shortcut.hotkey_format" = "Hotkey: %@";
-"shortcut.app_format" = "App: %@";
+"shortcut.app_format" = "Capturing App: %@";
 "shortcut.bundle_format" = "Bundle ID: %@";
+"shortcut.frontmost_format" = "Frontmost App: %@";
+"shortcut.background_handler" = "A background app captured this shortcut";
+"shortcut.synthesized" = "Software-generated/remapped shortcut detected";
+"shortcut.suspects_format" = "Possible global-hotkey apps: %@";
 "shortcut.time_format" = "Time: %@";
 "shortcut.none" = "No hotkey detected yet.";
 "shortcut.clear" = "Clear Detection";
 "shortcut.tip_message" = "%@ captured %@ shortcut";
+"shortcut.detected_shortcut" = "Detected Shortcut";
 "shortcut.unknown_app" = "Unknown App";
 "shortcut.unknown_bundle" = "Unknown Bundle ID";
 
@@ -61,7 +71,9 @@
 "about.last_updated_label" = "Last Updated";
 "about.checking" = "Checking...";
 "about.check_updates" = "Check for Updates";
-"about.up_to_date" = "Your version is up to date.";
+"about.up_to_date_format" = "Version %@ is up to date.";
+"about.update_available_format" = "Version %@ is available. Open the GitHub Release page above to download it.";
+"about.update_check_failed" = "Unable to check for updates. Please try again later.";
 "about.copyright" = "© 2026 Miller. All rights reserved.";
 
 "launcher_settings.desc" = "Assign shortcuts to launch or switch to applications quickly.";

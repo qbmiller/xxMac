@@ -50,18 +50,11 @@ class HotKeyManager: ObservableObject {
     static let shared = HotKeyManager()
     
     private var hotKeys: [WindowAction: HotKey] = [:]
+    private var pauseTokens = Set<UUID>()
     
     @Published var configurations: [WindowAction: HotKeyConfiguration] = [:]
     
-    var isPaused = false {
-        didSet {
-            if isPaused {
-                hotKeys.values.forEach { $0.isPaused = true }
-            } else {
-                hotKeys.values.forEach { $0.isPaused = false }
-            }
-        }
-    }
+    private(set) var isPaused = false
     
     private init() {
         loadConfigurations()
@@ -128,6 +121,29 @@ class HotKeyManager: ObservableObject {
             }
             hotKeys[action] = hotKey
         }
+        NSLog("[HotKeyManager] refreshed %d hotkeys, paused=%@", hotKeys.count, isPaused.description)
+    }
+
+    func pauseHotKeys() -> UUID {
+        let token = UUID()
+        pauseTokens.insert(token)
+        updatePausedState()
+        return token
+    }
+
+    func resumeHotKeys(_ token: UUID?) {
+        guard let token else { return }
+        pauseTokens.remove(token)
+        updatePausedState()
+    }
+
+    private func updatePausedState() {
+        let shouldPause = !pauseTokens.isEmpty
+        guard shouldPause != isPaused else { return }
+
+        isPaused = shouldPause
+        hotKeys.values.forEach { $0.isPaused = shouldPause }
+        NSLog("[HotKeyManager] hotkeys paused=%@ activePauseTokens=%d", shouldPause.description, pauseTokens.count)
     }
     
     func updateConfiguration(for action: WindowAction, key: Key, modifiers: NSEvent.ModifierFlags) {

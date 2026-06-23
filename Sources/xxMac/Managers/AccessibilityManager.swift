@@ -3,6 +3,9 @@ import ApplicationServices
 
 class AccessibilityManager {
     static let shared = AccessibilityManager()
+
+    private var lastPermissionAlertAt = Date.distantPast
+    private let permissionAlertCooldown: TimeInterval = 10
     
     private init() {}
     
@@ -10,6 +13,35 @@ class AccessibilityManager {
     func checkAccessibilityPermissions() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
+    }
+
+    func ensureAccessibilityPermissions() -> Bool {
+        guard checkAccessibilityPermissions() else {
+            showAccessibilityPermissionAlert()
+            return false
+        }
+        return true
+    }
+
+    private func showAccessibilityPermissionAlert() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+
+            let now = Date()
+            guard now.timeIntervalSince(self.lastPermissionAlertAt) >= self.permissionAlertCooldown else { return }
+            self.lastPermissionAlertAt = now
+
+            let alert = NSAlert()
+            alert.messageText = L10n.t("accessibility.required_title")
+            alert.informativeText = L10n.t("accessibility.required_message")
+            alert.addButton(withTitle: L10n.t("accessibility.open_settings"))
+            alert.addButton(withTitle: L10n.t("general.cancel"))
+
+            if alert.runModal() == .alertFirstButtonReturn,
+               let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
+        }
     }
     
     // Get the frontmost application's focused window
@@ -51,6 +83,10 @@ class AccessibilityManager {
             }
         }
 
+        NSLog("[AccessibilityManager] no focused window found focusedAppResult=%@ focusedWindowResult=%@ focusedElementResult=%@",
+              String(describing: focusedAppResult),
+              String(describing: focusedWindowResult),
+              String(describing: focusedElementResult))
         return nil
     }
     
@@ -122,76 +158,93 @@ class AccessibilityManager {
 
     // Resize and move window
     func moveWindow(to rect: CGRect) {
+        guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
         
         // Position
         var position = CGPoint(x: rect.origin.x, y: rect.origin.y)
         if let positionValue = AXValueCreate(.cgPoint, &position) {
-            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+            let result = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+            if result != .success {
+                NSLog("[AccessibilityManager] failed to set window position: %@", String(describing: result))
+            }
         }
         
         // Size
         var size = CGSize(width: rect.size.width, height: rect.size.height)
         if let sizeValue = AXValueCreate(.cgSize, &size) {
-            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+            let result = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+            if result != .success {
+                NSLog("[AccessibilityManager] failed to set window size: %@", String(describing: result))
+            }
         }
     }
     
     // Actions
     func maximize() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         moveWindow(to: screen)
     }
     
     func leftHalf() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX, y: screen.minY, width: screen.width / 2, height: screen.height)
         moveWindow(to: rect)
     }
     
     func rightHalf() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX + screen.width / 2, y: screen.minY, width: screen.width / 2, height: screen.height)
         moveWindow(to: rect)
     }
     
     func topHalf() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX, y: screen.minY, width: screen.width, height: screen.height / 2)
         moveWindow(to: rect)
     }
     
     func bottomHalf() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX, y: screen.minY + screen.height / 2, width: screen.width, height: screen.height / 2)
         moveWindow(to: rect)
     }
     
     func topLeft() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX, y: screen.minY, width: screen.width / 2, height: screen.height / 2)
         moveWindow(to: rect)
     }
     
     func topRight() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX + screen.width / 2, y: screen.minY, width: screen.width / 2, height: screen.height / 2)
         moveWindow(to: rect)
     }
     
     func bottomLeft() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX, y: screen.minY + screen.height / 2, width: screen.width / 2, height: screen.height / 2)
         moveWindow(to: rect)
     }
     
     func bottomRight() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let rect = CGRect(x: screen.minX + screen.width / 2, y: screen.minY + screen.height / 2, width: screen.width / 2, height: screen.height / 2)
         moveWindow(to: rect)
     }
     
     func center() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let screen = getCurrentScreenVisibleFrame() else { return }
         let width = screen.width * 0.8
         let height = screen.height * 0.8
@@ -201,20 +254,31 @@ class AccessibilityManager {
     }
     
     func toggleZoom() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
-        AXUIElementPerformAction(window, kAXZoomButtonAttribute as CFString)
+        let result = AXUIElementPerformAction(window, kAXZoomButtonAttribute as CFString)
+        if result != .success {
+            NSLog("[AccessibilityManager] failed to toggle zoom: %@", String(describing: result))
+        }
     }
     
     func toggleFullscreen() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
         var fullscreen: AnyObject?
         let result = AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &fullscreen)
         if result == .success, let isFullscreen = fullscreen as? Bool {
-            AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, !isFullscreen as CFTypeRef)
+            let setResult = AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, !isFullscreen as CFTypeRef)
+            if setResult != .success {
+                NSLog("[AccessibilityManager] failed to toggle fullscreen: %@", String(describing: setResult))
+            }
+        } else {
+            NSLog("[AccessibilityManager] failed to read fullscreen state: %@", String(describing: result))
         }
     }
     
     func nextScreen() {
+        guard ensureAccessibilityPermissions() else { return }
         let screens = NSScreen.screens
         guard screens.count > 1 else { return }
         guard let window = getFocusedWindow(), let currentFrame = getWindowFrame(window) else { return }
@@ -229,6 +293,7 @@ class AccessibilityManager {
     }
     
     func increase() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
         var sizeValue: AnyObject?
         AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue)
@@ -250,6 +315,7 @@ class AccessibilityManager {
     }
     
     func reduce() {
+        guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
         var sizeValue: AnyObject?
         AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue)
@@ -271,6 +337,7 @@ class AccessibilityManager {
     }
     
     func previousScreen() {
+        guard ensureAccessibilityPermissions() else { return }
         let screens = NSScreen.screens
         guard screens.count > 1 else { return }
         guard let window = getFocusedWindow(), let currentFrame = getWindowFrame(window) else { return }

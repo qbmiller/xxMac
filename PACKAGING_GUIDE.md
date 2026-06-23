@@ -31,9 +31,10 @@ bash publish_dmg.sh
 1. 读取并打印 `Sources/xxMac/Info.plist` 中的当前版本。
 2. 提示输入本次发布版本。
 3. 写回 `CFBundleShortVersionString` 和 `CFBundleVersion`。
-4. 调用 `bundle_app.sh` 重新生成 `xxMac.app`。
-5. 创建包含 `xxMac.app` 和 `Applications` 快捷方式的压缩 DMG。
-6. 执行 `hdiutil verify` 校验镜像。
+4. 写回 `XXLastUpdated`，关于页会显示这个最近更新时间。
+5. 调用 `bundle_app.sh` 重新生成 `xxMac.app`。
+6. 创建包含 `xxMac.app` 和 `Applications` 快捷方式的压缩 DMG。
+7. 执行 `hdiutil verify` 校验镜像。
 
 版本号也可以通过环境变量传入：
 
@@ -59,6 +60,7 @@ DMG_NAME="xxMac-0.0.1.dmg" VOLUME_NAME="xxMac" bash publish_dmg.sh
 
 - `CFBundleShortVersionString`：展示版本号，关于页读取这个字段。
 - `CFBundleVersion`：构建版本号，发布脚本会同步写成同一个版本。
+- `XXLastUpdated`：最近更新时间，发布脚本会写入当天日期，关于页读取这个字段。
 
 ## 无开发者账号
 

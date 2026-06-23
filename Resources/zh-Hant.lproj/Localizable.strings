@@ -25,6 +25,11 @@
 "common.import_success" = "設定匯入成功！";
 "common.error_format" = "錯誤：%@";
 "common.export_filename" = "xxMac_Config.json";
+"general.cancel" = "取消";
+
+"accessibility.required_title" = "需要輔助使用權限";
+"accessibility.required_message" = "視窗管理快速鍵已觸發，但 xxMac 沒有權限控制其他應用程式視窗。請在「系統設定 > 隱私權與安全性 > 輔助使用」中啟用目前路徑下的 xxMac，然後重新嘗試。";
+"accessibility.open_settings" = "開啟系統設定";
 
 "language.title" = "語言";
 "language.description" = "選擇應用介面語言。";
@@ -42,16 +47,21 @@
 "hotkey.click_to_record" = "點擊錄製";
 
 "shortcut.enable" = "啟用 ShortcutDetective";
-"shortcut.desc" = "偵測哪個應用接收了鍵盤快速鍵。";
+"shortcut.desc" = "監聽系統鍵盤事件，偵測快速鍵被哪個應用程式捕獲，包括背景全域快速鍵和重映射工具。";
 "shortcut.last_detection" = "上次偵測";
 "shortcut.action_format" = "操作：%@";
 "shortcut.hotkey_format" = "快速鍵：%@";
-"shortcut.app_format" = "應用：%@";
+"shortcut.app_format" = "捕獲應用：%@";
 "shortcut.bundle_format" = "Bundle ID：%@";
+"shortcut.frontmost_format" = "前台應用：%@";
+"shortcut.background_handler" = "背景應用程式捕獲了該快速鍵";
+"shortcut.synthesized" = "偵測到軟體合成/重映射快速鍵";
+"shortcut.suspects_format" = "可能相關的全域快速鍵應用：%@";
 "shortcut.time_format" = "時間：%@";
 "shortcut.none" = "尚無偵測記錄。";
 "shortcut.clear" = "清除記錄";
 "shortcut.tip_message" = "%@ 捕獲了 %@ 快速鍵";
+"shortcut.detected_shortcut" = "偵測到快速鍵";
 "shortcut.unknown_app" = "未知應用";
 "shortcut.unknown_bundle" = "未知 Bundle ID";
 
@@ -61,7 +71,9 @@
 "about.last_updated_label" = "最近更新";
 "about.checking" = "檢查中...";
 "about.check_updates" = "檢查更新";
-"about.up_to_date" = "目前版本已是最新。";
+"about.up_to_date_format" = "目前版本 %@ 已是最新。";
+"about.update_available_format" = "發現新版本 %@。請開啟上方 GitHub Release 頁面下載。";
+"about.update_check_failed" = "檢查更新失敗，請稍後再試。";
 "about.copyright" = "© 2026 Miller. 保留所有權利。";
 
 "launcher_settings.desc" = "為應用設定快速鍵以快速啟動或切換。";

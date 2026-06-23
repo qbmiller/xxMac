@@ -25,6 +25,7 @@ fi
 
 CURRENT_VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$INFO_PLIST")"
 CURRENT_BUILD="$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$INFO_PLIST")"
+RELEASE_DATE="$(date +%Y-%m-%d)"
 
 echo "Current version: $CURRENT_VERSION"
 echo "Current build: $CURRENT_BUILD"
@@ -47,12 +48,19 @@ VOLUME_NAME="${VOLUME_NAME:-${APP_NAME} ${RELEASE_VERSION}}"
 DMG_PATH="${SCRIPT_DIR}/${DMG_NAME}"
 
 echo "Release version: $RELEASE_VERSION"
+echo "Release date: $RELEASE_DATE"
 echo "Version source: $INFO_PLIST"
 
 if [[ "$RELEASE_VERSION" != "$CURRENT_VERSION" || "$RELEASE_VERSION" != "$CURRENT_BUILD" ]]; then
   echo "Update Info.plist version..."
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $RELEASE_VERSION" "$INFO_PLIST"
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $RELEASE_VERSION" "$INFO_PLIST"
+fi
+
+if /usr/libexec/PlistBuddy -c "Print :XXLastUpdated" "$INFO_PLIST" >/dev/null 2>&1; then
+  /usr/libexec/PlistBuddy -c "Set :XXLastUpdated $RELEASE_DATE" "$INFO_PLIST"
+else
+  /usr/libexec/PlistBuddy -c "Add :XXLastUpdated string $RELEASE_DATE" "$INFO_PLIST"
 fi
 
 if [[ "$SKIP_BUILD" != "1" ]]; then

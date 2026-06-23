@@ -97,6 +97,7 @@ struct SettingsView: View {
 struct AboutSettingsView: View {
     @State private var isCheckingForUpdates = false
     @State private var updateMessage: String?
+    private let releaseURL = URL(string: "https://github.com/qbmiller/xxMac/releases")!
     
     var body: some View {
         VStack(spacing: 24) {
@@ -121,9 +122,9 @@ struct AboutSettingsView: View {
             // Info Grid
             VStack(alignment: .leading, spacing: 12) {
                 InfoRow(label: L10n.t("about.author_label"), value: "Miller")
-                InfoRow(label: L10n.t("about.version_label"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0")
+                InfoRow(label: L10n.t("about.version_label"), value: currentVersion)
                 InfoRow(label: L10n.t("about.build_label"), value: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1")
-                InfoRow(label: L10n.t("about.last_updated_label"), value: "2026-02-09")
+                InfoRow(label: L10n.t("about.last_updated_label"), value: Bundle.main.object(forInfoDictionaryKey: "XXLastUpdated") as? String ?? "2026-02-09")
             }
             .padding()
             .background(Color(NSColor.controlBackgroundColor))
@@ -136,6 +137,11 @@ struct AboutSettingsView: View {
             
             // Update Section
             VStack(spacing: 12) {
+                Text(releaseURL.absoluteString)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textSelection(.enabled)
+
                 Button(action: checkForUpdates) {
                     HStack {
                         if isCheckingForUpdates {
@@ -147,7 +153,7 @@ struct AboutSettingsView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isCheckingForUpdates)
-                
+
                 if let message = updateMessage {
                     Text(message)
                         .font(.subheadline)
@@ -166,14 +172,98 @@ struct AboutSettingsView: View {
     }
     
     private func checkForUpdates() {
+        Task {
+            await loadLatestRelease()
+        }
+    }
+
+    private var currentVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+    }
+
+    @MainActor
+    private func loadLatestRelease() async {
         isCheckingForUpdates = true
         updateMessage = nil
-        
-        // Simulate a check
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isCheckingForUpdates = false
-            updateMessage = L10n.t("about.up_to_date")
+
+        do {
+            let release = try await GitHubRelease.latest()
+            if isNewerVersion(release.version, than: currentVersion) {
+                updateMessage = L10n.f("about.update_available_format", release.version)
+            } else {
+                updateMessage = L10n.f("about.up_to_date_format", currentVersion)
+            }
+        } catch {
+            updateMessage = L10n.t("about.update_check_failed")
         }
+
+        isCheckingForUpdates = false
+    }
+
+    private func isNewerVersion(_ remoteVersion: String, than localVersion: String) -> Bool {
+        let remoteParts = versionParts(remoteVersion)
+        let localParts = versionParts(localVersion)
+        let count = max(remoteParts.count, localParts.count)
+
+        for index in 0..<count {
+            let remotePart = index < remoteParts.count ? remoteParts[index] : 0
+            let localPart = index < localParts.count ? localParts[index] : 0
+            if remotePart != localPart {
+                return remotePart > localPart
+            }
+        }
+
+        return false
+    }
+
+    private func versionParts(_ version: String) -> [Int] {
+        version
+            .trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+            .split(separator: ".")
+            .map { Int($0) ?? 0 }
+    }
+}
+
+private struct GitHubRelease {
+    let tagName: String
+
+    var version: String {
+        tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
+    }
+
+    static func latest() async throws -> GitHubRelease {
+        let url = URL(string: "https://github.com/qbmiller/xxMac/releases/latest")!
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.httpMethod = "HEAD"
+
+        let delegate = LatestReleaseRedirectDelegate()
+        let (_, response) = try await URLSession.shared.data(for: request, delegate: delegate)
+        let tagURL = delegate.redirectURL ?? response.url
+        guard let tagName = tagURL?.lastPathComponent,
+              tagURL?.path.contains("/releases/tag/") == true else {
+            throw URLError(.badURL)
+        }
+
+        return GitHubRelease(tagName: tagName)
+    }
+}
+
+private final class LatestReleaseRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    private(set) var redirectURL: URL?
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        guard 300..<400 ~= response.statusCode,
+              let url = request.url else {
+            return request
+        }
+
+        redirectURL = url
+        return nil
     }
 }
 
@@ -463,10 +553,23 @@ struct ShortcutDetectiveSettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.t("shortcut.last_detection"))
                             .font(.headline)
-                        Text(L10n.f("shortcut.action_format", lastDetection.actionName))
+                        Text(L10n.f("shortcut.action_format", lastDetection.displayActionName))
                         Text(L10n.f("shortcut.hotkey_format", lastDetection.hotkeyDisplay))
-                        Text(L10n.f("shortcut.app_format", lastDetection.appName))
-                        Text(L10n.f("shortcut.bundle_format", lastDetection.bundleIdentifier))
+                        Text(L10n.f("shortcut.app_format", lastDetection.handlerAppName))
+                        Text(L10n.f("shortcut.bundle_format", lastDetection.handlerBundleIdentifier))
+                        Text(L10n.f("shortcut.frontmost_format", lastDetection.frontmostAppName))
+                        if lastDetection.isBackgroundHandler {
+                            Text(L10n.t("shortcut.background_handler"))
+                                .foregroundColor(.orange)
+                        }
+                        if lastDetection.isSynthesized {
+                            Text(L10n.t("shortcut.synthesized"))
+                                .foregroundColor(.orange)
+                        }
+                        if !lastDetection.suspectedHandlers.isEmpty {
+                            Text(L10n.f("shortcut.suspects_format", lastDetection.suspectedHandlers.joined(separator: ", ")))
+                                .foregroundColor(.secondary)
+                        }
                         Text(L10n.f("shortcut.time_format", detectionTimeString))
                             .foregroundColor(.secondary)
                     }
@@ -640,6 +743,7 @@ struct HotKeyRecorderView: View {
     @ObservedObject var hotKeyManager = HotKeyManager.shared
     @State private var isRecording = false
     @State private var monitor: Any?
+    @State private var pauseToken: UUID?
     
     var body: some View {
         HStack(spacing: 0) {
@@ -696,7 +800,7 @@ struct HotKeyRecorderView: View {
     
     func startRecording() {
         isRecording = true
-        hotKeyManager.isPaused = true
+        pauseToken = hotKeyManager.pauseHotKeys()
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             if isRecording {
                 if event.keyCode == 53 { // ESC
@@ -723,10 +827,11 @@ struct HotKeyRecorderView: View {
     
     func stopRecording() {
         isRecording = false
-        hotKeyManager.isPaused = false
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
         }
+        hotKeyManager.resumeHotKeys(pauseToken)
+        pauseToken = nil
     }
 }
