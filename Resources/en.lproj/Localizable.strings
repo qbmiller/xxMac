@@ -92,6 +92,8 @@
 "clipboard.clear_history" = "Clear History";
 "clipboard.save_images" = "Save Images";
 "clipboard.max_image_size" = "Max Image Size";
+"clipboard.max_history_items" = "Max History Items";
+"clipboard.max_image_storage" = "Image Cache Limit";
 "clipboard.toggle_history" = "Toggle Clipboard History";
 "clipboard.type_hotkey" = "Type Hotkey...";
 "clipboard.none" = "None";
@@ -101,6 +103,7 @@
 "clipboard.days_14" = "14 Days";
 "clipboard.days_30" = "30 Days";
 "clipboard.days_90" = "90 Days";
+"clipboard.items_format" = "%d items";
 "clipboard.max_size_format" = "%d MB";
 "clipboard.image_unavailable" = "Image unavailable";
 "clipboard.select_item_preview" = "Select a clipboard item to preview";

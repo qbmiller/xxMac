@@ -92,6 +92,7 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 - App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings.
 - Hotkey settings, app quick-launch settings, launcher window size and appearance, language preference, and other lightweight settings are stored in `UserDefaults`.
 - The clipboard database and image cache are stored in `~/Library/Application Support/xxMac`.
+- The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.
 - In the settings window, the first column is tool categories, the second column is feature items, and the third column contains detailed configuration.
 
 ## Directory Structure

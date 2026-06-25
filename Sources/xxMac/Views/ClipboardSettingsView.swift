@@ -16,6 +16,18 @@ struct ClipboardSettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+
+                Stepper(value: Binding(
+                    get: { clipboardManager.settings.maxHistoryItems },
+                    set: { clipboardManager.settings.maxHistoryItems = $0 }
+                ), in: 100...10000, step: 100) {
+                    HStack {
+                        Text(L10n.t("clipboard.max_history_items"))
+                        Spacer()
+                        Text(L10n.f("clipboard.items_format", clipboardManager.settings.maxHistoryItems))
+                            .foregroundColor(.secondary)
+                    }
+                }
             } header: {
                 Text(L10n.t("clipboard.section_history")).font(.headline)
             }
@@ -59,6 +71,18 @@ struct ClipboardSettingsView: View {
                         ), in: 10...1000, step: 10)
                         Text(L10n.f("clipboard.max_size_format", clipboardManager.settings.maxImageSizeMB))
                             .frame(width: 60, alignment: .trailing)
+                    }
+
+                    Stepper(value: Binding(
+                        get: { clipboardManager.settings.maxImageStorageSizeMB },
+                        set: { clipboardManager.settings.maxImageStorageSizeMB = $0 }
+                    ), in: 100...5000, step: 50) {
+                        HStack {
+                            Text(L10n.t("clipboard.max_image_storage"))
+                            Spacer()
+                            Text(L10n.f("clipboard.max_size_format", clipboardManager.settings.maxImageStorageSizeMB))
+                                .foregroundColor(.secondary)
+                        }
                     }
                     
                     HStack {

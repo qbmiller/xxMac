@@ -258,7 +258,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             launcherViewModel.selectPrevious()
             return true
         case 36: // Enter
-            launcherViewModel.executeSelection()
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            launcherViewModel.executeSelection(revealInFinder: modifiers.contains(.command))
             return true
         case 53: // ESC
             closeLauncher()

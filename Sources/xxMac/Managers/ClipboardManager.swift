@@ -11,6 +11,8 @@ struct ClipboardSettings: Codable {
     var imageCacheDurationDays: Int = 7
     var textCacheDurationDays: Int = 30
     var maxImageSizeMB: Int = 100
+    var maxHistoryItems: Int = 1000
+    var maxImageStorageSizeMB: Int = 500
     var hotKey: HotKeyConfiguration?
 
     enum CodingKeys: String, CodingKey {
@@ -19,6 +21,8 @@ struct ClipboardSettings: Codable {
         case imageCacheDurationDays
         case textCacheDurationDays
         case maxImageSizeMB
+        case maxHistoryItems
+        case maxImageStorageSizeMB
         case hotKey
     }
 
@@ -31,6 +35,8 @@ struct ClipboardSettings: Codable {
         imageCacheDurationDays = try container.decodeIfPresent(Int.self, forKey: .imageCacheDurationDays) ?? 7
         textCacheDurationDays = try container.decodeIfPresent(Int.self, forKey: .textCacheDurationDays) ?? 30
         maxImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageSizeMB) ?? 100
+        maxHistoryItems = try container.decodeIfPresent(Int.self, forKey: .maxHistoryItems) ?? 1000
+        maxImageStorageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageStorageSizeMB) ?? 500
         hotKey = try container.decodeIfPresent(HotKeyConfiguration.self, forKey: .hotKey)
     }
 }
@@ -42,6 +48,7 @@ class ClipboardManager: ObservableObject {
     @Published var settings: ClipboardSettings = ClipboardSettings() {
         didSet {
             saveSettings()
+            updateStorageLimits()
             updateHotKey()
             updateMonitoringState()
         }
@@ -78,8 +85,16 @@ class ClipboardManager: ObservableObject {
         // Initial load
         refreshHistory()
         
+        updateStorageLimits()
         updateMonitoringState()
         updateHotKey()
+    }
+
+    private func updateStorageLimits() {
+        storage.configureLimits(
+            maxItemsCount: settings.maxHistoryItems,
+            maxImageStorageSizeMB: settings.maxImageStorageSizeMB
+        )
     }
     
     func startMonitoring() {
@@ -201,6 +216,7 @@ class ClipboardManager: ObservableObject {
             switch item.type {
             case .text:
                 return SearchItem(
+                    id: "clipboard.\(item.id.uuidString)",
                     title: item.content.prefix(100).replacingOccurrences(of: "\n", with: " "),
                     subtitle: L10n.f("clipboard.item.text_format", formatDate(item.timestamp)),
                     iconName: "doc.text",
@@ -210,6 +226,7 @@ class ClipboardManager: ObservableObject {
                 )
             case .image:
                 return SearchItem(
+                    id: "clipboard.\(item.id.uuidString)",
                     title: L10n.t("clipboard.item.image_title"),
                     subtitle: L10n.f("clipboard.item.image_subtitle_format", formatSize(item.size), formatDate(item.timestamp)),
                     iconName: "photo",

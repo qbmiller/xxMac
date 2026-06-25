@@ -144,9 +144,14 @@ class LauncherViewModel: ObservableObject {
         selectedIndex = (selectedIndex - 1 + results.count) % results.count
     }
     
-    func executeSelection() {
+    func executeSelection(revealInFinder: Bool = false) {
         guard results.indices.contains(selectedIndex) else { return }
-        results[selectedIndex].action()
+        let item = results[selectedIndex]
+        if revealInFinder, item.type == .app {
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.subtitle)])
+        } else {
+            item.action()
+        }
         // Clipboard mode owns its close/focus/paste sequencing inside ClipboardManager.
         if mode != .clipboard {
             NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)

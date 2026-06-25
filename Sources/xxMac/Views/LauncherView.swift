@@ -7,6 +7,7 @@ struct LauncherView: View {
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @FocusState private var isSearchFocused: Bool
+    @State private var isCommandPressed = false
 
     private func focusSearch() {
         // Use a slightly longer delay and ensure reset
@@ -102,7 +103,8 @@ struct LauncherView: View {
                                     let item = viewModel.results[index]
                                     SearchResultRow(
                                         item: item,
-                                        isSelected: index == viewModel.selectedIndex
+                                        isSelected: index == viewModel.selectedIndex,
+                                        showsRevealInFinderAction: false
                                     )
                                     .id(index)
                                     .onTapGesture {
@@ -136,7 +138,11 @@ struct LauncherView: View {
                         LazyVStack(spacing: 0) {
                             ForEach(viewModel.results.indices, id: \.self) { index in
                                 let item = viewModel.results[index]
-                                SearchResultRow(item: item, isSelected: index == viewModel.selectedIndex)
+                                SearchResultRow(
+                                    item: item,
+                                    isSelected: index == viewModel.selectedIndex,
+                                    showsRevealInFinderAction: isCommandPressed && item.type == .app
+                                )
                                     .id(index)
                                     .onTapGesture {
                                         viewModel.selectedIndex = index
@@ -176,12 +182,20 @@ struct LauncherView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FocusLauncherSearch"))) { _ in
             focusSearch()
         }
+        .onAppear {
+            isCommandPressed = NSEvent.modifierFlags.contains(.command)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            isCommandPressed = false
+        }
+        .background(ModifierKeyMonitor(isCommandPressed: $isCommandPressed))
     }
 }
 
 struct SearchResultRow: View {
     let item: SearchItem
     let isSelected: Bool
+    let showsRevealInFinderAction: Bool
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
 
     private var sizeScale: CGFloat {
@@ -212,9 +226,19 @@ struct SearchResultRow: View {
             Spacer()
             
             if isSelected {
-                Image(systemName: "return")
-                    .font(.system(size: scaled(18), weight: .semibold))
-                    .foregroundColor(.white.opacity(0.68))
+                if showsRevealInFinderAction {
+                    HStack(spacing: scaled(6)) {
+                        Image(systemName: "folder")
+                            .font(.system(size: scaled(16), weight: .semibold))
+                        Text("Reveal in Finder")
+                            .font(.system(size: scaled(14), weight: .semibold))
+                    }
+                    .foregroundColor(.white.opacity(0.72))
+                } else {
+                    Image(systemName: "return")
+                        .font(.system(size: scaled(18), weight: .semibold))
+                        .foregroundColor(.white.opacity(0.68))
+                }
             }
         }
         .padding(.horizontal, scaled(28))
@@ -222,6 +246,37 @@ struct SearchResultRow: View {
         .frame(height: scaled(86))
         .background(isSelected ? Color.white.opacity(0.14) : Color.clear)
         .contentShape(Rectangle())
+    }
+}
+
+private struct ModifierKeyMonitor: NSViewRepresentable {
+    @Binding var isCommandPressed: Bool
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        context.coordinator.monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown, .keyUp]) { event in
+            DispatchQueue.main.async {
+                isCommandPressed = event.modifierFlags.contains(.command)
+            }
+            return event
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    final class Coordinator {
+        var monitor: Any?
+
+        deinit {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+            }
+        }
     }
 }
 
@@ -280,6 +335,7 @@ struct ClipboardDetailPane: View {
                     }
                 case .image(let filename, _):
                     ClipboardImagePreview(filename: filename)
+                        .id(filename)
                 }
             } else {
                 VStack {
@@ -291,6 +347,7 @@ struct ClipboardDetailPane: View {
             }
         }
         .background(Color.white.opacity(0.08))
+        .id(item?.id)
     }
 }
 

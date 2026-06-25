@@ -8,8 +8,8 @@ class ClipboardStorageManager {
     private let imagesDir: URL
     private let storageDir: URL
     
-    private let maxItemsCount = 1000 // LRU limit by count
-    private let maxImageStorageSize = 500 * 1024 * 1024 // 500MB image limit
+    private var maxItemsCount = 1000
+    private var maxImageStorageSizeMB = 500
     
     private init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -20,6 +20,11 @@ class ClipboardStorageManager {
         
         let dbPath = storageDir.appendingPathComponent("clipboard.db").path
         self.dbManager = DatabaseManager(path: dbPath)
+    }
+
+    func configureLimits(maxItemsCount: Int, maxImageStorageSizeMB: Int) {
+        self.maxItemsCount = max(1, maxItemsCount)
+        self.maxImageStorageSizeMB = max(1, maxImageStorageSizeMB)
     }
     
     func saveItem(type: ClipboardContentType, content: String, size: Int) {
@@ -89,7 +94,8 @@ class ClipboardStorageManager {
     }
     
     private func cleanupImageStorage() {
-        let items = dbManager.getAllItems(limit: 2000)
+        let maxImageStorageSize = maxImageStorageSizeMB * 1024 * 1024
+        let items = dbManager.getAllItems(limit: max(maxItemsCount, 2000))
         let imageItems = items.filter { $0.type == .image }
         
         var currentSize = imageItems.reduce(0) { $0 + $1.size }
