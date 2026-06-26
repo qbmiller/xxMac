@@ -201,3 +201,32 @@
 
 "key.space" = "Space";
 "general.unknown" = "Unknown";
+"general.done" = "Done";
+
+"tool.snippets" = "Snippets";
+"function.snippets.library" = "Categories";
+"launcher.search_snippets_placeholder" = "Search snippets...";
+"snippets.page_desc" = "Select a category on the left, then maintain its snippet entries here. Search matches category, name, keyword, and content.";
+"snippets.section_shortcuts" = "Shortcuts";
+"snippets.viewer_hotkey" = "Snippet Search Hotkey";
+"snippets.viewer_hotkey_desc" = "Open the search panel, type a keyword, then press Return to type the snippet into the frontmost app.";
+"snippets.type_hotkey" = "Type Hotkey...";
+"snippets.collections" = "Collections";
+"snippets.collection_name" = "Collection Name";
+"snippets.entries" = "Entries";
+"snippets.editor" = "Edit Entry";
+"snippets.name" = "Name";
+"snippets.keyword" = "Keyword";
+"snippets.content" = "Content";
+"snippets.new_collection" = "New Collection";
+"snippets.new_entry" = "New Entry";
+"snippets.delete_collection" = "Delete Collection";
+"snippets.delete_entry" = "Delete Entry";
+"snippets.edit_entry" = "Edit Entry";
+"snippets.select_entry" = "Select an entry to edit";
+"snippets.empty_entries" = "This category has no entries yet.";
+"snippets.items_count_format" = "%d snippets";
+"snippets.uncategorized" = "Uncategorized";
+"snippets.default_collection" = "Examples";
+"snippets.default_entry_name" = "Example Snippet";
+"snippets.default_entry_content" = "This is an editable snippet.";

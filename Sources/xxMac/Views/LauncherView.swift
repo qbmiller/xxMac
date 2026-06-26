@@ -43,7 +43,29 @@ struct LauncherView: View {
     }
 
     private var shouldShowLauncherResults: Bool {
-        viewModel.mode == .launcher && launcherHasQuery && !viewModel.results.isEmpty
+        ((viewModel.mode == .launcher && launcherHasQuery) || viewModel.mode == .snippets) && !viewModel.results.isEmpty
+    }
+
+    private var searchIconName: String {
+        switch viewModel.mode {
+        case .clipboard:
+            return "doc.on.clipboard"
+        case .snippets:
+            return "text.quote"
+        case .launcher:
+            return "magnifyingglass"
+        }
+    }
+
+    private var searchPlaceholder: String {
+        switch viewModel.mode {
+        case .clipboard:
+            return L10n.t("launcher.search_clipboard_placeholder")
+        case .snippets:
+            return L10n.t("launcher.search_snippets_placeholder")
+        case .launcher:
+            return L10n.t("launcher.search_placeholder")
+        }
     }
 
     private func scaled(_ value: CGFloat) -> CGFloat {
@@ -53,12 +75,12 @@ struct LauncherView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: scaled(18)) {
-                Image(systemName: viewModel.mode == .clipboard ? "doc.on.clipboard" : "magnifyingglass")
+                Image(systemName: searchIconName)
                     .font(.system(size: scaled(34), weight: .medium))
                     .foregroundColor(.white.opacity(0.72))
                     .frame(width: scaled(42), height: scaled(42))
                 
-                TextField(viewModel.mode == .clipboard ? L10n.t("launcher.search_clipboard_placeholder") : L10n.t("launcher.search_placeholder"), text: $viewModel.query)
+                TextField(searchPlaceholder, text: $viewModel.query)
                     .font(.system(size: scaled(36), weight: .light))
                     .textFieldStyle(PlainTextFieldStyle())
                     .id(viewModel.searchID) // Force recreation when session resets

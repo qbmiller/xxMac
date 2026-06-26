@@ -84,6 +84,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         _ = AppLauncherManager.shared
         // Initialize ClipboardManager
         _ = ClipboardManager.shared
+        // Initialize SnippetManager
+        _ = SnippetManager.shared
         // Initialize LockAIManager
         _ = LockAIManager.shared
         
@@ -147,6 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(closeLauncher), name: NSNotification.Name("CloseLauncher"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(closeLauncherPanelOnly), name: NSNotification.Name("CloseLauncherPanelOnly"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(showClipboardHistory), name: NSNotification.Name("ShowClipboardHistory"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(showSnippets), name: NSNotification.Name("ShowSnippets"), object: nil)
 
         localizationCancellable = LocalizationManager.shared.$language.sink { [weak self] _ in
             self?.updateMenuTitles()
@@ -222,6 +225,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         case .clipboard:
             width = CGFloat(max(appearance.launcherWidth, 920))
             height = CGFloat(searchRowHeight + dividerHeight + appearance.launcherHeight)
+        case .snippets:
+            width = CGFloat(appearance.launcherWidth)
+            let resultHeight = min(Double(max(launcherViewModel.results.count, 1)) * resultRowHeight, appearance.launcherHeight)
+            height = CGFloat(searchRowHeight + dividerHeight + resultHeight)
         case .launcher:
             width = CGFloat(appearance.launcherWidth)
             var contentHeight = searchRowHeight
@@ -271,6 +278,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     @objc func showClipboardHistory() {
+        openLauncher()
+    }
+
+    @objc func showSnippets() {
         openLauncher()
     }
     

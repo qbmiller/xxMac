@@ -152,36 +152,60 @@ struct CommonSettingsView: View {
     // MARK: - Configuration Logic
     
     struct AppConfiguration: Codable {
+        let appLanguage: String?
         let searchPaths: [String]?
-        // We use AnyCodable wrapper or Data for flexible storage if models change, 
-        // but since we know the keys, we can store raw Data or specific structs.
-        // Storing as Data allows us to just dump it back to UserDefaults.
         let hotKeyConfigurations: Data?
+        let launcherAppearanceBackgroundHex: String?
+        let launcherAppearanceOpacity: Double?
+        let launcherAppearanceSizeScale: Double?
+        let launcherAppearanceWidth: Double?
+        let launcherAppearanceHeight: Double?
         let appLauncherShortcuts: Data?
+        let clipboardSettings: Data?
         let shortcutDetectiveEnabled: Bool?
+        let snippetSettings: Data?
+        let snippetCollections: Data?
+        let snippetEntries: Data?
+        let calendarShowLunar: Bool?
+        let calendarShowWeekNumbers: Bool?
+        let calendarFirstWeekday: Int?
+        let calendarMenuBarIconStyle: String?
         let lockAIStatusText: String?
     }
     
     private func collectConfigurations() throws -> AppConfiguration {
         let defaults = UserDefaults.standard
         
-        let searchPaths = defaults.stringArray(forKey: "AppSearchPaths")
-        let hotKeyConfig = defaults.data(forKey: "HotKeyConfigurations")
-        let appLauncherShortcuts = defaults.data(forKey: "AppLauncherShortcuts")
-        let shortcutDetectiveEnabled = defaults.object(forKey: "ShortcutDetectiveEnabled") as? Bool
-        let lockAIStatusText = defaults.string(forKey: "LockAIStatusText")
-        
         return AppConfiguration(
-            searchPaths: searchPaths,
-            hotKeyConfigurations: hotKeyConfig,
-            appLauncherShortcuts: appLauncherShortcuts,
-            shortcutDetectiveEnabled: shortcutDetectiveEnabled,
-            lockAIStatusText: lockAIStatusText
+            appLanguage: defaults.string(forKey: UserDefaultsKeys.appLanguage),
+            searchPaths: defaults.stringArray(forKey: "AppSearchPaths"),
+            hotKeyConfigurations: defaults.data(forKey: "HotKeyConfigurations"),
+            launcherAppearanceBackgroundHex: defaults.string(forKey: "LauncherAppearanceBackgroundHex"),
+            launcherAppearanceOpacity: optionalDouble(forKey: "LauncherAppearanceOpacity", in: defaults),
+            launcherAppearanceSizeScale: optionalDouble(forKey: "LauncherAppearanceSizeScale", in: defaults),
+            launcherAppearanceWidth: optionalDouble(forKey: "LauncherAppearanceWidth", in: defaults),
+            launcherAppearanceHeight: optionalDouble(forKey: "LauncherAppearanceHeight", in: defaults),
+            appLauncherShortcuts: defaults.data(forKey: "AppLauncherShortcuts"),
+            clipboardSettings: defaults.data(forKey: "ClipboardSettings"),
+            shortcutDetectiveEnabled: defaults.object(forKey: "ShortcutDetectiveEnabled") as? Bool,
+            snippetSettings: defaults.data(forKey: "SnippetSettings"),
+            snippetCollections: defaults.data(forKey: "SnippetCollections"),
+            snippetEntries: defaults.data(forKey: "SnippetEntries"),
+            calendarShowLunar: defaults.object(forKey: CalendarPreferencesKey.showLunar) as? Bool,
+            calendarShowWeekNumbers: defaults.object(forKey: CalendarPreferencesKey.showWeekNumbers) as? Bool,
+            calendarFirstWeekday: defaults.object(forKey: CalendarPreferencesKey.firstWeekday) as? Int,
+            calendarMenuBarIconStyle: defaults.string(forKey: CalendarPreferencesKey.menuBarIconStyle),
+            lockAIStatusText: defaults.string(forKey: "LockAIStatusText")
         )
     }
     
     private func restoreConfigurations(_ config: AppConfiguration) {
         let defaults = UserDefaults.standard
+
+        if let appLanguage = config.appLanguage,
+           let language = AppLanguage(rawValue: appLanguage) {
+            LocalizationManager.shared.language = language
+        }
         
         if let paths = config.searchPaths {
             // AppSearchManager handles saving when property is set
@@ -192,6 +216,26 @@ struct CommonSettingsView: View {
             defaults.set(hotKeys, forKey: "HotKeyConfigurations")
             HotKeyManager.shared.loadConfigurations()
         }
+
+        if let backgroundHex = config.launcherAppearanceBackgroundHex {
+            LauncherAppearanceManager.shared.backgroundHex = backgroundHex
+        }
+
+        if let opacity = config.launcherAppearanceOpacity {
+            LauncherAppearanceManager.shared.opacity = opacity
+        }
+
+        if let sizeScale = config.launcherAppearanceSizeScale {
+            LauncherAppearanceManager.shared.sizeScale = sizeScale
+        }
+
+        if let width = config.launcherAppearanceWidth {
+            LauncherAppearanceManager.shared.launcherWidth = width
+        }
+
+        if let height = config.launcherAppearanceHeight {
+            LauncherAppearanceManager.shared.launcherHeight = height
+        }
         
         if let shortcutsData = config.appLauncherShortcuts {
             if let decoded = try? JSONDecoder().decode([AppShortcut].self, from: shortcutsData) {
@@ -200,12 +244,54 @@ struct CommonSettingsView: View {
             }
         }
 
+        if let clipboardSettingsData = config.clipboardSettings,
+           let decoded = try? JSONDecoder().decode(ClipboardSettings.self, from: clipboardSettingsData) {
+            ClipboardManager.shared.settings = decoded
+        }
+
         if let shortcutDetectiveEnabled = config.shortcutDetectiveEnabled {
             ShortcutDetectiveManager.shared.isEnabled = shortcutDetectiveEnabled
+        }
+
+        if let snippetSettingsData = config.snippetSettings,
+           let decoded = try? JSONDecoder().decode(SnippetSettings.self, from: snippetSettingsData) {
+            SnippetManager.shared.settings = decoded
+        }
+
+        if let snippetCollectionsData = config.snippetCollections,
+           let decoded = try? JSONDecoder().decode([SnippetCollection].self, from: snippetCollectionsData) {
+            SnippetManager.shared.collections = decoded
+        }
+
+        if let snippetEntriesData = config.snippetEntries,
+           let decoded = try? JSONDecoder().decode([SnippetEntry].self, from: snippetEntriesData) {
+            SnippetManager.shared.entries = decoded
+        }
+
+        if let showLunar = config.calendarShowLunar {
+            CalendarPreferencesStore.shared.showLunar = showLunar
+        }
+
+        if let showWeekNumbers = config.calendarShowWeekNumbers {
+            CalendarPreferencesStore.shared.showWeekNumbers = showWeekNumbers
+        }
+
+        if let firstWeekday = config.calendarFirstWeekday {
+            CalendarPreferencesStore.shared.firstWeekday = firstWeekday
+        }
+
+        if let rawStyle = config.calendarMenuBarIconStyle,
+           let style = CalendarMenuBarIconStyle(rawValue: rawStyle) {
+            CalendarPreferencesStore.shared.menuBarIconStyle = style
         }
 
         if let lockAIStatusText = config.lockAIStatusText {
             LockAIManager.shared.statusText = lockAIStatusText
         }
+    }
+
+    private func optionalDouble(forKey key: String, in defaults: UserDefaults) -> Double? {
+        guard defaults.object(forKey: key) != nil else { return nil }
+        return defaults.double(forKey: key)
     }
 }

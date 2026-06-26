@@ -6,6 +6,7 @@ import OSLog
 enum LauncherMode {
     case launcher
     case clipboard
+    case snippets
 }
 
 class LauncherViewModel: ObservableObject {
@@ -27,6 +28,7 @@ class LauncherViewModel: ObservableObject {
             .store(in: &cancellables)
         
         NotificationCenter.default.addObserver(self, selector: #selector(onShowClipboardHistory), name: NSNotification.Name("ShowClipboardHistory"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(onShowSnippets), name: NSNotification.Name("ShowSnippets"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onCloseLauncher), name: NSNotification.Name("CloseLauncher"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(onToggleLauncher), name: NSNotification.Name("ToggleLauncher"), object: nil)
         
@@ -37,6 +39,14 @@ class LauncherViewModel: ObservableObject {
                 if self?.mode == .clipboard {
                     self?.results = history
                 }
+            }
+            .store(in: &cancellables)
+
+        Publishers.CombineLatest(SnippetManager.shared.$collections, SnippetManager.shared.$entries)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _, _ in
+                guard let self = self, self.mode == .snippets else { return }
+                self.performSnippetSearch(query: self.query)
             }
             .store(in: &cancellables)
 
@@ -69,6 +79,17 @@ class LauncherViewModel: ObservableObject {
             self.performSearch()
         }
     }
+
+    @objc func onShowSnippets() {
+        mode = .snippets
+        resetSearchState()
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.selectedIndex = 0
+            self.performSearch()
+        }
+    }
     
     private func resetToDefaultState() {
         mode = .launcher
@@ -89,6 +110,8 @@ class LauncherViewModel: ObservableObject {
             performLauncherSearch(query: searchText)
         case .clipboard:
             performClipboardSearch(query: searchText)
+        case .snippets:
+            performSnippetSearch(query: searchText)
         }
     }
     
@@ -133,6 +156,11 @@ class LauncherViewModel: ObservableObject {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         ClipboardManager.shared.searchClipboard(query: trimmedQuery)
     }
+
+    private func performSnippetSearch(query: String) {
+        results = SnippetManager.shared.search(query: query)
+        selectedIndex = 0
+    }
     
     func selectNext() {
         if results.isEmpty { return }
@@ -152,8 +180,8 @@ class LauncherViewModel: ObservableObject {
         } else {
             item.action()
         }
-        // Clipboard mode owns its close/focus/paste sequencing inside ClipboardManager.
-        if mode != .clipboard {
+        // Clipboard and snippet modes own their close/focus/input sequencing inside their managers.
+        if mode != .clipboard && mode != .snippets {
             NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
         }
     }

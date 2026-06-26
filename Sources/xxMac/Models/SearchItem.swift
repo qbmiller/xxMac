@@ -5,6 +5,7 @@ enum SearchResultType {
     case app
     case windowAction
     case clipboard
+    case snippet
     case bookmark
 }
 

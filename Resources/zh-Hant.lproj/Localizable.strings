@@ -201,3 +201,32 @@
 
 "key.space" = "空白鍵";
 "general.unknown" = "未知";
+"general.done" = "完成";
+
+"tool.snippets" = "Snippets";
+"function.snippets.library" = "分類";
+"launcher.search_snippets_placeholder" = "搜尋 Snippets...";
+"snippets.page_desc" = "選擇左側分類，維護該分類下的片段項目；搜尋面板會按分類、名稱、關鍵字和內容匹配。";
+"snippets.section_shortcuts" = "快速鍵";
+"snippets.viewer_hotkey" = "Snippet 搜尋快速鍵";
+"snippets.viewer_hotkey_desc" = "喚起搜尋面板，輸入關鍵字後按 Return 直接輸入片段內容。";
+"snippets.type_hotkey" = "請輸入快速鍵...";
+"snippets.collections" = "分類";
+"snippets.collection_name" = "分類名稱";
+"snippets.entries" = "項目";
+"snippets.editor" = "編輯項目";
+"snippets.name" = "名稱";
+"snippets.keyword" = "關鍵字";
+"snippets.content" = "內容";
+"snippets.new_collection" = "新分類";
+"snippets.new_entry" = "新項目";
+"snippets.delete_collection" = "刪除分類";
+"snippets.delete_entry" = "刪除項目";
+"snippets.edit_entry" = "編輯項目";
+"snippets.select_entry" = "選擇一個項目開始編輯";
+"snippets.empty_entries" = "目前分類還沒有項目。";
+"snippets.items_count_format" = "%d 個片段";
+"snippets.uncategorized" = "未分類";
+"snippets.default_collection" = "範例";
+"snippets.default_entry_name" = "範例片段";
+"snippets.default_entry_content" = "這是一段可編輯的 Snippet 內容。";

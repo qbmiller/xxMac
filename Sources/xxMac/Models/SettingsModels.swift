@@ -70,6 +70,7 @@ enum ToolType: String, CaseIterable, Identifiable {
     case window = "tool.window"
     case shortcutDetective = "tool.shortcut_detective"
     case clipboard = "tool.clipboard"
+    case snippets = "tool.snippets"
     case launcher = "tool.launcher"
     case calendar = "tool.calendar"
     case lockAI = "tool.lock_ai"
@@ -86,6 +87,7 @@ enum ToolType: String, CaseIterable, Identifiable {
         case .window: return "macwindow"
         case .shortcutDetective: return "keyboard"
         case .clipboard: return "doc.on.clipboard"
+        case .snippets: return "text.quote"
         case .launcher: return "command"
         case .calendar: return "calendar"
         case .lockAI: return "lock.shield"
@@ -119,6 +121,9 @@ enum FunctionType: String, CaseIterable, Identifiable {
     case clipboardGeneral = "function.clipboard.general"
     case clipboardHistory = "function.clipboard.history"
     case clipboardIgnored = "function.clipboard.ignored"
+
+    // Snippets
+    case snippetsLibrary = "function.snippets.library"
     
     // App Launcher
     case launcherApps = "function.launcher.applications"
@@ -146,6 +151,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
         case .wmShortcuts: return "keyboard"
         case .shortcutDetectiveGeneral: return "eye"
         case .clipboardHistory: return "clock"
+        case .snippetsLibrary: return "text.quote"
         case .launcherApps: return "command.square"
         case .calendarGeneral: return "calendar"
         case .lockAIGeneral: return "lock.shield"
@@ -195,6 +201,9 @@ struct ToolOption: Identifiable, Hashable {
             ToolFunction(type: .clipboardGeneral),
             ToolFunction(type: .clipboardHistory),
             ToolFunction(type: .clipboardIgnored)
+        ]),
+        ToolOption(type: .snippets, functions: [
+            ToolFunction(type: .snippetsLibrary)
         ]),
         ToolOption(type: .launcher, functions: [
             ToolFunction(type: .launcherApps)

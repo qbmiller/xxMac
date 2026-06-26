@@ -6,8 +6,10 @@ import HotKey
 struct SettingsView: View {
     @State private var selectedTool: ToolOption? = ToolOption.allTools.first
     @State private var selectedFunction: ToolFunction? = ToolOption.allTools.first?.functions.first
+    @State private var selectedSnippetCollectionID: SnippetCollection.ID?
     @State private var monitor: Any?
     @ObservedObject private var localization = LocalizationManager.shared
+    @ObservedObject private var snippetManager = SnippetManager.shared
     
     var body: some View {
         NavigationSplitView {
@@ -25,15 +27,21 @@ struct SettingsView: View {
         } content: {
             // Column 2: Functions
             if let tool = selectedTool {
-                List(tool.functions, selection: $selectedFunction) { function in
-                    NavigationLink(value: function) {
-                        Label(function.name, systemImage: function.icon)
-                            .padding(.vertical, 4)
+                if tool.type == .snippets {
+                    SnippetCollectionSidebar(selection: $selectedSnippetCollectionID)
+                        .navigationTitle(L10n.t("snippets.collections"))
+                        .frame(minWidth: 200, idealWidth: 240)
+                } else {
+                    List(tool.functions, selection: $selectedFunction) { function in
+                        NavigationLink(value: function) {
+                            Label(function.name, systemImage: function.icon)
+                                .padding(.vertical, 4)
+                        }
                     }
+                    .navigationTitle(tool.type.displayName)
+                    .listStyle(.sidebar) // Use sidebar style for consistency or .plain
+                    .frame(minWidth: 200)
                 }
-                .navigationTitle(tool.type.displayName)
-                .listStyle(.sidebar) // Use sidebar style for consistency or .plain
-                .frame(minWidth: 200)
             } else {
                 Text(L10n.t("settings.select_tool"))
                     .foregroundColor(.secondary)
@@ -41,7 +49,9 @@ struct SettingsView: View {
             
         } detail: {
             // Column 3: Configuration
-            if let function = selectedFunction {
+            if selectedTool?.type == .snippets {
+                SnippetsSettingsView(selectedCollectionID: $selectedSnippetCollectionID)
+            } else if let function = selectedFunction {
                 ConfigurationView(function: function)
             } else {
                 Text(L10n.t("settings.select_function"))
@@ -59,9 +69,14 @@ struct SettingsView: View {
         }
         .onChange(of: selectedTool) { newValue in
             // When tool changes, select the first function of that tool
-            if let tool = newValue, let firstFunc = tool.functions.first {
+            if let tool = newValue, tool.type == .snippets {
+                ensureSnippetCollectionSelection()
+            } else if let tool = newValue, let firstFunc = tool.functions.first {
                 selectedFunction = firstFunc
             }
+        }
+        .onChange(of: snippetManager.collections) { _ in
+            ensureSnippetCollectionSelection()
         }
     }
     
@@ -72,11 +87,23 @@ struct SettingsView: View {
         if selectedFunction == nil, let tool = selectedTool {
             selectedFunction = tool.functions.first
         }
+        ensureSnippetCollectionSelection()
+    }
+
+    private func ensureSnippetCollectionSelection() {
+        guard selectedTool?.type == .snippets else { return }
+        if selectedSnippetCollectionID == nil ||
+            !snippetManager.collections.contains(where: { $0.id == selectedSnippetCollectionID }) {
+            selectedSnippetCollectionID = snippetManager.collections.first?.id
+        }
     }
     
     private func setupWindowCloseMonitor() {
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 53 { // ESC
+                guard NSApp.keyWindow?.sheetParent == nil else {
+                    return event
+                }
                 NSApp.keyWindow?.close()
                 return nil
             }
@@ -88,6 +115,80 @@ struct SettingsView: View {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
+        }
+    }
+}
+
+private struct SnippetCollectionSidebar: View {
+    @ObservedObject private var manager = SnippetManager.shared
+    @Binding var selection: SnippetCollection.ID?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(L10n.t("snippets.collections"))
+                    .font(.headline)
+                Spacer()
+                Button {
+                    if let selection,
+                       let collection = manager.collections.first(where: { $0.id == selection }) {
+                        manager.removeCollection(collection)
+                    }
+                } label: {
+                    Image(systemName: "minus")
+                }
+                .buttonStyle(.borderless)
+                .disabled(selection == nil)
+                Button {
+                    manager.addCollection(named: L10n.t("snippets.new_collection"))
+                    selection = manager.collections.last?.id
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+
+            List(selection: $selection) {
+                ForEach(manager.collections) { collection in
+                    SnippetCollectionSidebarRow(collection: collection)
+                        .tag(collection.id)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                manager.removeCollection(collection)
+                            } label: {
+                                Text(L10n.t("snippets.delete_collection"))
+                            }
+                        }
+                }
+            }
+            .listStyle(.sidebar)
+        }
+    }
+}
+
+private struct SnippetCollectionSidebarRow: View {
+    @ObservedObject private var manager = SnippetManager.shared
+    let collection: SnippetCollection
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                TextField(L10n.t("snippets.collection_name"), text: Binding(
+                    get: { collection.name },
+                    set: { manager.updateCollection(collection, name: $0) }
+                ))
+                .textFieldStyle(.plain)
+                .font(.body)
+
+                Text(L10n.f("snippets.items_count_format", manager.entries(in: collection).count))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 3)
+        } icon: {
+            Image(systemName: "folder")
         }
     }
 }
@@ -328,6 +429,8 @@ struct ConfigurationView: View {
             ShortcutDetectiveSettingsView()
         case .clipboardGeneral:
             ClipboardSettingsView()
+        case .snippetsLibrary:
+            SnippetsSettingsView(selectedCollectionID: .constant(SnippetManager.shared.collections.first?.id))
         case .launcherApps:
             AppLauncherSettingsView()
         case .launcherAppearance:

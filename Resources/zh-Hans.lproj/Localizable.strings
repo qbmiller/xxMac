@@ -201,3 +201,32 @@
 
 "key.space" = "空格";
 "general.unknown" = "未知";
+"general.done" = "完成";
+
+"tool.snippets" = "Snippets";
+"function.snippets.library" = "分类";
+"launcher.search_snippets_placeholder" = "搜索 Snippets...";
+"snippets.page_desc" = "选择左侧分类，维护该分类下的片段条目；搜索面板会按分类、名称、关键词和内容匹配。";
+"snippets.section_shortcuts" = "快捷键";
+"snippets.viewer_hotkey" = "Snippet 搜索快捷键";
+"snippets.viewer_hotkey_desc" = "唤起搜索面板，输入关键词后回车直接输入片段内容。";
+"snippets.type_hotkey" = "请输入快捷键...";
+"snippets.collections" = "分类";
+"snippets.collection_name" = "分类名称";
+"snippets.entries" = "条目";
+"snippets.editor" = "编辑条目";
+"snippets.name" = "名称";
+"snippets.keyword" = "关键词";
+"snippets.content" = "内容";
+"snippets.new_collection" = "新分类";
+"snippets.new_entry" = "新条目";
+"snippets.delete_collection" = "删除分类";
+"snippets.delete_entry" = "删除条目";
+"snippets.edit_entry" = "编辑条目";
+"snippets.select_entry" = "选择一个条目开始编辑";
+"snippets.empty_entries" = "当前分类还没有条目。";
+"snippets.items_count_format" = "%d 个片段";
+"snippets.uncategorized" = "未分类";
+"snippets.default_collection" = "示例";
+"snippets.default_entry_name" = "示例片段";
+"snippets.default_entry_content" = "这是一段可编辑的 Snippet 内容。";
