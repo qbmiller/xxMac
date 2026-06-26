@@ -3,6 +3,8 @@
 "menu.lock_ai" = "LockJob";
 "menu.settings" = "设置...";
 "menu.quit" = "退出";
+"menu.quit_confirm_title" = "退出 xxMac？";
+"menu.quit_confirm_message" = "退出后，菜单栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
 
 "window.settings" = "设置";
 

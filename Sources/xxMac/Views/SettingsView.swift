@@ -298,50 +298,59 @@ struct ConfigurationView: View {
             .background(Color(NSColor.controlBackgroundColor))
             .border(Color(NSColor.separatorColor), width: 0.5)
             
-            // Content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    switch function.type {
-                    case .commonConfig:
-                        CommonSettingsView()
-                    case .commonLanguage:
-                        LanguageSettingsView()
-                    case .searchPaths:
-                        SearchPathsSettingsView()
-                    case .wmShortcuts:
-                        HotKeySettingsView()
-                    case .shortcutDetectiveGeneral:
-                        ShortcutDetectiveSettingsView()
-                    case .clipboardGeneral:
-                        ClipboardSettingsView()
-                    case .launcherApps:
-                        AppLauncherSettingsView()
-                    case .launcherAppearance:
-                        LauncherAppearanceSettingsView()
-                    case .calendarGeneral:
-                        CalendarFeatureView(showsSettings: true)
-                    case .lockAIGeneral:
-                        LockAISettingsView()
-                    case .lockAIScreen:
-                        LockAIScreenSettingsView()
-                    case .aboutInfo:
-                        AboutSettingsView()
-                    default:
-                        VStack(spacing: 20) {
-                            Image(systemName: "hammer.fill")
-                                .font(.system(size: 48))
-                                .foregroundColor(.secondary)
-                            Text(L10n.f("settings.configuration_coming_soon", function.name))
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 300)
-                    }
-                }
-                .padding()
-            }
+            configurationContent
         }
         .background(Color(NSColor.windowBackgroundColor))
+    }
+
+    @ViewBuilder
+    private var configurationContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                configurationBody
+            }
+            .padding()
+        }
+    }
+
+    @ViewBuilder
+    private var configurationBody: some View {
+        switch function.type {
+        case .commonConfig:
+            CommonSettingsView()
+        case .commonLanguage:
+            LanguageSettingsView()
+        case .searchPaths:
+            SearchPathsSettingsView()
+        case .wmShortcuts:
+            HotKeySettingsView()
+        case .shortcutDetectiveGeneral:
+            ShortcutDetectiveSettingsView()
+        case .clipboardGeneral:
+            ClipboardSettingsView()
+        case .launcherApps:
+            AppLauncherSettingsView()
+        case .launcherAppearance:
+            LauncherAppearanceSettingsView()
+        case .calendarGeneral:
+            CalendarFeatureView(showsSettings: true)
+        case .lockAIGeneral:
+            LockAISettingsView()
+        case .lockAIScreen:
+            LockAIScreenSettingsView()
+        case .aboutInfo:
+            AboutSettingsView()
+        default:
+            VStack(spacing: 20) {
+                Image(systemName: "hammer.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.secondary)
+                Text(L10n.f("settings.configuration_coming_soon", function.name))
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 300)
+        }
     }
 }
 

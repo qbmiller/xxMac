@@ -3,6 +3,8 @@
 "menu.lock_ai" = "LockJob";
 "menu.settings" = "Settings...";
 "menu.quit" = "Quit";
+"menu.quit_confirm_title" = "Quit xxMac?";
+"menu.quit_confirm_message" = "After quitting, the menu bar item, global shortcuts, window management, and LockJob will stop working.";
 
 "window.settings" = "Settings";
 

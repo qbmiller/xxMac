@@ -6,8 +6,8 @@ struct ClipboardSettingsView: View {
     @ObservedObject var clipboardManager = ClipboardManager.shared
     
     var body: some View {
-        Form {
-            Section {
+        VStack(alignment: .leading, spacing: 16) {
+            settingsSection(title: L10n.t("clipboard.section_history")) {
                 Toggle(isOn: $clipboardManager.settings.clipboardMonitoringEnabled) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(L10n.t("clipboard.enable"))
@@ -28,11 +28,9 @@ struct ClipboardSettingsView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-            } header: {
-                Text(L10n.t("clipboard.section_history")).font(.headline)
             }
             
-            Section(header: Text(L10n.t("clipboard.section_plain")).font(.headline)) {
+            settingsSection(title: L10n.t("clipboard.section_plain")) {
                 Picker(L10n.t("clipboard.cache_duration"), selection: $clipboardManager.settings.textCacheDurationDays) {
                     Text(L10n.t("clipboard.days_1")).tag(1)
                     Text(L10n.t("clipboard.days_3")).tag(3)
@@ -51,7 +49,7 @@ struct ClipboardSettingsView: View {
             }
             .disabled(!clipboardManager.settings.clipboardMonitoringEnabled)
             
-            Section(header: Text(L10n.t("clipboard.section_images")).font(.headline)) {
+            settingsSection(title: L10n.t("clipboard.section_images")) {
                 Toggle(L10n.t("clipboard.save_images"), isOn: $clipboardManager.settings.manageImages)
                 
                 if clipboardManager.settings.manageImages {
@@ -95,7 +93,7 @@ struct ClipboardSettingsView: View {
             }
             .disabled(!clipboardManager.settings.clipboardMonitoringEnabled)
             
-            Section(header: Text(L10n.t("clipboard.section_shortcuts")).font(.headline)) {
+            settingsSection(title: L10n.t("clipboard.section_shortcuts")) {
                 HStack {
                     Text(L10n.t("clipboard.toggle_history"))
                     Spacer()
@@ -114,8 +112,31 @@ struct ClipboardSettingsView: View {
                     }
                 }
             }
+
+            Spacer()
+        }
+    }
+
+    private func settingsSection<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+
+            VStack(alignment: .leading, spacing: 12) {
+                content()
+            }
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(NSColor.controlBackgroundColor))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 

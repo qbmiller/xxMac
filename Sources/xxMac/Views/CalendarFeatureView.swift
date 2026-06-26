@@ -779,7 +779,7 @@ final class CalendarMenuBarController {
     private func showContextMenu(_ sender: Any?) {
         closePopover()
         guard let button = sender as? NSStatusBarButton else { return }
-        contextMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+        contextMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
     }
 
     private func closePopover() {

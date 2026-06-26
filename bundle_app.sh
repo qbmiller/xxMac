@@ -4,13 +4,13 @@ APP_NAME="xxMac"
 BUILD_DIR=".build/arm64-apple-macosx/debug"
 APP_BUNDLE="$APP_NAME.app"
 
-# Signing Identity (Default: "-" for ad-hoc signing)
+# Signing Identity (Default: "qbmiller-dev" for stable local signing)
 # To use your Apple ID, create a certificate in Xcode (Settings > Accounts > Manage Certificates)
 # Then run: security find-identity -v -p codesigning
 # And set SIGNING_IDENTITY to the name of your certificate, e.g.:
 # SIGNING_IDENTITY="Apple Development: Your Name (XXXXXXXXXX)"
-SIGNING_IDENTITY="${SIGNING_IDENTITY:--}"
-REQUIRE_SIGNING_IDENTITY="${REQUIRE_SIGNING_IDENTITY:-0}"
+SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller-dev}"
+REQUIRE_SIGNING_IDENTITY="${REQUIRE_SIGNING_IDENTITY:-1}"
 
 if [ "$REQUIRE_SIGNING_IDENTITY" = "1" ] && [ "$SIGNING_IDENTITY" = "-" ]; then
     echo "REQUIRE_SIGNING_IDENTITY=1 requires a fixed SIGNING_IDENTITY."

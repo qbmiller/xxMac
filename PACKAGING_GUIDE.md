@@ -26,7 +26,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 bash publish_dmg.sh
 ```
 
-`publish_dmg.sh` 默认使用固定签名身份 `qbmiller-dev`，不支持使用 ad-hoc 签名发布 DMG。脚本会校验生成的 `xxMac.app` 不是 ad-hoc 签名，并包含证书要求，避免 macOS 把重新打包后的 App 当成新的辅助功能授权主体。需要临时换证书时，可以通过 `SIGNING_IDENTITY` 环境变量覆盖。
+`bundle_app.sh` 和 `publish_dmg.sh` 默认使用固定签名身份 `qbmiller-dev`，不支持使用 ad-hoc 签名。发布脚本会校验生成的 `xxMac.app` 不是 ad-hoc 签名，并包含证书要求，避免 macOS 把重新打包后的 App 当成新的辅助功能授权主体。需要临时换证书时，可以通过 `SIGNING_IDENTITY` 环境变量覆盖。
 
 脚本会：
 

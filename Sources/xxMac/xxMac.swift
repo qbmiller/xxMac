@@ -120,7 +120,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         settingsMenuItem = settingsItem
         menu.addItem(settingsItem)
         menu.addItem(NSMenuItem.separator())
-        let quitItem = NSMenuItem(title: L10n.t("menu.quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: L10n.t("menu.quit"), action: #selector(confirmQuit), keyEquivalent: "q")
+        quitItem.target = self
         quitMenuItem = quitItem
         menu.addItem(quitItem)
         calendarMenuBarController = CalendarMenuBarController(statusItem: statusItem, contextMenu: menu)
@@ -315,6 +316,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func lockAI() {
         LockAIManager.shared.lock()
+    }
+
+    @objc func confirmQuit() {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = L10n.t("menu.quit_confirm_title")
+        alert.informativeText = L10n.t("menu.quit_confirm_message")
+        alert.addButton(withTitle: L10n.t("menu.quit"))
+        alert.addButton(withTitle: L10n.t("general.cancel"))
+
+        if let window = NSApp.keyWindow {
+            alert.beginSheetModal(for: window) { response in
+                if response == .alertFirstButtonReturn {
+                    NSApp.terminate(nil)
+                }
+            }
+        } else if alert.runModal() == .alertFirstButtonReturn {
+            NSApp.terminate(nil)
+        }
     }
 
     @MainActor
