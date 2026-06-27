@@ -1,6 +1,10 @@
 import SwiftUI
 import HotKey
 
+private let settingsSidebarToggleItemID = "xxmac.settings.sidebarToggle"
+private let swiftUISidebarToggleItemID = "com.apple.SwiftUI.navigationSplitView.toggleSidebar"
+private let swiftUISplitViewSeparatorItemID = "com.apple.SwiftUI.splitViewSeparator-0"
+
 // MARK: - Main View
 
 struct SettingsView: View {
@@ -59,6 +63,11 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 600)
+        .background(SettingsToolbarCleanup())
+        .fixedSidebarToggle(
+            title: L10n.t("settings.toggle_sidebar"),
+            action: toggleSidebar
+        )
         .id(localization.language)
         .onAppear {
             setupWindowCloseMonitor()
@@ -115,6 +124,86 @@ struct SettingsView: View {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
+        }
+    }
+
+    private func toggleSidebar() {
+        NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
+    }
+}
+
+private extension View {
+    func fixedSidebarToggle(title: String, action: @escaping () -> Void) -> some View {
+        toolbar {
+            ToolbarItem(id: settingsSidebarToggleItemID, placement: .navigation) {
+                Button(action: action) {
+                    Image(systemName: "sidebar.leading")
+                }
+                .help(title)
+            }
+        }
+    }
+}
+
+private struct SettingsToolbarCleanup: NSViewRepresentable {
+    func makeNSView(context: Context) -> SettingsToolbarCleanupView {
+        SettingsToolbarCleanupView()
+    }
+
+    func updateNSView(_ nsView: SettingsToolbarCleanupView, context: Context) {
+        nsView.removeSwiftUISidebarItems()
+    }
+}
+
+private final class SettingsToolbarCleanupView: NSView {
+    private var observer: NSObjectProtocol?
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        installObserver()
+        removeSwiftUISidebarItems()
+    }
+
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        if newWindow == nil, let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+        super.viewWillMove(toWindow: newWindow)
+    }
+
+    private func installObserver() {
+        guard observer == nil else { return }
+        observer = NotificationCenter.default.addObserver(
+            forName: NSToolbar.willAddItemNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let toolbar = notification.object as? NSToolbar,
+                  toolbar === self.window?.toolbar else {
+                return
+            }
+            self.removeSwiftUISidebarItems()
+        }
+    }
+
+    func removeSwiftUISidebarItems() {
+        DispatchQueue.main.async { [weak self] in
+            guard let toolbar = self?.window?.toolbar else { return }
+            for index in toolbar.items.indices.reversed() {
+                let item = toolbar.items[index]
+                if item.itemIdentifier.rawValue == swiftUISidebarToggleItemID ||
+                    item.itemIdentifier.rawValue == swiftUISplitViewSeparatorItemID {
+                    toolbar.removeItem(at: index)
+                }
+            }
         }
     }
 }

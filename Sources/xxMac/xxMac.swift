@@ -334,17 +334,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         alert.alertStyle = .warning
         alert.messageText = L10n.t("menu.quit_confirm_title")
         alert.informativeText = L10n.t("menu.quit_confirm_message")
-        alert.addButton(withTitle: L10n.t("menu.quit"))
-        alert.addButton(withTitle: L10n.t("general.cancel"))
+        let cancelButton = alert.addButton(withTitle: L10n.t("general.cancel"))
+        let quitButton = alert.addButton(withTitle: L10n.t("menu.quit"))
+        cancelButton.keyEquivalent = "\r"
+        quitButton.keyEquivalent = ""
 
         if let window = NSApp.keyWindow {
+            var escapeMonitor: Any?
+            escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard event.keyCode == 53 else { return event }
+                window.endSheet(alert.window, returnCode: .alertFirstButtonReturn)
+                return nil
+            }
             alert.beginSheetModal(for: window) { response in
-                if response == .alertFirstButtonReturn {
+                if let escapeMonitor {
+                    NSEvent.removeMonitor(escapeMonitor)
+                }
+                if response == .alertSecondButtonReturn {
                     NSApp.terminate(nil)
                 }
             }
-        } else if alert.runModal() == .alertFirstButtonReturn {
-            NSApp.terminate(nil)
+        } else {
+            var escapeMonitor: Any?
+            escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard event.keyCode == 53 else { return event }
+                NSApp.stopModal(withCode: .alertFirstButtonReturn)
+                alert.window.orderOut(nil)
+                return nil
+            }
+            let response = alert.runModal()
+            if let escapeMonitor {
+                NSEvent.removeMonitor(escapeMonitor)
+            }
+            if response == .alertSecondButtonReturn {
+                NSApp.terminate(nil)
+            }
         }
     }
 

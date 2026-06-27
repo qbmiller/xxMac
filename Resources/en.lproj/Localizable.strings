@@ -9,6 +9,7 @@
 "window.settings" = "Settings";
 
 "settings.tools" = "Tools";
+"settings.toggle_sidebar" = "Toggle Sidebar";
 "settings.select_tool" = "Select a Tool";
 "settings.select_function" = "Select a Function";
 "settings.configuration_coming_soon" = "Configuration for %@ is coming soon.";

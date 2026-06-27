@@ -9,6 +9,7 @@
 "window.settings" = "設定";
 
 "settings.tools" = "工具";
+"settings.toggle_sidebar" = "折疊側邊欄";
 "settings.select_tool" = "請選擇工具";
 "settings.select_function" = "請選擇功能";
 "settings.configuration_coming_soon" = "「%@」的設定即將上線。";

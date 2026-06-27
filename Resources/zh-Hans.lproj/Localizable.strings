@@ -9,6 +9,7 @@
 "window.settings" = "设置";
 
 "settings.tools" = "工具";
+"settings.toggle_sidebar" = "折叠侧边栏";
 "settings.select_tool" = "请选择工具";
 "settings.select_function" = "请选择功能";
 "settings.configuration_coming_soon" = "“%@”的配置即将上线。";
