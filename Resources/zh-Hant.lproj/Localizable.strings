@@ -18,6 +18,11 @@
 "common.global_hotkey" = "全域快速鍵";
 "common.global_hotkey_desc" = "設定用於顯示或隱藏主啟動器視窗的快速鍵。";
 "common.toggle_launcher" = "切換啟動器";
+"common.app_index" = "應用索引";
+"common.app_index_desc" = "應用列表會快取並在下次啟動時複用；安裝新應用後可手動重建索引。";
+"common.index_apps" = "索引應用";
+"common.indexing_apps" = "正在索引應用...";
+"common.indexed_apps_format" = "已索引 %d 個應用";
 "common.backup_config" = "備份設定";
 "common.backup_desc" = "將目前設定與路徑保存到檔案。";
 "common.export_config" = "匯出設定...";
@@ -143,6 +148,7 @@
 "tool.launcher" = "應用啟動";
 "tool.calendar" = "日曆";
 "tool.lock_ai" = "LockJob";
+"tool.quick_shortcut" = "快捷指令";
 "tool.about" = "關於";
 
 "function.configuration" = "設定";
@@ -159,6 +165,7 @@
 "function.clipboard.ignored" = "忽略應用";
 "function.launcher.applications" = "應用清單";
 "function.launcher.appearance" = "啟動器外觀";
+"function.quick_shortcut.library" = "條目";
 "function.calendar.general" = "月曆";
 "function.lock_ai.general" = "鎖定";
 "function.lock_ai.screen" = "螢幕定制";
@@ -203,6 +210,7 @@
 "key.space" = "空白鍵";
 "general.unknown" = "未知";
 "general.done" = "完成";
+"general.copy" = "複製";
 
 "tool.snippets" = "Snippets";
 "function.snippets.library" = "分類";
@@ -231,3 +239,40 @@
 "snippets.default_collection" = "範例";
 "snippets.default_entry_name" = "範例片段";
 "snippets.default_entry_content" = "這是一段可編輯的 Snippet 內容。";
+
+"quick_shortcut.page_desc" = "建立類似 Alfred 的關鍵字規則，支援網頁搜尋與命令腳本。在啟動器輸入關鍵字加搜尋詞即可觸發。";
+"quick_shortcut.items" = "快捷指令";
+"quick_shortcut.empty" = "請選擇或新建一個快捷指令進行編輯。";
+"quick_shortcut.empty_list" = "還沒有快捷指令，點擊 + 新增。";
+"quick_shortcut.editor" = "編輯快捷指令";
+"quick_shortcut.delete" = "刪除快捷指令";
+"quick_shortcut.enabled" = "啟用";
+"quick_shortcut.title" = "標題";
+"quick_shortcut.keyword" = "關鍵字";
+"quick_shortcut.action_type" = "動作類型";
+"quick_shortcut.type_web_search" = "網頁搜尋";
+"quick_shortcut.type_command_script" = "命令腳本";
+"quick_shortcut.web_template" = "搜尋 URL 模板";
+"quick_shortcut.web_template_desc" = "使用 {query} 作為輸入搜尋詞的佔位符。";
+"quick_shortcut.shell_path" = "Shell 路徑";
+"quick_shortcut.input_mode" = "輸入傳遞方式";
+"quick_shortcut.input_mode_query" = "以 {query} 作為單個參數";
+"quick_shortcut.input_mode_argv" = "以 argv 作為多個參數";
+"quick_shortcut.input_mode_desc" = "{query} 模式會把完整輸入傳給 $1；argv 模式會按空格與引號拆分為 $1、$2、$3。兩種模式都提供 $XXMAC_QUERY。";
+"quick_shortcut.shell_path_desc" = "沒有 shebang 時使用該 Shell；腳本首行 #! 會優先按 shebang 執行。";
+"quick_shortcut.script" = "腳本";
+"quick_shortcut.script_desc" = "快捷指令執行時會在 Shell 進程中執行該腳本。";
+"quick_shortcut.preview_query" = "預覽搜尋詞";
+"quick_shortcut.preview_url" = "預覽 URL";
+"quick_shortcut.preview_output" = "預覽輸出";
+"quick_shortcut.preview_empty" = "點擊測試後顯示輸出。";
+"quick_shortcut.output_title" = "快捷指令輸出";
+"quick_shortcut.running" = "正在執行...";
+"quick_shortcut.copy_output" = "Return 複製該輸出";
+"quick_shortcut.no_output" = "命令沒有輸出。";
+"quick_shortcut.exit_status_format" = "退出碼：%d";
+"quick_shortcut.test" = "測試";
+"quick_shortcut.add_web_search" = "新增網頁搜尋";
+"quick_shortcut.add_command_script" = "新增命令腳本";
+"quick_shortcut.default_web_title" = "網頁搜尋";
+"quick_shortcut.default_command_title" = "命令腳本";

@@ -18,6 +18,11 @@
 "common.global_hotkey" = "Global Hotkey";
 "common.global_hotkey_desc" = "Set the hotkey to show or hide the main launcher window.";
 "common.toggle_launcher" = "Toggle Launcher";
+"common.app_index" = "Application Index";
+"common.app_index_desc" = "The application list is cached and reused on next launch. Rebuild it manually after installing new apps.";
+"common.index_apps" = "Index Applications";
+"common.indexing_apps" = "Indexing applications...";
+"common.indexed_apps_format" = "%d applications indexed";
 "common.backup_config" = "Backup Configuration";
 "common.backup_desc" = "Save all current settings and paths to a file.";
 "common.export_config" = "Export Configuration...";
@@ -143,6 +148,7 @@
 "tool.launcher" = "App Launcher";
 "tool.calendar" = "Calendar";
 "tool.lock_ai" = "LockJob";
+"tool.quick_shortcut" = "Quick Shortcuts";
 "tool.about" = "About";
 
 "function.configuration" = "Configuration";
@@ -159,6 +165,7 @@
 "function.clipboard.ignored" = "Ignored Apps";
 "function.launcher.applications" = "Applications";
 "function.launcher.appearance" = "Launcher Appearance";
+"function.quick_shortcut.library" = "Entries";
 "function.calendar.general" = "Month";
 "function.lock_ai.general" = "Lock";
 "function.lock_ai.screen" = "Screen";
@@ -203,6 +210,7 @@
 "key.space" = "Space";
 "general.unknown" = "Unknown";
 "general.done" = "Done";
+"general.copy" = "Copy";
 
 "tool.snippets" = "Snippets";
 "function.snippets.library" = "Categories";
@@ -231,3 +239,40 @@
 "snippets.default_collection" = "Examples";
 "snippets.default_entry_name" = "Example Snippet";
 "snippets.default_entry_content" = "This is an editable snippet.";
+
+"quick_shortcut.page_desc" = "Create Alfred-style keywords for web searches and command scripts. Type a keyword followed by a query in the launcher to trigger it.";
+"quick_shortcut.items" = "Shortcuts";
+"quick_shortcut.empty" = "Select or create a shortcut to edit it.";
+"quick_shortcut.empty_list" = "No quick shortcuts yet. Click + to add one.";
+"quick_shortcut.editor" = "Edit Shortcut";
+"quick_shortcut.delete" = "Delete Shortcut";
+"quick_shortcut.enabled" = "Enabled";
+"quick_shortcut.title" = "Title";
+"quick_shortcut.keyword" = "Keyword";
+"quick_shortcut.action_type" = "Action Type";
+"quick_shortcut.type_web_search" = "Web Search";
+"quick_shortcut.type_command_script" = "Command Script";
+"quick_shortcut.web_template" = "Search URL Template";
+"quick_shortcut.web_template_desc" = "Use {query} as the placeholder for the typed search term.";
+"quick_shortcut.shell_path" = "Shell Path";
+"quick_shortcut.input_mode" = "Input Mode";
+"quick_shortcut.input_mode_query" = "with input as {query}";
+"quick_shortcut.input_mode_argv" = "with input as argv";
+"quick_shortcut.input_mode_desc" = "{query} passes the full input as $1. argv splits the input by spaces and quotes into $1, $2, $3. Both modes provide $XXMAC_QUERY.";
+"quick_shortcut.shell_path_desc" = "Used when there is no shebang. A #! first line takes priority.";
+"quick_shortcut.script" = "Script";
+"quick_shortcut.script_desc" = "The script runs in a shell process when the shortcut is executed.";
+"quick_shortcut.preview_query" = "Preview Query";
+"quick_shortcut.preview_url" = "Preview URL";
+"quick_shortcut.preview_output" = "Preview Output";
+"quick_shortcut.preview_empty" = "Run Test to show output.";
+"quick_shortcut.output_title" = "Quick Shortcut Output";
+"quick_shortcut.running" = "Running...";
+"quick_shortcut.copy_output" = "Press Return to copy this output";
+"quick_shortcut.no_output" = "Command produced no output.";
+"quick_shortcut.exit_status_format" = "Exit status: %d";
+"quick_shortcut.test" = "Test";
+"quick_shortcut.add_web_search" = "Add Web Search";
+"quick_shortcut.add_command_script" = "Add Command Script";
+"quick_shortcut.default_web_title" = "Web Search";
+"quick_shortcut.default_command_title" = "Command Script";

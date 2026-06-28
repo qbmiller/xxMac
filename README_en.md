@@ -18,6 +18,7 @@ xxMac is a native macOS menu bar productivity tool built with `SwiftUI + AppKit`
 | Chinese Calendar | Shows the date in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar style. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
 | Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. | Clipboard manager |
+| Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Supports `{query}` templates and shell execution. | Alfred Web Search / Workflows |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
 
 ## Default Hotkeys
@@ -89,8 +90,9 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 
 ## Configuration and Data
 
-- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings.
+- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index is cached in `UserDefaults`, reused after installing a new xxMac build, and can be rebuilt from General > Configuration with “Index Applications”.
 - Hotkey settings, app quick-launch settings, launcher window size and appearance, language preference, and other lightweight settings are stored in `UserDefaults`.
+- Quick shortcut configuration is stored in `UserDefaults`, and import/export covers all configurable items.
 - The clipboard database and image cache are stored in `~/Library/Application Support/xxMac`.
 - The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.
 - In the settings window, the first column is tool categories, the second column is feature items, and the third column contains detailed configuration.

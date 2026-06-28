@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 struct CommonSettingsView: View {
+    @ObservedObject private var appSearchManager = AppSearchManager.shared
     @State private var showingExportSuccess = false
     @State private var showingImportSuccess = false
     @State private var importError: String?
@@ -28,6 +29,47 @@ struct CommonSettingsView: View {
                         HotKeyRecorderView(action: .toggleLauncher)
                             .frame(maxWidth: 200)
                         
+                        Spacer()
+                    }
+                    .padding(.top, 4)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+
+                // App Index Section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.t("common.app_index"))
+                        .font(.headline)
+                    Text(L10n.t("common.app_index_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            appSearchManager.scanApplications()
+                        } label: {
+                            Label(L10n.t("common.index_apps"), systemImage: "arrow.clockwise")
+                        }
+                        .disabled(appSearchManager.isIndexing)
+
+                        if appSearchManager.isIndexing {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(L10n.t("common.indexing_apps"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text(L10n.f("common.indexed_apps_format", appSearchManager.apps.count))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
                         Spacer()
                     }
                     .padding(.top, 4)
@@ -161,6 +203,7 @@ struct CommonSettingsView: View {
         let launcherAppearanceWidth: Double?
         let launcherAppearanceHeight: Double?
         let appLauncherShortcuts: Data?
+        let quickShortcutItems: Data?
         let clipboardSettings: Data?
         let shortcutDetectiveEnabled: Bool?
         let snippetSettings: Data?
@@ -186,6 +229,7 @@ struct CommonSettingsView: View {
             launcherAppearanceWidth: optionalDouble(forKey: "LauncherAppearanceWidth", in: defaults),
             launcherAppearanceHeight: optionalDouble(forKey: "LauncherAppearanceHeight", in: defaults),
             appLauncherShortcuts: defaults.data(forKey: "AppLauncherShortcuts"),
+            quickShortcutItems: defaults.data(forKey: "QuickShortcutItems"),
             clipboardSettings: defaults.data(forKey: "ClipboardSettings"),
             shortcutDetectiveEnabled: defaults.object(forKey: "ShortcutDetectiveEnabled") as? Bool,
             snippetSettings: defaults.data(forKey: "SnippetSettings"),
@@ -242,6 +286,11 @@ struct CommonSettingsView: View {
                  // AppLauncherManager handles saving when property is set
                  AppLauncherManager.shared.shortcuts = decoded
             }
+        }
+
+        if let quickShortcutItemsData = config.quickShortcutItems,
+           let decoded = try? JSONDecoder().decode([QuickShortcut].self, from: quickShortcutItemsData) {
+            QuickShortcutManager.shared.items = decoded
         }
 
         if let clipboardSettingsData = config.clipboardSettings,

@@ -11,6 +11,7 @@ class AppSearchManager: ObservableObject {
     @Published var searchPaths: [String] = [] {
         didSet {
             saveSearchPaths()
+            guard !isLoadingSearchPaths else { return }
             scanApplications()
         }
     }
@@ -19,6 +20,8 @@ class AppSearchManager: ObservableObject {
     private let userDefaultsKey = "AppSearchPaths"
     private let cacheDefaultsKey = "AppSearchIndexCacheV1"
     private var appEntries: [AppEntry] = []
+    private var scanGeneration = 0
+    private var isLoadingSearchPaths = false
 
     private struct AppEntry {
         let id: String
@@ -41,11 +44,15 @@ class AppSearchManager: ObservableObject {
 
     private init() {
         loadSearchPaths()
-        loadCachedIndex()
-        scanApplications()
+        if !loadCachedIndex() {
+            scanApplications()
+        }
     }
 
     private func loadSearchPaths() {
+        isLoadingSearchPaths = true
+        defer { isLoadingSearchPaths = false }
+
         if let savedPaths = UserDefaults.standard.stringArray(forKey: userDefaultsKey) {
             searchPaths = ensureRequiredSearchPaths(in: savedPaths)
         } else {
@@ -57,18 +64,20 @@ class AppSearchManager: ObservableObject {
         UserDefaults.standard.set(searchPaths, forKey: userDefaultsKey)
     }
 
-    private func loadCachedIndex() {
+    @discardableResult
+    private func loadCachedIndex() -> Bool {
         guard
             let data = UserDefaults.standard.data(forKey: cacheDefaultsKey),
             let cached = try? JSONDecoder().decode([CachedEntry].self, from: data)
         else {
-            return
+            return false
         }
 
         let entries = cached.map(makeEntry(fromCached:))
         appEntries = entries
         apps = entries.map(makeSearchItem)
         Self.logger.debug("cache loaded=\(entries.count)")
+        return !entries.isEmpty
     }
 
     private func saveCachedIndex(_ entries: [AppEntry]) {
@@ -161,6 +170,8 @@ class AppSearchManager: ObservableObject {
 
     func scanApplications() {
         let pathsToScan = prioritizedPaths(searchPaths)
+        scanGeneration += 1
+        let generation = scanGeneration
         isIndexing = true
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -184,6 +195,7 @@ class AppSearchManager: ObservableObject {
             }
 
             DispatchQueue.main.async {
+                guard generation == self.scanGeneration else { return }
                 self.appEntries = sortedEntries
                 self.apps = sortedEntries.map(self.makeSearchItem)
                 self.saveCachedIndex(sortedEntries)

@@ -104,7 +104,7 @@ struct LauncherView: View {
                 HStack {
                     ProgressView()
                         .controlSize(.small)
-                    Text(L10n.t("clipboard.indexing_apps"))
+                    Text(L10n.t("common.indexing_apps"))
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.78))
                     Spacer()

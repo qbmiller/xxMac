@@ -18,6 +18,11 @@
 "common.global_hotkey" = "全局热键";
 "common.global_hotkey_desc" = "设置用于显示或隐藏主启动器窗口的热键。";
 "common.toggle_launcher" = "切换启动器";
+"common.app_index" = "应用索引";
+"common.app_index_desc" = "应用列表会缓存并在下次启动时复用；安装新应用后可手动重建索引。";
+"common.index_apps" = "索引应用";
+"common.indexing_apps" = "正在索引应用...";
+"common.indexed_apps_format" = "已索引 %d 个应用";
 "common.backup_config" = "备份配置";
 "common.backup_desc" = "将当前设置和路径保存到文件。";
 "common.export_config" = "导出配置...";
@@ -143,6 +148,7 @@
 "tool.launcher" = "应用启动";
 "tool.calendar" = "日历";
 "tool.lock_ai" = "LockJob";
+"tool.quick_shortcut" = "快捷指令";
 "tool.about" = "关于";
 
 "function.configuration" = "配置";
@@ -159,6 +165,7 @@
 "function.clipboard.ignored" = "忽略应用";
 "function.launcher.applications" = "应用列表";
 "function.launcher.appearance" = "启动器外观";
+"function.quick_shortcut.library" = "条目";
 "function.calendar.general" = "月历";
 "function.lock_ai.general" = "锁定";
 "function.lock_ai.screen" = "屏幕定制";
@@ -203,6 +210,7 @@
 "key.space" = "空格";
 "general.unknown" = "未知";
 "general.done" = "完成";
+"general.copy" = "复制";
 
 "tool.snippets" = "Snippets";
 "function.snippets.library" = "分类";
@@ -231,3 +239,40 @@
 "snippets.default_collection" = "示例";
 "snippets.default_entry_name" = "示例片段";
 "snippets.default_entry_content" = "这是一段可编辑的 Snippet 内容。";
+
+"quick_shortcut.page_desc" = "创建类似 Alfred 的关键词规则，支持网页搜索和命令脚本。在启动器里输入关键词加搜索词即可触发。";
+"quick_shortcut.items" = "快捷指令";
+"quick_shortcut.empty" = "请选择或新建一个快捷指令进行编辑。";
+"quick_shortcut.empty_list" = "还没有快捷指令，点击 + 新增。";
+"quick_shortcut.editor" = "编辑快捷指令";
+"quick_shortcut.delete" = "删除快捷指令";
+"quick_shortcut.enabled" = "启用";
+"quick_shortcut.title" = "标题";
+"quick_shortcut.keyword" = "关键词";
+"quick_shortcut.action_type" = "动作类型";
+"quick_shortcut.type_web_search" = "网页搜索";
+"quick_shortcut.type_command_script" = "命令脚本";
+"quick_shortcut.web_template" = "搜索 URL 模板";
+"quick_shortcut.web_template_desc" = "使用 {query} 作为输入搜索词的占位符。";
+"quick_shortcut.shell_path" = "Shell 路径";
+"quick_shortcut.input_mode" = "输入传递方式";
+"quick_shortcut.input_mode_query" = "以 {query} 作为单个参数";
+"quick_shortcut.input_mode_argv" = "以 argv 作为多个参数";
+"quick_shortcut.input_mode_desc" = "{query} 模式会把完整输入传给 $1；argv 模式会按空格和引号拆分为 $1、$2、$3。两种模式都提供 $XXMAC_QUERY。";
+"quick_shortcut.shell_path_desc" = "没有 shebang 时使用该 Shell；脚本首行 #! 会优先按 shebang 执行。";
+"quick_shortcut.script" = "脚本";
+"quick_shortcut.script_desc" = "快捷指令执行时会在 Shell 进程中运行该脚本。";
+"quick_shortcut.preview_query" = "预览搜索词";
+"quick_shortcut.preview_url" = "预览 URL";
+"quick_shortcut.preview_output" = "预览输出";
+"quick_shortcut.preview_empty" = "点击测试后显示输出。";
+"quick_shortcut.output_title" = "快捷指令输出";
+"quick_shortcut.running" = "正在运行...";
+"quick_shortcut.copy_output" = "回车复制该输出";
+"quick_shortcut.no_output" = "命令没有输出。";
+"quick_shortcut.exit_status_format" = "退出码：%d";
+"quick_shortcut.test" = "测试";
+"quick_shortcut.add_web_search" = "新增网页搜索";
+"quick_shortcut.add_command_script" = "新增命令脚本";
+"quick_shortcut.default_web_title" = "网页搜索";
+"quick_shortcut.default_command_title" = "命令脚本";

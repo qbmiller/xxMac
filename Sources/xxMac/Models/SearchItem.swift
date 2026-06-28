@@ -6,6 +6,8 @@ enum SearchResultType {
     case windowAction
     case clipboard
     case snippet
+    case quickShortcut
+    case quickShortcutOutput
     case bookmark
 }
 

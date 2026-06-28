@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var selectedTool: ToolOption? = ToolOption.allTools.first
     @State private var selectedFunction: ToolFunction? = ToolOption.allTools.first?.functions.first
     @State private var selectedSnippetCollectionID: SnippetCollection.ID?
+    @State private var selectedQuickShortcutID: QuickShortcut.ID?
     @State private var monitor: Any?
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var snippetManager = SnippetManager.shared
@@ -35,6 +36,10 @@ struct SettingsView: View {
                     SnippetCollectionSidebar(selection: $selectedSnippetCollectionID)
                         .navigationTitle(L10n.t("snippets.collections"))
                         .frame(minWidth: 200, idealWidth: 240)
+                } else if tool.type == .quickShortcut {
+                    QuickShortcutItemsSidebar(selection: $selectedQuickShortcutID)
+                        .navigationTitle(L10n.t("tool.quick_shortcut"))
+                        .frame(minWidth: 220, idealWidth: 280)
                 } else {
                     List(tool.functions, selection: $selectedFunction) { function in
                         NavigationLink(value: function) {
@@ -55,6 +60,8 @@ struct SettingsView: View {
             // Column 3: Configuration
             if selectedTool?.type == .snippets {
                 SnippetsSettingsView(selectedCollectionID: $selectedSnippetCollectionID)
+            } else if selectedTool?.type == .quickShortcut {
+                QuickShortcutDetailView(selectedItemID: $selectedQuickShortcutID)
             } else if let function = selectedFunction {
                 ConfigurationView(function: function)
             } else {
@@ -80,12 +87,18 @@ struct SettingsView: View {
             // When tool changes, select the first function of that tool
             if let tool = newValue, tool.type == .snippets {
                 ensureSnippetCollectionSelection()
+                selectedQuickShortcutID = nil
+            } else if let tool = newValue, tool.type == .quickShortcut {
+                ensureQuickShortcutSelection()
             } else if let tool = newValue, let firstFunc = tool.functions.first {
                 selectedFunction = firstFunc
             }
         }
         .onChange(of: snippetManager.collections) { _ in
             ensureSnippetCollectionSelection()
+        }
+        .onChange(of: QuickShortcutManager.shared.items) { _ in
+            ensureQuickShortcutSelection()
         }
     }
     
@@ -97,6 +110,7 @@ struct SettingsView: View {
             selectedFunction = tool.functions.first
         }
         ensureSnippetCollectionSelection()
+        ensureQuickShortcutSelection()
     }
 
     private func ensureSnippetCollectionSelection() {
@@ -104,6 +118,14 @@ struct SettingsView: View {
         if selectedSnippetCollectionID == nil ||
             !snippetManager.collections.contains(where: { $0.id == selectedSnippetCollectionID }) {
             selectedSnippetCollectionID = snippetManager.collections.first?.id
+        }
+    }
+
+    private func ensureQuickShortcutSelection() {
+        guard selectedTool?.type == .quickShortcut else { return }
+        if selectedQuickShortcutID == nil ||
+            !QuickShortcutManager.shared.items.contains(where: { $0.id == selectedQuickShortcutID }) {
+            selectedQuickShortcutID = QuickShortcutManager.shared.items.first?.id
         }
     }
     
@@ -520,6 +542,8 @@ struct ConfigurationView: View {
             ClipboardSettingsView()
         case .snippetsLibrary:
             SnippetsSettingsView(selectedCollectionID: .constant(SnippetManager.shared.collections.first?.id))
+        case .quickShortcutLibrary:
+            QuickShortcutDetailView(selectedItemID: .constant(QuickShortcutManager.shared.items.first?.id))
         case .launcherApps:
             AppLauncherSettingsView()
         case .launcherAppearance:

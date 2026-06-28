@@ -17,6 +17,12 @@
 1. 左侧按钮：应用自定义的固定入口，位置符合预期。
 2. 右侧按钮：SwiftUI / AppKit 为 `NavigationSplitView` 自动插入的系统按钮，点击后仍走旧效果，收缩后会移动到右侧。
 
+最近一轮 DEBUG 日志已经确认：
+
+1. `com.apple.SwiftUI.navigationSplitView.toggleSidebar` 是 SwiftUI 自动生成的 sidebar toggle。
+2. `com.apple.SwiftUI.splitViewSeparator-0` 是它旁边的分隔线。
+3. `NSToolbar` 里没有第二个独立的业务按钮，之前看到的“第二个图标”本质上就是 SwiftUI 自动注入项。
+
 曾尝试直接用 `NavigationSplitView(columnVisibility:)` 切换列可见性，但这会触发 SwiftUI 重新计算列宽，点击左侧按钮后窗口被撑大。因此不能直接通过手动修改 `columnVisibility` 来模拟系统折叠行为。
 
 ## 当前处理
@@ -25,22 +31,22 @@
 
 处理原则：
 
-1. 保留左侧固定按钮。
+1. 仅保留一个可见入口。
 2. 左侧按钮不直接改 `NavigationSplitViewVisibility`。
 3. 左侧按钮调用系统原生 `NSSplitViewController.toggleSidebar(_:)`，保持和系统按钮一致的折叠行为，避免窗口变大。
-4. 用 `SettingsToolbarCleanup` 清理 SwiftUI / AppKit 自动插入的重复 sidebar toolbar item。
-5. 给自定义按钮固定 toolbar id：`xxmac.settings.sidebarToggle`，cleanup 时保留该 id，移除其它 sidebar 相关按钮。
+4. 用 `SettingsToolbarCleanup` 删除 SwiftUI 自动插入的 `com.apple.SwiftUI.navigationSplitView.toggleSidebar` 和 `com.apple.SwiftUI.splitViewSeparator-0`。
+5. 不再依赖自然语言、本地化字符串或“sidebar”字样来识别按钮。
 
 当前可见结果：
 
-1. 重复的第二个按钮已删除。
-2. 标题栏中仍可见一条竖线，疑似系统生成的 tracking separator 或标题栏分隔元素。
-3. 该竖线暂不处理，避免继续影响系统标题栏和 `NavigationSplitView` 原生布局行为。
+1. 系统自动生成的第二个按钮已删除。
+2. 右侧竖线来自 SwiftUI 自动分隔项，当前按稳定 id 直接删除。
+3. 如果后续仍出现新的 toolbar 项，先查真实 `NSToolbarItem.Identifier`，不要继续猜测文案或图标。
 
 ## 关键经验
 
 1. SwiftUI 的 `NavigationSplitView` 会自动给 macOS toolbar 注入 sidebar 相关 item。
-2. 这些 item 不一定稳定暴露为 `.toggleSidebar` 或 `.sidebarTrackingSeparator`，只按标准 identifier/action 删除可能漏掉。
+2. 这些 item 的 `itemIdentifier.rawValue` 更稳定，调试时应以真实 id 为准。
 3. 自定义按钮如果直接改 `columnVisibility`，行为不等同于系统 `toggleSidebar:`，可能导致窗口尺寸变化。
 4. 更稳妥的方式是让固定按钮走 AppKit responder chain：
 

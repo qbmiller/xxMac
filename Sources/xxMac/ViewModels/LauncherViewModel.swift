@@ -18,6 +18,7 @@ class LauncherViewModel: ObservableObject {
     @Published var searchID = UUID()
     
     private var cancellables = Set<AnyCancellable>()
+    private var quickShortcutRunID: UUID?
     
     init() {
         $query
@@ -47,6 +48,14 @@ class LauncherViewModel: ObservableObject {
             .sink { [weak self] _, _ in
                 guard let self = self, self.mode == .snippets else { return }
                 self.performSnippetSearch(query: self.query)
+            }
+            .store(in: &cancellables)
+
+        QuickShortcutManager.shared.$items
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self = self, self.mode == .launcher, !self.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                self.performLauncherSearch(query: self.query)
             }
             .store(in: &cancellables)
 
@@ -101,6 +110,7 @@ class LauncherViewModel: ObservableObject {
         results = []
         selectedIndex = 0
         searchID = UUID()
+        quickShortcutRunID = nil
     }
     
     func performSearch(query: String? = nil) {
@@ -120,6 +130,11 @@ class LauncherViewModel: ObservableObject {
 
         guard !trimmedQuery.isEmpty else {
             results = []
+            selectedIndex = 0
+            return
+        }
+
+        if handleQuickShortcut(query: trimmedQuery) {
             selectedIndex = 0
             return
         }
@@ -150,6 +165,81 @@ class LauncherViewModel: ObservableObject {
         let preview = newResults.prefix(8).map { $0.title }.joined(separator: ", ")
         Self.logger.debug("query='\(query, privacy: .public)' trimmed='\(trimmedQuery, privacy: .public)' window=\(windowCommands.count) app=\(appResults.count) total=\(newResults.count)")
         Self.logger.debug("top=[\(preview, privacy: .public)]")
+    }
+
+    private func handleQuickShortcut(query: String) -> Bool {
+        guard let match = QuickShortcutManager.shared.match(query: query) else {
+            quickShortcutRunID = nil
+            return false
+        }
+
+        switch match.item.actionType {
+        case .webSearch:
+            results = [
+                SearchItem(
+                    id: "quick_shortcut.\(match.item.id.uuidString)",
+                    title: match.item.title,
+                    subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
+                    iconName: match.item.actionType.iconName,
+                    type: .quickShortcut,
+                    action: {
+                        QuickShortcutManager.shared.execute(item: match.item, query: match.query)
+                    }
+                )
+            ]
+            return true
+        case .commandScript:
+            runQuickShortcutCommand(item: match.item, query: match.query)
+            return true
+        }
+    }
+
+    private func runQuickShortcutCommand(item: QuickShortcut, query: String) {
+        let runID = UUID()
+        let sourceInput = self.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        quickShortcutRunID = runID
+        results = [
+            SearchItem(
+                id: "quick_shortcut.running.\(item.id.uuidString)",
+                title: L10n.t("quick_shortcut.running"),
+                subtitle: item.title,
+                iconName: "hourglass",
+                type: .quickShortcutOutput,
+                action: {}
+            )
+        ]
+
+        QuickShortcutManager.shared.runCommandScript(item: item, query: query) { [weak self] output in
+            guard let self = self,
+                  self.mode == .launcher,
+                  self.quickShortcutRunID == runID,
+                  self.query.trimmingCharacters(in: .whitespacesAndNewlines) == sourceInput else {
+                return
+            }
+            self.results = self.outputResults(for: item, output: output)
+            self.selectedIndex = 0
+        }
+    }
+
+    private func outputResults(for item: QuickShortcut, output: String) -> [SearchItem] {
+        let lines = output
+            .split(whereSeparator: \.isNewline)
+            .map { String($0) }
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+        let visibleLines = lines.isEmpty ? [output] : lines
+        return visibleLines.enumerated().map { index, line in
+            SearchItem(
+                id: "quick_shortcut.output.\(item.id.uuidString).\(index)",
+                title: line,
+                subtitle: index == 0 ? L10n.t("quick_shortcut.copy_output") : item.title,
+                iconName: "doc.text",
+                type: .quickShortcutOutput,
+                action: {
+                    QuickShortcutManager.shared.copyToPasteboard(line)
+                }
+            )
+        }
     }
     
     private func performClipboardSearch(query: String) {
