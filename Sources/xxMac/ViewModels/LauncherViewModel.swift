@@ -168,29 +168,43 @@ class LauncherViewModel: ObservableObject {
     }
 
     private func handleQuickShortcut(query: String) -> Bool {
-        guard let match = QuickShortcutManager.shared.match(query: query) else {
+        switch QuickShortcutManager.shared.activationState(query: query) {
+        case .none:
             quickShortcutRunID = nil
             return false
-        }
-
-        switch match.item.actionType {
-        case .webSearch:
+        case .waitingForInput(let item):
+            quickShortcutRunID = nil
             results = [
                 SearchItem(
-                    id: "quick_shortcut.\(match.item.id.uuidString)",
-                    title: match.item.title,
-                    subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
-                    iconName: match.item.actionType.iconName,
+                    id: "quick_shortcut.waiting.\(item.id.uuidString)",
+                    title: item.title,
+                    subtitle: L10n.t("quick_shortcut.input_required"),
+                    iconName: item.actionType.iconName,
                     type: .quickShortcut,
-                    action: {
-                        QuickShortcutManager.shared.execute(item: match.item, query: match.query)
-                    }
+                    action: {}
                 )
             ]
             return true
-        case .commandScript:
-            runQuickShortcutCommand(item: match.item, query: match.query)
-            return true
+        case .ready(let match):
+            switch match.item.actionType {
+            case .webSearch:
+                results = [
+                    SearchItem(
+                        id: "quick_shortcut.\(match.item.id.uuidString)",
+                        title: match.item.title,
+                        subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
+                        iconName: match.item.actionType.iconName,
+                        type: .quickShortcut,
+                        action: {
+                            QuickShortcutManager.shared.execute(item: match.item, query: match.query)
+                        }
+                    )
+                ]
+                return true
+            case .commandScript:
+                runQuickShortcutCommand(item: match.item, query: match.query)
+                return true
+            }
         }
     }
 
@@ -241,7 +255,7 @@ class LauncherViewModel: ObservableObject {
             )
         }
     }
-    
+
     private func performClipboardSearch(query: String) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         ClipboardManager.shared.searchClipboard(query: trimmedQuery)
@@ -271,7 +285,7 @@ class LauncherViewModel: ObservableObject {
             item.action()
         }
         // Clipboard and snippet modes own their close/focus/input sequencing inside their managers.
-        if mode != .clipboard && mode != .snippets {
+        if mode != .clipboard && mode != .snippets && item.type != .quickShortcutOutput {
             NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
         }
     }

@@ -17,6 +17,12 @@ final class QuickShortcutManager: ObservableObject {
         let query: String
     }
 
+    enum ActivationState {
+        case ready(Match)
+        case waitingForInput(QuickShortcut)
+        case none
+    }
+
     private init() {
         loadItems()
     }
@@ -74,15 +80,27 @@ final class QuickShortcutManager: ObservableObject {
     }
 
     func match(query: String) -> Match? {
+        if case .ready(let match) = activationState(query: query) {
+            return match
+        }
+        return nil
+    }
+
+    func activationState(query: String) -> ActivationState {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else { return nil }
+        guard !trimmedQuery.isEmpty else { return .none }
 
         for item in items where item.isEnabled {
             if let invokedQuery = invokedQuery(for: trimmedQuery, keyword: item.keyword) {
-                return Match(item: item, query: invokedQuery)
+                if item.actionType == .commandScript,
+                   item.commandInputMode.requiresInput,
+                   invokedQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return .waitingForInput(item)
+                }
+                return .ready(Match(item: item, query: invokedQuery))
             }
         }
-        return nil
+        return .none
     }
 
     private func invokedQuery(for query: String, keyword: String) -> String? {
@@ -138,7 +156,7 @@ final class QuickShortcutManager: ObservableObject {
             let process = Process()
             let scriptFileURL: URL
             do {
-                scriptFileURL = try self.writeTemporaryScript(item.payload)
+                scriptFileURL = try self.writeTemporaryScript(self.renderedCommandScript(item.payload, query: query))
             } catch {
                 DispatchQueue.main.async {
                     completion(error.localizedDescription)
@@ -149,10 +167,8 @@ final class QuickShortcutManager: ObservableObject {
             let interpreter = self.interpreter(for: item.payload, fallbackShellPath: item.shellPath)
             process.executableURL = URL(fileURLWithPath: interpreter.executable)
             process.arguments = interpreter.arguments + [scriptFileURL.path] + self.commandArguments(for: item, query: query)
-            var environment = ProcessInfo.processInfo.environment
-            environment["XXMAC_QUERY"] = query
-            process.environment = environment
-            process.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
+            process.environment = self.commandEnvironment(query: query)
+            process.currentDirectoryURL = ConfigDirectoryManager.shared.currentDirectory
 
             let standardOutput = Pipe()
             let standardError = Pipe()
@@ -203,6 +219,24 @@ final class QuickShortcutManager: ObservableObject {
         return (executable, Array(parts.dropFirst()))
     }
 
+    private func commandEnvironment(query: String) -> [String: String] {
+        var environment = ProcessInfo.processInfo.environment
+        environment["XXMAC_QUERY"] = query
+        environment["XXMAC_HOME"] = ConfigDirectoryManager.shared.currentDirectory.path
+        environment["XXMAC_QUICK_HOME"] = ConfigDirectoryManager.shared.quickDirectoryURL.path
+        environment["xxmac_home"] = ConfigDirectoryManager.shared.currentDirectory.path
+        environment["xxmac_quick_home"] = ConfigDirectoryManager.shared.quickDirectoryURL.path
+        return environment
+    }
+
+    private func renderedCommandScript(_ script: String, query: String) -> String {
+        script.replacingOccurrences(of: "{query}", with: shellEscapedArgument(query))
+    }
+
+    private func shellEscapedArgument(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+
     private func commandOutput(outputData: Data, errorData: Data, terminationStatus: Int32) -> String {
         let output = String(data: outputData, encoding: .utf8) ?? ""
         let error = String(data: errorData, encoding: .utf8) ?? ""
@@ -233,7 +267,7 @@ final class QuickShortcutManager: ObservableObject {
     private func executeCommandSynchronously(item: QuickShortcut, query: String) -> String {
         let scriptFileURL: URL
         do {
-            scriptFileURL = try writeTemporaryScript(item.payload)
+            scriptFileURL = try writeTemporaryScript(renderedCommandScript(item.payload, query: query))
         } catch {
             return error.localizedDescription
         }
@@ -246,10 +280,8 @@ final class QuickShortcutManager: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: interpreter.executable)
         process.arguments = interpreter.arguments + [scriptFileURL.path] + commandArguments(for: item, query: query)
-        process.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
-        var environment = ProcessInfo.processInfo.environment
-        environment["XXMAC_QUERY"] = query
-        process.environment = environment
+        process.currentDirectoryURL = ConfigDirectoryManager.shared.currentDirectory
+        process.environment = commandEnvironment(query: query)
 
         let standardOutput = Pipe()
         let standardError = Pipe()
@@ -285,6 +317,8 @@ final class QuickShortcutManager: ObservableObject {
 
     private func commandArguments(for item: QuickShortcut, query: String) -> [String] {
         switch item.commandInputMode {
+        case .noInput:
+            return []
         case .queryPlaceholder:
             return [query]
         case .argv:

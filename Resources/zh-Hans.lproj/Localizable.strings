@@ -24,7 +24,7 @@
 "common.indexing_apps" = "正在索引应用...";
 "common.indexed_apps_format" = "已索引 %d 个应用";
 "common.config_directory" = "配置目录";
-"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据库和图片缓存的位置。该目录可以是本地目录或同步服务下保持本地可用的目录。";
+"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据库和图片缓存的位置，并自动创建 quick/ 用于放置复杂快捷指令脚本。该目录可以是本地目录或同步服务下保持本地可用的目录。";
 "common.set_config_directory" = "设置配置目录...";
 "common.reveal_config_directory" = "在 Finder 中显示";
 "common.reset_config_directory" = "恢复默认目录";
@@ -261,12 +261,14 @@
 "quick_shortcut.web_template_desc" = "使用 {query} 作为输入搜索词的占位符。";
 "quick_shortcut.shell_path" = "Shell 路径";
 "quick_shortcut.input_mode" = "输入传递方式";
+"quick_shortcut.input_mode_none" = "无参数";
 "quick_shortcut.input_mode_query" = "以 {query} 作为单个参数";
 "quick_shortcut.input_mode_argv" = "以 argv 作为多个参数";
-"quick_shortcut.input_mode_desc" = "{query} 模式会把完整输入传给 $1；argv 模式会按空格和引号拆分为 $1、$2、$3。两种模式都提供 $XXMAC_QUERY。";
+"quick_shortcut.input_mode_desc" = "无参数模式只输入关键词就执行；{query} 模式会把完整输入传给 $1；argv 模式会按空格和引号拆分为 $1、$2、$3。三种模式都提供 $XXMAC_QUERY。";
+"quick_shortcut.input_required" = "继续输入参数后执行";
 "quick_shortcut.shell_path_desc" = "没有 shebang 时使用该 Shell；脚本首行 #! 会优先按 shebang 执行。";
 "quick_shortcut.script" = "脚本";
-"quick_shortcut.script_desc" = "快捷指令执行时会在 Shell 进程中运行该脚本。";
+"quick_shortcut.script_desc" = "快捷指令执行时会在 Shell 进程中运行该脚本。XXMAC_HOME 指向配置目录，XXMAC_QUICK_HOME 指向配置目录下的 quick/；复杂脚本可放到 quick/xxx/a.py 后写 python \"$XXMAC_QUICK_HOME/xxx/a.py\" {query}。";
 "quick_shortcut.preview_query" = "预览搜索词";
 "quick_shortcut.preview_url" = "预览 URL";
 "quick_shortcut.preview_output" = "预览输出";

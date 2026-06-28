@@ -24,7 +24,7 @@
 "common.indexing_apps" = "Indexing applications...";
 "common.indexed_apps_format" = "%d applications indexed";
 "common.config_directory" = "Configuration Folder";
-"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, the clipboard database, and image cache. This folder can be local or managed by a sync service that keeps files available offline.";
+"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, the clipboard database, and image cache. xxMac also creates quick/ here for complex quick shortcut scripts. This folder can be local or managed by a sync service that keeps files available offline.";
 "common.set_config_directory" = "Set Preferences Folder...";
 "common.reveal_config_directory" = "Reveal in Finder";
 "common.reset_config_directory" = "Reset to Default";
@@ -261,12 +261,14 @@
 "quick_shortcut.web_template_desc" = "Use {query} as the placeholder for the typed search term.";
 "quick_shortcut.shell_path" = "Shell Path";
 "quick_shortcut.input_mode" = "Input Mode";
+"quick_shortcut.input_mode_none" = "without input";
 "quick_shortcut.input_mode_query" = "with input as {query}";
 "quick_shortcut.input_mode_argv" = "with input as argv";
-"quick_shortcut.input_mode_desc" = "{query} passes the full input as $1. argv splits the input by spaces and quotes into $1, $2, $3. Both modes provide $XXMAC_QUERY.";
+"quick_shortcut.input_mode_desc" = "No-input mode runs after the keyword only. {query} passes the full input as $1. argv splits the input by spaces and quotes into $1, $2, $3. All modes provide $XXMAC_QUERY.";
+"quick_shortcut.input_required" = "Type arguments to run";
 "quick_shortcut.shell_path_desc" = "Used when there is no shebang. A #! first line takes priority.";
 "quick_shortcut.script" = "Script";
-"quick_shortcut.script_desc" = "The script runs in a shell process when the shortcut is executed.";
+"quick_shortcut.script_desc" = "The script runs in a shell process when the shortcut is executed. XXMAC_HOME points to the configuration folder, and XXMAC_QUICK_HOME points to its quick/ folder. For complex scripts, put quick/xxx/a.py there and use python \"$XXMAC_QUICK_HOME/xxx/a.py\" {query}.";
 "quick_shortcut.preview_query" = "Preview Query";
 "quick_shortcut.preview_url" = "Preview URL";
 "quick_shortcut.preview_output" = "Preview Output";

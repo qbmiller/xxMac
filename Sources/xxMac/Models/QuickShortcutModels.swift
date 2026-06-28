@@ -26,6 +26,7 @@ enum QuickShortcutActionType: String, Codable, CaseIterable, Identifiable {
 }
 
 enum QuickShortcutCommandInputMode: String, Codable, CaseIterable, Identifiable {
+    case noInput
     case queryPlaceholder
     case argv
 
@@ -33,10 +34,21 @@ enum QuickShortcutCommandInputMode: String, Codable, CaseIterable, Identifiable 
 
     var displayName: String {
         switch self {
+        case .noInput:
+            return L10n.t("quick_shortcut.input_mode_none")
         case .queryPlaceholder:
             return L10n.t("quick_shortcut.input_mode_query")
         case .argv:
             return L10n.t("quick_shortcut.input_mode_argv")
+        }
+    }
+
+    var requiresInput: Bool {
+        switch self {
+        case .noInput:
+            return false
+        case .queryPlaceholder, .argv:
+            return true
         }
     }
 }

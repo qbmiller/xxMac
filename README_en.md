@@ -18,7 +18,7 @@ xxMac is a native macOS menu bar productivity tool built with `SwiftUI + AppKit`
 | Chinese Calendar | Shows the date in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar style. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
 | Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. | Clipboard manager |
-| Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Supports `{query}` templates and shell execution. | Alfred Web Search / Workflows |
+| Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; argument modes wait until arguments are typed. | Alfred Web Search / Workflows |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
 
 ## Default Hotkeys
@@ -93,6 +93,7 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 - The default configuration folder is `~/Library/Application Support/xxMac`, and it can be changed from General > Configuration. Changing it moves the current preferences, app index cache, clipboard SQLite database, and image cache to the new folder, then removes xxMac data from the old folder.
 - The configuration folder can be local or managed by a sync service such as iCloud Drive or Dropbox, as long as files stay available offline. Avoid system folders, the app bundle, and temporary removable drives.
 - Hotkey settings, app quick-launch settings, launcher appearance and size, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder.
+- xxMac creates `quick/` inside the configuration folder for complex quick shortcut scripts. Command scripts receive `XXMAC_HOME` for the configuration folder and `XXMAC_QUICK_HOME` for `quick/`, for example `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`.
 - App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index cache is stored as `app-search-index.json` in the configuration folder and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
 - The clipboard database and image cache are stored as `clipboard.db` and `clipboard_images/` inside the configuration folder.
 - Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, or app index cache; use the configuration folder switch for a full migration.

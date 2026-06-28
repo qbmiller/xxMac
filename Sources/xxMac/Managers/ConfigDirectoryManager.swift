@@ -63,6 +63,10 @@ final class ConfigDirectoryManager: ObservableObject {
         currentDirectory.appendingPathComponent("clipboard_images", isDirectory: true)
     }
 
+    var quickDirectoryURL: URL {
+        currentDirectory.appendingPathComponent("quick", isDirectory: true)
+    }
+
     init(
         defaults: UserDefaults = .standard,
         fileManager: FileManager = .default,
@@ -173,6 +177,7 @@ final class ConfigDirectoryManager: ObservableObject {
     private func ensureDirectoryReady() throws {
         try fileManager.createDirectory(at: currentDirectory, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: clipboardImagesDirectoryURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: quickDirectoryURL, withIntermediateDirectories: true)
 
         guard !fileManager.fileExists(atPath: manifestURL.path) else { return }
 
@@ -218,6 +223,17 @@ final class ConfigDirectoryManager: ObservableObject {
             try fileManager.copyItem(at: sourceImagesURL, to: targetImagesURL)
         } else {
             try fileManager.createDirectory(at: targetImagesURL, withIntermediateDirectories: true)
+        }
+
+        let sourceQuickURL = sourceDirectory.appendingPathComponent("quick", isDirectory: true)
+        let targetQuickURL = targetDirectory.appendingPathComponent("quick", isDirectory: true)
+        if fileManager.fileExists(atPath: sourceQuickURL.path) {
+            if fileManager.fileExists(atPath: targetQuickURL.path) {
+                try fileManager.removeItem(at: targetQuickURL)
+            }
+            try fileManager.copyItem(at: sourceQuickURL, to: targetQuickURL)
+        } else {
+            try fileManager.createDirectory(at: targetQuickURL, withIntermediateDirectories: true)
         }
 
         try fileManager.removeItem(at: sourceDirectory)
