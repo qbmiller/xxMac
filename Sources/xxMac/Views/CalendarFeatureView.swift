@@ -33,28 +33,27 @@ final class CalendarPreferencesStore: ObservableObject {
     static let shared = CalendarPreferencesStore()
 
     @Published var showLunar: Bool {
-        didSet { UserDefaults.standard.set(showLunar, forKey: CalendarPreferencesKey.showLunar) }
+        didSet { PreferencesStore.shared.set(showLunar, forKey: CalendarPreferencesKey.showLunar) }
     }
 
     @Published var showWeekNumbers: Bool {
-        didSet { UserDefaults.standard.set(showWeekNumbers, forKey: CalendarPreferencesKey.showWeekNumbers) }
+        didSet { PreferencesStore.shared.set(showWeekNumbers, forKey: CalendarPreferencesKey.showWeekNumbers) }
     }
 
     @Published var firstWeekday: Int {
-        didSet { UserDefaults.standard.set(firstWeekday, forKey: CalendarPreferencesKey.firstWeekday) }
+        didSet { PreferencesStore.shared.set(firstWeekday, forKey: CalendarPreferencesKey.firstWeekday) }
     }
 
     @Published var menuBarIconStyle: CalendarMenuBarIconStyle {
-        didSet { UserDefaults.standard.set(menuBarIconStyle.rawValue, forKey: CalendarPreferencesKey.menuBarIconStyle) }
+        didSet { PreferencesStore.shared.set(menuBarIconStyle.rawValue, forKey: CalendarPreferencesKey.menuBarIconStyle) }
     }
 
     private init() {
-        let defaults = UserDefaults.standard
-        showLunar = defaults.object(forKey: CalendarPreferencesKey.showLunar) as? Bool ?? true
-        showWeekNumbers = defaults.object(forKey: CalendarPreferencesKey.showWeekNumbers) as? Bool ?? true
-        let storedWeekday = defaults.integer(forKey: CalendarPreferencesKey.firstWeekday)
-        firstWeekday = storedWeekday == 0 ? 2 : storedWeekday
-        let rawStyle = defaults.string(forKey: CalendarPreferencesKey.menuBarIconStyle)
+        let store = PreferencesStore.shared
+        showLunar = store.boolObject(forKey: CalendarPreferencesKey.showLunar) ?? true
+        showWeekNumbers = store.boolObject(forKey: CalendarPreferencesKey.showWeekNumbers) ?? true
+        firstWeekday = store.intObject(forKey: CalendarPreferencesKey.firstWeekday) ?? 2
+        let rawStyle = store.string(forKey: CalendarPreferencesKey.menuBarIconStyle)
         menuBarIconStyle = rawStyle.flatMap(CalendarMenuBarIconStyle.init(rawValue:)) ?? .weekdayDay
     }
 }

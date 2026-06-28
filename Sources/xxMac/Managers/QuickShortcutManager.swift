@@ -355,7 +355,7 @@ final class QuickShortcutManager: ObservableObject {
 """#
 
     private func loadItems() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey),
+        guard let data = PreferencesStore.shared.data(forKey: storageKey),
               let decoded = try? JSONDecoder().decode([QuickShortcut].self, from: data) else {
             items = []
             return
@@ -365,6 +365,6 @@ final class QuickShortcutManager: ObservableObject {
 
     private func saveItems() {
         guard let data = try? JSONEncoder().encode(items) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        PreferencesStore.shared.set(data, forKey: storageKey)
     }
 }

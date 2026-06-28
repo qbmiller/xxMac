@@ -90,10 +90,12 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 
 ## Configuration and Data
 
-- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index is cached in `UserDefaults`, reused after installing a new xxMac build, and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
-- Hotkey settings, app quick-launch settings, launcher window size and appearance, language preference, and other lightweight settings are stored in `UserDefaults`.
-- Quick shortcut configuration is stored in `UserDefaults`, and import/export covers all configurable items.
-- The clipboard database and image cache are stored in `~/Library/Application Support/xxMac`.
+- The default configuration folder is `~/Library/Application Support/xxMac`, and it can be changed from General > Configuration. Changing it moves the current preferences, app index cache, clipboard SQLite database, and image cache to the new folder, then removes xxMac data from the old folder.
+- The configuration folder can be local or managed by a sync service such as iCloud Drive or Dropbox, as long as files stay available offline. Avoid system folders, the app bundle, and temporary removable drives.
+- Hotkey settings, app quick-launch settings, launcher appearance and size, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder.
+- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index cache is stored as `app-search-index.json` in the configuration folder and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
+- The clipboard database and image cache are stored as `clipboard.db` and `clipboard_images/` inside the configuration folder.
+- Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, or app index cache; use the configuration folder switch for a full migration.
 - The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.
 - In the settings window, the first column is tool categories, the second column is feature items, and the third column contains detailed configuration.
 

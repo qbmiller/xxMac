@@ -23,6 +23,11 @@
 "common.index_apps" = "Index Applications";
 "common.indexing_apps" = "Indexing applications...";
 "common.indexed_apps_format" = "%d applications indexed";
+"common.config_directory" = "Configuration Folder";
+"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, the clipboard database, and image cache. This folder can be local or managed by a sync service that keeps files available offline.";
+"common.set_config_directory" = "Set Preferences Folder...";
+"common.reveal_config_directory" = "Reveal in Finder";
+"common.reset_config_directory" = "Reset to Default";
 "common.backup_config" = "Backup Configuration";
 "common.backup_desc" = "Save all current settings and paths to a file.";
 "common.export_config" = "Export Configuration...";

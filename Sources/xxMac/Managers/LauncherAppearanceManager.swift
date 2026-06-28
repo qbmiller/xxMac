@@ -32,15 +32,12 @@ final class LauncherAppearanceManager: ObservableObject {
     private let launcherHeightKey = "LauncherAppearanceHeight"
 
     private init() {
-        backgroundHex = UserDefaults.standard.string(forKey: backgroundKey) ?? "#5C9AAF"
-        let savedOpacity = UserDefaults.standard.double(forKey: opacityKey)
-        opacity = savedOpacity == 0 ? 0.78 : savedOpacity
-        let savedSizeScale = UserDefaults.standard.double(forKey: sizeScaleKey)
-        sizeScale = savedSizeScale == 0 ? 0.82 : savedSizeScale
-        let savedLauncherWidth = UserDefaults.standard.double(forKey: launcherWidthKey)
-        launcherWidth = savedLauncherWidth == 0 ? 760 : savedLauncherWidth
-        let savedLauncherHeight = UserDefaults.standard.double(forKey: launcherHeightKey)
-        launcherHeight = savedLauncherHeight == 0 ? 328 : savedLauncherHeight
+        let store = PreferencesStore.shared
+        backgroundHex = store.string(forKey: backgroundKey) ?? "#5C9AAF"
+        opacity = store.doubleObject(forKey: opacityKey) ?? 0.78
+        sizeScale = store.doubleObject(forKey: sizeScaleKey) ?? 0.82
+        launcherWidth = store.doubleObject(forKey: launcherWidthKey) ?? 760
+        launcherHeight = store.doubleObject(forKey: launcherHeightKey) ?? 328
     }
 
     var backgroundColor: Color {
@@ -64,11 +61,12 @@ final class LauncherAppearanceManager: ObservableObject {
     }
 
     private func save() {
-        UserDefaults.standard.set(backgroundHex, forKey: backgroundKey)
-        UserDefaults.standard.set(opacity, forKey: opacityKey)
-        UserDefaults.standard.set(sizeScale, forKey: sizeScaleKey)
-        UserDefaults.standard.set(launcherWidth, forKey: launcherWidthKey)
-        UserDefaults.standard.set(launcherHeight, forKey: launcherHeightKey)
+        let store = PreferencesStore.shared
+        store.set(backgroundHex, forKey: backgroundKey)
+        store.set(opacity, forKey: opacityKey)
+        store.set(sizeScale, forKey: sizeScaleKey)
+        store.set(launcherWidth, forKey: launcherWidthKey)
+        store.set(launcherHeight, forKey: launcherHeightKey)
     }
 }
 

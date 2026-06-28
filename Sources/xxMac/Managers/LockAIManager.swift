@@ -9,7 +9,7 @@ final class LockAIManager: ObservableObject {
 
     @Published var isLocked = false
     @Published var statusText: String {
-        didSet { UserDefaults.standard.set(statusText, forKey: Self.statusTextKey) }
+        didSet { PreferencesStore.shared.set(statusText, forKey: Self.statusTextKey) }
     }
     @Published var unlockMessage: String?
 
@@ -20,7 +20,7 @@ final class LockAIManager: ObservableObject {
     private var eventTapRunLoopSource: CFRunLoopSource?
 
     private init() {
-        statusText = UserDefaults.standard.string(forKey: Self.statusTextKey) ?? "AI Working"
+        statusText = PreferencesStore.shared.string(forKey: Self.statusTextKey) ?? "AI Working"
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersDidChange),

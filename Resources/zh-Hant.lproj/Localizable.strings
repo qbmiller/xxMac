@@ -23,6 +23,11 @@
 "common.index_apps" = "索引應用";
 "common.indexing_apps" = "正在索引應用...";
 "common.indexed_apps_format" = "已索引 %d 個應用";
+"common.config_directory" = "設定目錄";
+"common.config_directory_desc" = "設定 xxMac 保存設定、應用索引快取、剪貼簿資料庫和圖片快取的位置。此目錄可以是本機目錄，也可以是同步服務中保持本機可用的目錄。";
+"common.set_config_directory" = "設定目錄...";
+"common.reveal_config_directory" = "在 Finder 中顯示";
+"common.reset_config_directory" = "還原預設目錄";
 "common.backup_config" = "備份設定";
 "common.backup_desc" = "將目前設定與路徑保存到檔案。";
 "common.export_config" = "匯出設定...";

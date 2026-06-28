@@ -22,7 +22,7 @@ class AppLauncherManager: ObservableObject {
     }
     
     private func loadShortcuts() {
-        if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
+        if let data = PreferencesStore.shared.data(forKey: userDefaultsKey),
            let decoded = try? JSONDecoder().decode([AppShortcut].self, from: data) {
             shortcuts = decoded
         }
@@ -45,7 +45,7 @@ class AppLauncherManager: ObservableObject {
     
     private func saveShortcuts() {
         if let encoded = try? JSONEncoder().encode(shortcuts) {
-            UserDefaults.standard.set(encoded, forKey: userDefaultsKey)
+            PreferencesStore.shared.set(encoded, forKey: userDefaultsKey)
         }
     }
     

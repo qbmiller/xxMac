@@ -3,9 +3,11 @@ import AppKit
 
 struct CommonSettingsView: View {
     @ObservedObject private var appSearchManager = AppSearchManager.shared
+    @ObservedObject private var configDirectoryManager = ConfigDirectoryManager.shared
     @State private var showingExportSuccess = false
     @State private var showingImportSuccess = false
     @State private var importError: String?
+    @State private var configDirectoryError: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -73,6 +75,57 @@ struct CommonSettingsView: View {
                         Spacer()
                     }
                     .padding(.top, 4)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.t("common.config_directory"))
+                        .font(.headline)
+                    Text(L10n.t("common.config_directory_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text(configDirectoryManager.currentDirectory.path)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .textSelection(.enabled)
+                        .padding(.top, 2)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            chooseConfigDirectory()
+                        } label: {
+                            Label(L10n.t("common.set_config_directory"), systemImage: "folder")
+                        }
+
+                        Button {
+                            revealConfigDirectory()
+                        } label: {
+                            Label(L10n.t("common.reveal_config_directory"), systemImage: "arrow.up.forward.app")
+                        }
+
+                        Button {
+                            resetConfigDirectory()
+                        } label: {
+                            Label(L10n.t("common.reset_config_directory"), systemImage: "arrow.counterclockwise")
+                        }
+
+                        Spacer()
+                    }
+
+                    if let configDirectoryError {
+                        Text(configDirectoryError)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,6 +245,36 @@ struct CommonSettingsView: View {
     }
     
     // MARK: - Configuration Logic
+
+    private func chooseConfigDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = configDirectoryManager.currentDirectory
+
+        if panel.runModal() == .OK, let url = panel.url {
+            applyConfigDirectory(url)
+        }
+    }
+
+    private func revealConfigDirectory() {
+        NSWorkspace.shared.activateFileViewerSelecting([configDirectoryManager.currentDirectory])
+    }
+
+    private func resetConfigDirectory() {
+        applyConfigDirectory(configDirectoryManager.defaultDirectory)
+    }
+
+    private func applyConfigDirectory(_ url: URL) {
+        do {
+            try configDirectoryManager.migrateRuntimeDirectory(to: url)
+            configDirectoryError = nil
+        } catch {
+            configDirectoryError = error.localizedDescription
+        }
+    }
     
     struct AppConfiguration: Codable {
         let appLanguage: String?
@@ -218,35 +301,35 @@ struct CommonSettingsView: View {
     }
     
     private func collectConfigurations() throws -> AppConfiguration {
-        let defaults = UserDefaults.standard
+        let store = PreferencesStore.shared
         
         return AppConfiguration(
-            appLanguage: defaults.string(forKey: UserDefaultsKeys.appLanguage),
-            searchPaths: defaults.stringArray(forKey: "AppSearchPaths"),
-            hotKeyConfigurations: defaults.data(forKey: "HotKeyConfigurations"),
-            clearedHotKeyActions: defaults.stringArray(forKey: "ClearedHotKeyActions"),
-            launcherAppearanceBackgroundHex: defaults.string(forKey: "LauncherAppearanceBackgroundHex"),
-            launcherAppearanceOpacity: optionalDouble(forKey: "LauncherAppearanceOpacity", in: defaults),
-            launcherAppearanceSizeScale: optionalDouble(forKey: "LauncherAppearanceSizeScale", in: defaults),
-            launcherAppearanceWidth: optionalDouble(forKey: "LauncherAppearanceWidth", in: defaults),
-            launcherAppearanceHeight: optionalDouble(forKey: "LauncherAppearanceHeight", in: defaults),
-            appLauncherShortcuts: defaults.data(forKey: "AppLauncherShortcuts"),
-            quickShortcutItems: defaults.data(forKey: "QuickShortcutItems"),
-            clipboardSettings: defaults.data(forKey: "ClipboardSettings"),
-            shortcutDetectiveEnabled: defaults.object(forKey: "ShortcutDetectiveEnabled") as? Bool,
-            snippetSettings: defaults.data(forKey: "SnippetSettings"),
-            snippetCollections: defaults.data(forKey: "SnippetCollections"),
-            snippetEntries: defaults.data(forKey: "SnippetEntries"),
-            calendarShowLunar: defaults.object(forKey: CalendarPreferencesKey.showLunar) as? Bool,
-            calendarShowWeekNumbers: defaults.object(forKey: CalendarPreferencesKey.showWeekNumbers) as? Bool,
-            calendarFirstWeekday: defaults.object(forKey: CalendarPreferencesKey.firstWeekday) as? Int,
-            calendarMenuBarIconStyle: defaults.string(forKey: CalendarPreferencesKey.menuBarIconStyle),
-            lockAIStatusText: defaults.string(forKey: "LockAIStatusText")
+            appLanguage: store.string(forKey: UserDefaultsKeys.appLanguage),
+            searchPaths: store.stringArray(forKey: "AppSearchPaths"),
+            hotKeyConfigurations: store.data(forKey: "HotKeyConfigurations"),
+            clearedHotKeyActions: store.stringArray(forKey: "ClearedHotKeyActions"),
+            launcherAppearanceBackgroundHex: store.string(forKey: "LauncherAppearanceBackgroundHex"),
+            launcherAppearanceOpacity: store.doubleObject(forKey: "LauncherAppearanceOpacity"),
+            launcherAppearanceSizeScale: store.doubleObject(forKey: "LauncherAppearanceSizeScale"),
+            launcherAppearanceWidth: store.doubleObject(forKey: "LauncherAppearanceWidth"),
+            launcherAppearanceHeight: store.doubleObject(forKey: "LauncherAppearanceHeight"),
+            appLauncherShortcuts: store.data(forKey: "AppLauncherShortcuts"),
+            quickShortcutItems: store.data(forKey: "QuickShortcutItems"),
+            clipboardSettings: store.data(forKey: "ClipboardSettings"),
+            shortcutDetectiveEnabled: store.boolObject(forKey: "ShortcutDetectiveEnabled"),
+            snippetSettings: store.data(forKey: "SnippetSettings"),
+            snippetCollections: store.data(forKey: "SnippetCollections"),
+            snippetEntries: store.data(forKey: "SnippetEntries"),
+            calendarShowLunar: store.boolObject(forKey: CalendarPreferencesKey.showLunar),
+            calendarShowWeekNumbers: store.boolObject(forKey: CalendarPreferencesKey.showWeekNumbers),
+            calendarFirstWeekday: store.intObject(forKey: CalendarPreferencesKey.firstWeekday),
+            calendarMenuBarIconStyle: store.string(forKey: CalendarPreferencesKey.menuBarIconStyle),
+            lockAIStatusText: store.string(forKey: "LockAIStatusText")
         )
     }
     
     private func restoreConfigurations(_ config: AppConfiguration) {
-        let defaults = UserDefaults.standard
+        let store = PreferencesStore.shared
 
         if let appLanguage = config.appLanguage,
            let language = AppLanguage(rawValue: appLanguage) {
@@ -259,9 +342,9 @@ struct CommonSettingsView: View {
         }
         
         if let hotKeys = config.hotKeyConfigurations {
-            defaults.set(hotKeys, forKey: "HotKeyConfigurations")
+            store.set(hotKeys, forKey: "HotKeyConfigurations")
             if let clearedHotKeyActions = config.clearedHotKeyActions {
-                defaults.set(clearedHotKeyActions, forKey: "ClearedHotKeyActions")
+                store.set(clearedHotKeyActions, forKey: "ClearedHotKeyActions")
             }
             HotKeyManager.shared.loadConfigurations()
         }
@@ -342,10 +425,5 @@ struct CommonSettingsView: View {
         if let lockAIStatusText = config.lockAIStatusText {
             LockAIManager.shared.statusText = lockAIStatusText
         }
-    }
-
-    private func optionalDouble(forKey key: String, in defaults: UserDefaults) -> Double? {
-        guard defaults.object(forKey: key) != nil else { return nil }
-        return defaults.double(forKey: key)
     }
 }

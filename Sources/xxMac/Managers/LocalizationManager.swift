@@ -31,17 +31,17 @@ final class LocalizationManager: ObservableObject {
 
     @Published var language: AppLanguage {
         didSet {
-            UserDefaults.standard.set(language.rawValue, forKey: UserDefaultsKeys.appLanguage)
+            PreferencesStore.shared.set(language.rawValue, forKey: UserDefaultsKeys.appLanguage)
         }
     }
 
     private init() {
-        if let rawValue = UserDefaults.standard.string(forKey: UserDefaultsKeys.appLanguage),
+        if let rawValue = PreferencesStore.shared.string(forKey: UserDefaultsKeys.appLanguage),
            let language = AppLanguage(rawValue: rawValue) {
             self.language = language
         } else {
             self.language = .english
-            UserDefaults.standard.set(AppLanguage.english.rawValue, forKey: UserDefaultsKeys.appLanguage)
+            PreferencesStore.shared.set(AppLanguage.english.rawValue, forKey: UserDefaultsKeys.appLanguage)
         }
     }
 

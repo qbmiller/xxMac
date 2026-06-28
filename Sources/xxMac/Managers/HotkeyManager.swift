@@ -64,8 +64,7 @@ class HotKeyManager: ObservableObject {
     
     
     func loadConfigurations() {
-        // Load from UserDefaults or use defaults
-        if let data = UserDefaults.standard.data(forKey: "HotKeyConfigurations"),
+        if let data = PreferencesStore.shared.data(forKey: "HotKeyConfigurations"),
            let decoded = try? JSONDecoder().decode([WindowAction: HotKeyConfiguration].self, from: data) {
             configurations = decoded
             ensureDefaultConfiguration(for: .lockAI)
@@ -77,7 +76,7 @@ class HotKeyManager: ObservableObject {
     
     func saveConfigurations(notify: Bool = true) {
         if let encoded = try? JSONEncoder().encode(configurations) {
-            UserDefaults.standard.set(encoded, forKey: "HotKeyConfigurations")
+            PreferencesStore.shared.set(encoded, forKey: "HotKeyConfigurations")
         }
         if notify {
             NotificationCenter.default.post(name: Self.configurationsDidChangeNotification, object: self)
@@ -113,7 +112,7 @@ class HotKeyManager: ObservableObject {
         configurations[.topRight] = HotKeyConfiguration(key: .two, modifiers: defaultModifiers)
         configurations[.bottomLeft] = HotKeyConfiguration(key: .three, modifiers: defaultModifiers)
         configurations[.bottomRight] = HotKeyConfiguration(key: .four, modifiers: defaultModifiers)
-        UserDefaults.standard.removeObject(forKey: Self.clearedActionsKey)
+        PreferencesStore.shared.removeObject(forKey: Self.clearedActionsKey)
     }
 
     private func defaultConfiguration(for action: WindowAction) -> HotKeyConfiguration? {
@@ -190,19 +189,19 @@ class HotKeyManager: ObservableObject {
     }
 
     private func clearedActions() -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: Self.clearedActionsKey) ?? [])
+        Set(PreferencesStore.shared.stringArray(forKey: Self.clearedActionsKey) ?? [])
     }
 
     private func markCleared(_ action: WindowAction) {
         var actions = clearedActions()
         actions.insert(action.rawValue)
-        UserDefaults.standard.set(Array(actions), forKey: Self.clearedActionsKey)
+        PreferencesStore.shared.set(Array(actions), forKey: Self.clearedActionsKey)
     }
 
     private func unmarkCleared(_ action: WindowAction) {
         var actions = clearedActions()
         guard actions.remove(action.rawValue) != nil else { return }
-        UserDefaults.standard.set(Array(actions), forKey: Self.clearedActionsKey)
+        PreferencesStore.shared.set(Array(actions), forKey: Self.clearedActionsKey)
     }
     
     private func performAction(_ action: WindowAction) {

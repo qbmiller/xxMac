@@ -23,6 +23,11 @@
 "common.index_apps" = "索引应用";
 "common.indexing_apps" = "正在索引应用...";
 "common.indexed_apps_format" = "已索引 %d 个应用";
+"common.config_directory" = "配置目录";
+"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据库和图片缓存的位置。该目录可以是本地目录或同步服务下保持本地可用的目录。";
+"common.set_config_directory" = "设置配置目录...";
+"common.reveal_config_directory" = "在 Finder 中显示";
+"common.reset_config_directory" = "恢复默认目录";
 "common.backup_config" = "备份配置";
 "common.backup_desc" = "将当前设置和路径保存到文件。";
 "common.export_config" = "导出配置...";

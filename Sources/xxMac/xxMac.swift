@@ -78,6 +78,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize file-backed configuration before any manager reads settings.
+        _ = ConfigDirectoryManager.shared
+        _ = PreferencesStore.shared
         // Initialize HotKeyManager
         _ = HotKeyManager.shared
         // Initialize AppLauncherManager

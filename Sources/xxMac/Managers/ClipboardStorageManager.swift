@@ -4,22 +4,44 @@ import AppKit
 class ClipboardStorageManager {
     static let shared = ClipboardStorageManager()
     
-    private let dbManager: DatabaseManager
-    private let imagesDir: URL
-    private let storageDir: URL
+    private var dbManager: DatabaseManager
+    private var imagesDir: URL
+    private var storageDir: URL
     
     private var maxItemsCount = 1000
     private var maxImageStorageSizeMB = 500
     
-    private init() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        self.storageDir = appSupport.appendingPathComponent("xxMac")
+    var storageDirectory: URL { storageDir }
+    var imagesDirectory: URL { imagesDir }
+    var databasePath: String { storageDir.appendingPathComponent("clipboard.db").path }
+
+    convenience init() {
+        self.init(storageDirectory: ConfigDirectoryManager.shared.currentDirectory)
+    }
+
+    init(storageDirectory: URL) {
+        self.storageDir = storageDirectory.standardizedFileURL
         self.imagesDir = storageDir.appendingPathComponent("clipboard_images")
         
         try? FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true, attributes: nil)
         
         let dbPath = storageDir.appendingPathComponent("clipboard.db").path
         self.dbManager = DatabaseManager(path: dbPath)
+    }
+
+    func prepareForDirectoryMigration() {
+        dbManager.checkpointAndClose()
+    }
+
+    func resumeAfterDirectoryMigration() {
+        dbManager.reopen(path: databasePath)
+    }
+
+    func reloadStorageDirectory(_ directory: URL = ConfigDirectoryManager.shared.currentDirectory) {
+        storageDir = directory.standardizedFileURL
+        imagesDir = storageDir.appendingPathComponent("clipboard_images")
+        try? FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true, attributes: nil)
+        dbManager.reopen(path: databasePath)
     }
 
     func configureLimits(maxItemsCount: Int, maxImageStorageSizeMB: Int) {

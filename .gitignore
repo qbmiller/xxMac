@@ -4,3 +4,4 @@ ref/
 .DS_Store
 xxMac.app/
 *.dmg
+.worktrees/

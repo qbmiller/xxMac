@@ -3,7 +3,7 @@ import SQLite3
 
 class DatabaseManager {
     private var db: OpaquePointer?
-    private let dbPath: String
+    private var dbPath: String
     private let queue = DispatchQueue(label: "com.macefficiency.db", qos: .userInitiated)
 
     init(path: String) {
@@ -13,9 +13,7 @@ class DatabaseManager {
     }
 
     deinit {
-        _ = queue.sync {
-            sqlite3_close(db)
-        }
+        checkpointAndClose()
     }
 
     private func withDatabase<T>(_ block: () -> T) -> T {
@@ -33,6 +31,38 @@ class DatabaseManager {
         // Enable WAL mode for high performance concurrency
         execute(sql: "PRAGMA journal_mode=WAL;")
         execute(sql: "PRAGMA synchronous=NORMAL;")
+    }
+
+    func checkpointAndClose() {
+        queue.sync {
+            guard db != nil else { return }
+            sqlite3_exec(db, "PRAGMA wal_checkpoint(FULL);", nil, nil, nil)
+            sqlite3_close(db)
+            db = nil
+        }
+    }
+
+    func reopen(path: String) {
+        queue.sync {
+            if db != nil {
+                sqlite3_exec(db, "PRAGMA wal_checkpoint(FULL);", nil, nil, nil)
+                sqlite3_close(db)
+            }
+            dbPath = path
+            db = nil
+            openDatabaseUnlocked()
+            setupTablesUnlocked()
+        }
+    }
+
+    private func openDatabaseUnlocked() {
+        if sqlite3_open(dbPath, &db) != SQLITE_OK {
+            let error = String(cString: sqlite3_errmsg(db))
+            print("Error opening database at \(dbPath): \(error)")
+        }
+
+        _ = executeUnlocked(sql: "PRAGMA journal_mode=WAL;")
+        _ = executeUnlocked(sql: "PRAGMA synchronous=NORMAL;")
     }
 
     private func setupTables() {
@@ -77,18 +107,60 @@ class DatabaseManager {
         execute(sql: createTriggers)
     }
 
+    private func setupTablesUnlocked() {
+        let createTable = """
+        CREATE TABLE IF NOT EXISTS clipboard_items (
+            id TEXT PRIMARY KEY,
+            type TEXT,
+            content TEXT,
+            timestamp REAL,
+            size INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
+        """
+        _ = executeUnlocked(sql: createTable)
+
+        let createFtsTable = "CREATE VIRTUAL TABLE IF NOT EXISTS clipboard_fts USING fts5(id UNINDEXED, content);"
+        _ = executeUnlocked(sql: createFtsTable)
+
+        let createTriggers = """
+        CREATE TRIGGER IF NOT EXISTS after_insert_clipboard_items AFTER INSERT ON clipboard_items
+        WHEN new.type = 'text'
+        BEGIN
+            INSERT INTO clipboard_fts(id, content) VALUES (new.id, new.content);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS after_delete_clipboard_items AFTER DELETE ON clipboard_items
+        WHEN old.type = 'text'
+        BEGIN
+            DELETE FROM clipboard_fts WHERE id = old.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS after_update_clipboard_items AFTER UPDATE ON clipboard_items
+        WHEN new.type = 'text'
+        BEGIN
+            UPDATE clipboard_fts SET content = new.content WHERE id = old.id;
+        END;
+        """
+        _ = executeUnlocked(sql: createTriggers)
+    }
+
     @discardableResult
     func execute(sql: String) -> Bool {
         return withDatabase {
-            var error: UnsafeMutablePointer<Int8>?
-            if sqlite3_exec(db, sql, nil, nil, &error) != SQLITE_OK {
-                let msg = String(cString: error!)
-                print("SQL Error: \(msg) | SQL: \(sql)")
-                sqlite3_free(error)
-                return false
-            }
-            return true
+            executeUnlocked(sql: sql)
         }
+    }
+
+    private func executeUnlocked(sql: String) -> Bool {
+        var error: UnsafeMutablePointer<Int8>?
+        if sqlite3_exec(db, sql, nil, nil, &error) != SQLITE_OK {
+            let msg = error.map { String(cString: $0) } ?? "Unknown SQLite error"
+            print("SQL Error: \(msg) | SQL: \(sql)")
+            sqlite3_free(error)
+            return false
+        }
+        return true
     }
 
     func insertItem(id: String, type: String, content: String, size: Int) {

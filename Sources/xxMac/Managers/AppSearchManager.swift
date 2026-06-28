@@ -54,7 +54,7 @@ class AppSearchManager: ObservableObject {
         isLoadingSearchPaths = true
         defer { isLoadingSearchPaths = false }
 
-        if let savedPaths = UserDefaults.standard.stringArray(forKey: userDefaultsKey) {
+        if let savedPaths = PreferencesStore.shared.stringArray(forKey: userDefaultsKey) {
             searchPaths = ensureRequiredSearchPaths(in: savedPaths)
         } else {
             searchPaths = requiredSystemPaths
@@ -62,13 +62,13 @@ class AppSearchManager: ObservableObject {
     }
 
     private func saveSearchPaths() {
-        UserDefaults.standard.set(searchPaths, forKey: userDefaultsKey)
+        PreferencesStore.shared.set(searchPaths, forKey: userDefaultsKey)
     }
 
     @discardableResult
     private func loadCachedIndex() -> Bool {
         guard
-            let data = UserDefaults.standard.data(forKey: cacheDefaultsKey),
+            let data = try? Data(contentsOf: ConfigDirectoryManager.shared.appSearchIndexURL),
             let cached = try? JSONDecoder().decode([CachedEntry].self, from: data)
         else {
             return false
@@ -93,7 +93,11 @@ class AppSearchManager: ObservableObject {
             )
         }
         guard let data = try? JSONEncoder().encode(cached) else { return }
-        UserDefaults.standard.set(data, forKey: cacheDefaultsKey)
+        try? data.write(to: ConfigDirectoryManager.shared.appSearchIndexURL, options: .atomic)
+    }
+
+    func flushIndexCacheIfNeeded() {
+        saveCachedIndex(appEntries)
     }
 
     func addPath(_ path: String) {

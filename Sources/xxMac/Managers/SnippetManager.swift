@@ -199,7 +199,7 @@ final class SnippetManager: ObservableObject {
     }
 
     private func loadSettings() {
-        if let data = UserDefaults.standard.data(forKey: settingsKey),
+        if let data = PreferencesStore.shared.data(forKey: settingsKey),
            let decoded = try? JSONDecoder().decode(SnippetSettings.self, from: data) {
             settings = decoded
         }
@@ -207,12 +207,12 @@ final class SnippetManager: ObservableObject {
 
     private func saveSettings() {
         if let data = try? JSONEncoder().encode(settings) {
-            UserDefaults.standard.set(data, forKey: settingsKey)
+            PreferencesStore.shared.set(data, forKey: settingsKey)
         }
     }
 
     private func loadCollections() {
-        if let data = UserDefaults.standard.data(forKey: collectionsKey),
+        if let data = PreferencesStore.shared.data(forKey: collectionsKey),
            let decoded = try? JSONDecoder().decode([SnippetCollection].self, from: data) {
             collections = decoded
         }
@@ -220,12 +220,12 @@ final class SnippetManager: ObservableObject {
 
     private func saveCollections() {
         if let data = try? JSONEncoder().encode(collections) {
-            UserDefaults.standard.set(data, forKey: collectionsKey)
+            PreferencesStore.shared.set(data, forKey: collectionsKey)
         }
     }
 
     private func loadEntries() {
-        if let data = UserDefaults.standard.data(forKey: entriesKey),
+        if let data = PreferencesStore.shared.data(forKey: entriesKey),
            let decoded = try? JSONDecoder().decode([SnippetEntry].self, from: data) {
             entries = decoded
         }
@@ -233,7 +233,7 @@ final class SnippetManager: ObservableObject {
 
     private func saveEntries() {
         if let data = try? JSONEncoder().encode(entries) {
-            UserDefaults.standard.set(data, forKey: entriesKey)
+            PreferencesStore.shared.set(data, forKey: entriesKey)
         }
     }
 

@@ -193,26 +193,32 @@ Launcher 搜索流程：
 应用快捷启动流程：
 
 1. 用户在设置页维护 App 快捷键
-2. `AppLauncherManager` 保存到 UserDefaults
+2. `AppLauncherManager` 保存到配置目录的 `preferences.json`
 3. 刷新 HotKey 注册
 4. 触发后判断 App 是否运行
 5. 未运行则启动，已运行则激活或隐藏
 
 ## 8. 数据与配置
 
-UserDefaults 关键键：
+配置目录：
 
-1. `HotKeyConfigurations`
-2. `AppSearchPaths`
-3. `AppLauncherShortcuts`
-4. `ClipboardSettings`
-5. `ShortcutDetectiveEnabled`
+1. 默认目录：`~/Library/Application Support/xxMac`
+2. 可在“通用 > 配置”里修改，切换后会迁移当前配置、应用索引缓存、剪贴板数据库和图片缓存，并删除旧目录中的 xxMac 数据。
+3. `UserDefaults` 只保留启动定位指针 `ConfigDirectoryPath`；首次迁移会从旧 `UserDefaults` 拷贝已知配置键。
 
-本地持久化：
+配置目录文件：
 
-1. 目录：`~/Library/Application Support/xxMac`
-2. 数据库：`clipboard.db`
-3. 图片缓存：`clipboard_images/`
+1. `manifest.json`：配置目录元信息
+2. `preferences.json`：`HotKeyConfigurations`、`AppSearchPaths`、`AppLauncherShortcuts`、`ClipboardSettings`、`ShortcutDetectiveEnabled`、快捷指令、Snippets、日历和外观偏好等可配置项
+3. `app-search-index.json`：应用搜索索引缓存
+4. `clipboard.db`：剪贴板 SQLite 数据库
+5. `clipboard_images/`：剪贴板图片缓存
+
+导入导出边界：
+
+1. “导出配置”只导出 `preferences.json` 中的可配置设置。
+2. 不导出剪贴板历史记录、SQLite 数据库、图片缓存或应用索引缓存。
+3. 完整迁移使用配置目录切换。
 
 打包产物：
 

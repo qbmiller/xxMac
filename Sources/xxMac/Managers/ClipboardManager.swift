@@ -342,12 +342,12 @@ class ClipboardManager: ObservableObject {
     
     private func saveSettings() {
         if let data = try? JSONEncoder().encode(settings) {
-            UserDefaults.standard.set(data, forKey: "ClipboardSettings")
+            PreferencesStore.shared.set(data, forKey: "ClipboardSettings")
         }
     }
     
     private func loadSettings() {
-        if let data = UserDefaults.standard.data(forKey: "ClipboardSettings"),
+        if let data = PreferencesStore.shared.data(forKey: "ClipboardSettings"),
            let savedSettings = try? JSONDecoder().decode(ClipboardSettings.self, from: data) {
             settings = savedSettings
         }
