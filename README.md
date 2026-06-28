@@ -109,7 +109,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 
 ## 配置与数据
 
-- 应用搜索默认扫描 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；应用索引会缓存到 `UserDefaults`，新版本启动后可复用旧索引，也可在“通用 > 配置”里手动点击“索引应用”重建。
+- 应用搜索默认扫描 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；应用索引会缓存到 `UserDefaults`，新版本启动后可复用旧索引，也可在“通用 > 配置”里手动点击“索引应用”重建。中文应用名会同时写入原文、全拼和拼音首字母索引；英文应用名也会写入单词首字母索引。
 - 热键配置、应用快捷启动配置、启动器窗口宽高与外观、语言偏好等轻量配置保存在 `UserDefaults`。
 - 快捷指令配置保存在 `UserDefaults`，导入导出会覆盖全部可配置项。
 - Snippets 分类、条目、关键词和搜索热键保存在 `UserDefaults`，默认提供一个示例分类和示例片段。

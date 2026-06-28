@@ -90,7 +90,7 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 
 ## Configuration and Data
 
-- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index is cached in `UserDefaults`, reused after installing a new xxMac build, and can be rebuilt from General > Configuration with “Index Applications”.
+- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index is cached in `UserDefaults`, reused after installing a new xxMac build, and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
 - Hotkey settings, app quick-launch settings, launcher window size and appearance, language preference, and other lightweight settings are stored in `UserDefaults`.
 - Quick shortcut configuration is stored in `UserDefaults`, and import/export covers all configurable items.
 - The clipboard database and image cache are stored in `~/Library/Application Support/xxMac`.

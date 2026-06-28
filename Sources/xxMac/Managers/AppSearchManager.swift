@@ -40,6 +40,7 @@ class AppSearchManager: ObservableObject {
         let subtitle: String
         let path: String
         let nameKeys: [String]
+        let nameCompactKeys: [String]?
     }
 
     private init() {
@@ -82,7 +83,14 @@ class AppSearchManager: ObservableObject {
 
     private func saveCachedIndex(_ entries: [AppEntry]) {
         let cached = entries.map {
-            CachedEntry(id: $0.id, title: $0.title, subtitle: $0.subtitle, path: $0.path, nameKeys: [$0.title])
+            CachedEntry(
+                id: $0.id,
+                title: $0.title,
+                subtitle: $0.subtitle,
+                path: $0.path,
+                nameKeys: $0.nameSearchKeys,
+                nameCompactKeys: $0.nameCompactSearchKeys
+            )
         }
         guard let data = try? JSONEncoder().encode(cached) else { return }
         UserDefaults.standard.set(data, forKey: cacheDefaultsKey)
@@ -131,29 +139,33 @@ class AppSearchManager: ObservableObject {
             }
         }
 
+        let searchKeys = AppSearchKeyBuilder.keys(for: Array(nameKeys))
+
         return AppEntry(
             id: "app:\(path)",
             title: localizedName,
             subtitle: path,
             path: path,
-            nameSearchKeys: nameKeys.map(Self.normalize),
-            nameCompactSearchKeys: nameKeys.map(Self.normalizeCompact),
-            pathSearchKey: Self.normalize(path),
-            pathCompactSearchKey: Self.normalizeCompact(path)
+            nameSearchKeys: searchKeys.normalized,
+            nameCompactSearchKeys: searchKeys.compact,
+            pathSearchKey: AppSearchKeyBuilder.normalize(path),
+            pathCompactSearchKey: AppSearchKeyBuilder.normalizeCompact(path)
         )
     }
 
     private func makeEntry(fromCached entry: CachedEntry) -> AppEntry {
         let keys = Set(entry.nameKeys + [entry.title])
+        let generatedKeys = AppSearchKeyBuilder.keys(for: Array(keys))
+
         return AppEntry(
             id: entry.id,
             title: entry.title,
             subtitle: entry.subtitle,
             path: entry.path,
-            nameSearchKeys: keys.map(Self.normalize),
-            nameCompactSearchKeys: keys.map(Self.normalizeCompact),
-            pathSearchKey: Self.normalize(entry.path),
-            pathCompactSearchKey: Self.normalizeCompact(entry.path)
+            nameSearchKeys: generatedKeys.normalized,
+            nameCompactSearchKeys: entry.nameCompactKeys ?? generatedKeys.compact,
+            pathSearchKey: AppSearchKeyBuilder.normalize(entry.path),
+            pathCompactSearchKey: AppSearchKeyBuilder.normalizeCompact(entry.path)
         )
     }
 
@@ -206,8 +218,8 @@ class AppSearchManager: ObservableObject {
     }
 
     func search(query: String) -> [SearchItem] {
-        let normalizedQuery = Self.normalize(query)
-        let compactQuery = Self.normalizeCompact(query)
+        let normalizedQuery = AppSearchKeyBuilder.normalize(query)
+        let compactQuery = AppSearchKeyBuilder.normalizeCompact(query)
         let shouldMatchPath = query.contains("/")
 
         if normalizedQuery.isEmpty {
@@ -269,27 +281,4 @@ class AppSearchManager: ObservableObject {
         return results
     }
 
-    private static func normalize(_ value: String) -> String {
-        let folded = value
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .precomposedStringWithCompatibilityMapping
-            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: Locale(identifier: "en_US_POSIX"))
-
-        let cleanedScalars = folded.unicodeScalars.filter { scalar in
-            !CharacterSet.controlCharacters.contains(scalar) &&
-            !CharacterSet.nonBaseCharacters.contains(scalar)
-        }
-        return String(String.UnicodeScalarView(cleanedScalars)).lowercased()
-    }
-
-    private static func normalizeCompact(_ value: String) -> String {
-        let lowered = normalize(value)
-        let filteredScalars = lowered.unicodeScalars.filter { scalar in
-            if CharacterSet.whitespacesAndNewlines.contains(scalar) { return false }
-            if CharacterSet.punctuationCharacters.contains(scalar) { return false }
-            if CharacterSet.symbols.contains(scalar) { return false }
-            return true
-        }
-        return String(String.UnicodeScalarView(filteredScalars))
-    }
 }
