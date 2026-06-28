@@ -79,6 +79,31 @@ final class QuickShortcutManager: ObservableObject {
         }
     }
 
+    func fallbackSearchItems(query: String, commandRunner: @escaping (QuickShortcut, String) -> Void) -> [SearchItem] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else { return [] }
+
+        return items.compactMap { item in
+            guard item.isEnabled, item.showInFallback else { return nil }
+            let executionQuery = item.commandInputMode.requiresInput ? trimmedQuery : ""
+            return SearchItem(
+                id: "quick_shortcut.fallback.\(item.id.uuidString)",
+                title: fallbackTitle(for: item, query: trimmedQuery),
+                subtitle: subtitle(for: item),
+                iconName: item.actionType.iconName,
+                type: item.actionType == .commandScript ? .quickShortcutOutput : .quickShortcut,
+                action: { [weak self] in
+                    switch item.actionType {
+                    case .webSearch:
+                        self?.execute(item: item, query: trimmedQuery)
+                    case .commandScript:
+                        commandRunner(item, executionQuery)
+                    }
+                }
+            )
+        }
+    }
+
     func match(query: String) -> Match? {
         if case .ready(let match) = activationState(query: query) {
             return match
@@ -128,6 +153,18 @@ final class QuickShortcutManager: ObservableObject {
             return item.actionType.displayName
         }
         return "\(item.actionType.displayName) · \(keyword)"
+    }
+
+    private func fallbackTitle(for item: QuickShortcut, query: String) -> String {
+        switch item.actionType {
+        case .webSearch:
+            return L10n.f("quick_shortcut.fallback_web_title_format", item.title, query)
+        case .commandScript:
+            if item.commandInputMode.requiresInput {
+                return L10n.f("quick_shortcut.fallback_command_title_format", item.title, query)
+            }
+            return item.title
+        }
     }
 
     func execute(item: QuickShortcut, query: String) {

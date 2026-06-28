@@ -193,6 +193,13 @@ private struct QuickShortcutEditor: View {
 
                 Toggle(L10n.t("quick_shortcut.enabled"), isOn: $item.isEnabled)
 
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(L10n.t("quick_shortcut.show_in_fallback"), isOn: $item.showInFallback)
+                    Text(L10n.t("quick_shortcut.show_in_fallback_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text(L10n.t("quick_shortcut.title"))
                         .font(.subheadline)

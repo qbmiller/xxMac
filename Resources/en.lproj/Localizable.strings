@@ -252,6 +252,8 @@
 "quick_shortcut.editor" = "Edit Shortcut";
 "quick_shortcut.delete" = "Delete Shortcut";
 "quick_shortcut.enabled" = "Enabled";
+"quick_shortcut.show_in_fallback" = "Always show in launcher results";
+"quick_shortcut.show_in_fallback_desc" = "Always show this shortcut with the current launcher input. Useful for Google, Baidu, and other search entries; turn it off when not needed.";
 "quick_shortcut.title" = "Title";
 "quick_shortcut.keyword" = "Keyword";
 "quick_shortcut.action_type" = "Action Type";
@@ -274,6 +276,8 @@
 "quick_shortcut.preview_output" = "Preview Output";
 "quick_shortcut.preview_empty" = "Run Test to show output.";
 "quick_shortcut.output_title" = "Quick Shortcut Output";
+"quick_shortcut.fallback_web_title_format" = "Search %@ for \"%@\"";
+"quick_shortcut.fallback_command_title_format" = "Run %@ with \"%@\"";
 "quick_shortcut.running" = "Running...";
 "quick_shortcut.copy_output" = "Press Return to copy this output";
 "quick_shortcut.no_output" = "Command produced no output.";

@@ -159,7 +159,10 @@ class LauncherViewModel: ObservableObject {
         // 2. Apps (修复搜索状态)
         let appResults = AppSearchManager.shared.search(query: trimmedQuery)
         
-        let newResults = appResults + windowCommands
+        let fallbackShortcuts = QuickShortcutManager.shared.fallbackSearchItems(query: trimmedQuery) { [weak self] item, query in
+            self?.runQuickShortcutCommand(item: item, query: query)
+        }
+        let newResults = appResults + windowCommands + fallbackShortcuts
         self.results = newResults
         self.selectedIndex = 0
         let preview = newResults.prefix(8).map { $0.title }.joined(separator: ", ")

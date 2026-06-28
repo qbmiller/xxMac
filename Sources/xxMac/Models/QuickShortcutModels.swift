@@ -62,6 +62,7 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
     var shellPath: String
     var commandInputMode: QuickShortcutCommandInputMode
     var previewQuery: String
+    var showInFallback: Bool
     var isEnabled: Bool
 
     init(
@@ -73,6 +74,7 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
         shellPath: String = "/bin/zsh",
         commandInputMode: QuickShortcutCommandInputMode = .queryPlaceholder,
         previewQuery: String = "",
+        showInFallback: Bool = false,
         isEnabled: Bool = true
     ) {
         self.id = id
@@ -83,6 +85,7 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
         self.shellPath = shellPath
         self.commandInputMode = commandInputMode
         self.previewQuery = previewQuery
+        self.showInFallback = showInFallback
         self.isEnabled = isEnabled
     }
 
@@ -95,6 +98,7 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
         case shellPath
         case commandInputMode
         case previewQuery
+        case showInFallback
         case isEnabled
     }
 
@@ -108,6 +112,7 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
         shellPath = try container.decodeIfPresent(String.self, forKey: .shellPath) ?? "/bin/zsh"
         commandInputMode = try container.decodeIfPresent(QuickShortcutCommandInputMode.self, forKey: .commandInputMode) ?? .queryPlaceholder
         previewQuery = try container.decodeIfPresent(String.self, forKey: .previewQuery) ?? ""
+        showInFallback = try container.decodeIfPresent(Bool.self, forKey: .showInFallback) ?? false
         isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
     }
 }

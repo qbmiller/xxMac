@@ -18,7 +18,7 @@ xxMac is a native macOS menu bar productivity tool built with `SwiftUI + AppKit`
 | Chinese Calendar | Shows the date in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar style. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
 | Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. | Clipboard manager |
-| Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; argument modes wait until arguments are typed. | Alfred Web Search / Workflows |
+| Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; shortcuts can also be pinned into launcher results, useful for Google, Baidu, and similar search entries. | Alfred Web Search / Workflows |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
 
 ## Default Hotkeys

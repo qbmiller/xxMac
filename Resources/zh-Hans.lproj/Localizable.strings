@@ -252,6 +252,8 @@
 "quick_shortcut.editor" = "编辑快捷指令";
 "quick_shortcut.delete" = "删除快捷指令";
 "quick_shortcut.enabled" = "启用";
+"quick_shortcut.show_in_fallback" = "始终显示在启动器候选中";
+"quick_shortcut.show_in_fallback_desc" = "启动器搜索时始终用当前输入展示该快捷指令，适合 Google、Baidu 等搜索入口；不需要时可关闭。";
 "quick_shortcut.title" = "标题";
 "quick_shortcut.keyword" = "关键词";
 "quick_shortcut.action_type" = "动作类型";
@@ -274,6 +276,8 @@
 "quick_shortcut.preview_output" = "预览输出";
 "quick_shortcut.preview_empty" = "点击测试后显示输出。";
 "quick_shortcut.output_title" = "快捷指令输出";
+"quick_shortcut.fallback_web_title_format" = "%@ 搜索“%@”";
+"quick_shortcut.fallback_command_title_format" = "%@ 处理“%@”";
 "quick_shortcut.running" = "正在运行...";
 "quick_shortcut.copy_output" = "回车复制该输出";
 "quick_shortcut.no_output" = "命令没有输出。";
