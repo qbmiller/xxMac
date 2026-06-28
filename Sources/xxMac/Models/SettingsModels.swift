@@ -7,6 +7,10 @@ import AppKit
 struct HotKeyConfiguration: Codable {
     let key: Key
     let modifiers: NSEvent.ModifierFlags
+
+    var menuKeyEquivalent: String {
+        key.menuKeyEquivalent
+    }
 }
 
 // Extend Key and ModifierFlags to be Codable
@@ -36,6 +40,62 @@ extension Key: @retroactive Codable {
         case .escape: return "⎋"
         case .delete: return "⌫"
         default: return String(describing: self).uppercased()
+        }
+    }
+
+    var menuKeyEquivalent: String {
+        switch self {
+        case .zero, .keypad0:
+            return "0"
+        case .one, .keypad1:
+            return "1"
+        case .two, .keypad2:
+            return "2"
+        case .three, .keypad3:
+            return "3"
+        case .four, .keypad4:
+            return "4"
+        case .five, .keypad5:
+            return "5"
+        case .six, .keypad6:
+            return "6"
+        case .seven, .keypad7:
+            return "7"
+        case .eight, .keypad8:
+            return "8"
+        case .nine, .keypad9:
+            return "9"
+        case .period, .keypadDecimal:
+            return "."
+        case .quote:
+            return "\""
+        case .rightBracket:
+            return "]"
+        case .semicolon:
+            return ";"
+        case .slash, .keypadDivide:
+            return "/"
+        case .backslash:
+            return "\\"
+        case .comma:
+            return ","
+        case .equal, .keypadEquals:
+            return "="
+        case .grave:
+            return "`"
+        case .leftBracket:
+            return "["
+        case .minus, .keypadMinus:
+            return "-"
+        case .space:
+            return " "
+        case .tab:
+            return "\t"
+        case .return, .keypadEnter:
+            return "\r"
+        default:
+            let value = String(describing: self)
+            return value.count == 1 ? value : ""
         }
     }
 }

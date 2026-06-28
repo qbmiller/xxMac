@@ -48,6 +48,8 @@ enum WindowAction: String, CaseIterable, Codable {
 
 class HotKeyManager: ObservableObject {
     static let shared = HotKeyManager()
+    static let configurationsDidChangeNotification = Notification.Name("HotKeyConfigurationsDidChange")
+    private static let clearedActionsKey = "ClearedHotKeyActions"
     
     private var hotKeys: [WindowAction: HotKey] = [:]
     private var pauseTokens = Set<UUID>()
@@ -66,15 +68,19 @@ class HotKeyManager: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "HotKeyConfigurations"),
            let decoded = try? JSONDecoder().decode([WindowAction: HotKeyConfiguration].self, from: data) {
             configurations = decoded
+            ensureDefaultConfiguration(for: .lockAI)
         } else {
             setupDefaultConfigurations()
         }
         refreshHotKeys()
     }
     
-    func saveConfigurations() {
+    func saveConfigurations(notify: Bool = true) {
         if let encoded = try? JSONEncoder().encode(configurations) {
             UserDefaults.standard.set(encoded, forKey: "HotKeyConfigurations")
+        }
+        if notify {
+            NotificationCenter.default.post(name: Self.configurationsDidChangeNotification, object: self)
         }
     }
     
@@ -107,6 +113,29 @@ class HotKeyManager: ObservableObject {
         configurations[.topRight] = HotKeyConfiguration(key: .two, modifiers: defaultModifiers)
         configurations[.bottomLeft] = HotKeyConfiguration(key: .three, modifiers: defaultModifiers)
         configurations[.bottomRight] = HotKeyConfiguration(key: .four, modifiers: defaultModifiers)
+        UserDefaults.standard.removeObject(forKey: Self.clearedActionsKey)
+    }
+
+    private func defaultConfiguration(for action: WindowAction) -> HotKeyConfiguration? {
+        let defaultModifiers: NSEvent.ModifierFlags = [.control, .option, .command]
+
+        switch action {
+        case .lockAI:
+            return HotKeyConfiguration(key: .l, modifiers: defaultModifiers)
+        default:
+            return nil
+        }
+    }
+
+    private func ensureDefaultConfiguration(for action: WindowAction) {
+        guard configurations[action] == nil,
+              !clearedActions().contains(action.rawValue),
+              let defaultConfiguration = defaultConfiguration(for: action) else {
+            return
+        }
+
+        configurations[action] = defaultConfiguration
+        saveConfigurations(notify: false)
     }
     
     func refreshHotKeys() {
@@ -148,14 +177,32 @@ class HotKeyManager: ObservableObject {
     
     func updateConfiguration(for action: WindowAction, key: Key, modifiers: NSEvent.ModifierFlags) {
         configurations[action] = HotKeyConfiguration(key: key, modifiers: modifiers)
+        unmarkCleared(action)
         saveConfigurations()
         refreshHotKeys()
     }
     
     func removeConfiguration(for action: WindowAction) {
         configurations.removeValue(forKey: action)
+        markCleared(action)
         saveConfigurations()
         refreshHotKeys()
+    }
+
+    private func clearedActions() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: Self.clearedActionsKey) ?? [])
+    }
+
+    private func markCleared(_ action: WindowAction) {
+        var actions = clearedActions()
+        actions.insert(action.rawValue)
+        UserDefaults.standard.set(Array(actions), forKey: Self.clearedActionsKey)
+    }
+
+    private func unmarkCleared(_ action: WindowAction) {
+        var actions = clearedActions()
+        guard actions.remove(action.rawValue) != nil else { return }
+        UserDefaults.standard.set(Array(actions), forKey: Self.clearedActionsKey)
     }
     
     private func performAction(_ action: WindowAction) {

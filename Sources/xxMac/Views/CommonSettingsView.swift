@@ -197,6 +197,7 @@ struct CommonSettingsView: View {
         let appLanguage: String?
         let searchPaths: [String]?
         let hotKeyConfigurations: Data?
+        let clearedHotKeyActions: [String]?
         let launcherAppearanceBackgroundHex: String?
         let launcherAppearanceOpacity: Double?
         let launcherAppearanceSizeScale: Double?
@@ -223,6 +224,7 @@ struct CommonSettingsView: View {
             appLanguage: defaults.string(forKey: UserDefaultsKeys.appLanguage),
             searchPaths: defaults.stringArray(forKey: "AppSearchPaths"),
             hotKeyConfigurations: defaults.data(forKey: "HotKeyConfigurations"),
+            clearedHotKeyActions: defaults.stringArray(forKey: "ClearedHotKeyActions"),
             launcherAppearanceBackgroundHex: defaults.string(forKey: "LauncherAppearanceBackgroundHex"),
             launcherAppearanceOpacity: optionalDouble(forKey: "LauncherAppearanceOpacity", in: defaults),
             launcherAppearanceSizeScale: optionalDouble(forKey: "LauncherAppearanceSizeScale", in: defaults),
@@ -258,6 +260,9 @@ struct CommonSettingsView: View {
         
         if let hotKeys = config.hotKeyConfigurations {
             defaults.set(hotKeys, forKey: "HotKeyConfigurations")
+            if let clearedHotKeyActions = config.clearedHotKeyActions {
+                defaults.set(clearedHotKeyActions, forKey: "ClearedHotKeyActions")
+            }
             HotKeyManager.shared.loadConfigurations()
         }
 

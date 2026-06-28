@@ -110,12 +110,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         let menu = NSMenu()
-        let toggleItem = NSMenuItem(title: L10n.t("menu.toggle_launcher"), action: #selector(toggleLauncher), keyEquivalent: " ")
-        toggleItem.keyEquivalentModifierMask = [.control, .option]
+        let toggleItem = NSMenuItem(title: L10n.t("menu.toggle_launcher"), action: #selector(toggleLauncher), keyEquivalent: "")
         toggleLauncherMenuItem = toggleItem
         menu.addItem(toggleItem)
-        let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "l")
-        lockAIItem.keyEquivalentModifierMask = [.control, .option, .command]
+        let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "")
         lockAIMenuItem = lockAIItem
         menu.addItem(lockAIItem)
         let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
@@ -154,6 +152,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         localizationCancellable = LocalizationManager.shared.$language.sink { [weak self] _ in
             self?.updateMenuTitles()
         }
+        NotificationCenter.default.addObserver(self, selector: #selector(updateMenuShortcuts), name: HotKeyManager.configurationsDidChangeNotification, object: nil)
+        updateMenuShortcuts()
     }
     
     func createLauncherPanel() {
@@ -385,6 +385,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         quitMenuItem?.title = L10n.t("menu.quit")
         settingsWindow?.title = L10n.t("window.settings")
         calendarMenuBarController?.refreshStatusItem()
+    }
+
+    @MainActor
+    @objc private func updateMenuShortcuts() {
+        applyMenuShortcut(for: .toggleLauncher, to: toggleLauncherMenuItem)
+        applyMenuShortcut(for: .lockAI, to: lockAIMenuItem)
+    }
+
+    private func applyMenuShortcut(for action: WindowAction, to menuItem: NSMenuItem?) {
+        guard let menuItem else { return }
+
+        if let configuration = HotKeyManager.shared.configurations[action],
+           !configuration.menuKeyEquivalent.isEmpty {
+            menuItem.keyEquivalent = configuration.menuKeyEquivalent
+            menuItem.keyEquivalentModifierMask = configuration.modifiers.intersection(.deviceIndependentFlagsMask)
+        } else {
+            menuItem.keyEquivalent = ""
+            menuItem.keyEquivalentModifierMask = []
+        }
     }
     
     func openLauncher() {
