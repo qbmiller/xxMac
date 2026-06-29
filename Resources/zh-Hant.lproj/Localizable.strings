@@ -129,7 +129,8 @@
 "launcher.search_clipboard_placeholder" = "搜尋剪貼簿歷史...";
 "launcher_appearance.desc" = "調整 Control + Option + Space 喚起面板的半透明底色。";
 "launcher_appearance.background" = "底色";
-"launcher_appearance.size" = "大小";
+"launcher_appearance.size" = "整體大小";
+"launcher_appearance.text_size" = "文字大小";
 "launcher_appearance.width" = "寬度";
 "launcher_appearance.height" = "高度";
 "launcher_appearance.opacity" = "透明度";

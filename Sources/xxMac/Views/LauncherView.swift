@@ -26,6 +26,10 @@ struct LauncherView: View {
         CGFloat(appearance.sizeScale)
     }
 
+    private var textScale: CGFloat {
+        CGFloat(appearance.textScale)
+    }
+
     private var launcherWidth: CGFloat {
         CGFloat(appearance.launcherWidth)
     }
@@ -72,6 +76,10 @@ struct LauncherView: View {
         value * sizeScale
     }
 
+    private func scaledText(_ value: CGFloat) -> CGFloat {
+        value * sizeScale * textScale
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: scaled(18)) {
@@ -81,7 +89,7 @@ struct LauncherView: View {
                     .frame(width: scaled(42), height: scaled(42))
                 
                 TextField(searchPlaceholder, text: $viewModel.query)
-                    .font(.system(size: scaled(36), weight: .light))
+                    .font(.system(size: scaledText(36), weight: .light))
                     .textFieldStyle(PlainTextFieldStyle())
                     .id(viewModel.searchID) // Force recreation when session resets
                     .focused($isSearchFocused)
@@ -224,8 +232,16 @@ struct SearchResultRow: View {
         CGFloat(appearance.sizeScale)
     }
 
+    private var textScale: CGFloat {
+        CGFloat(appearance.textScale)
+    }
+
     private func scaled(_ value: CGFloat) -> CGFloat {
         value * sizeScale
+    }
+
+    private func scaledText(_ value: CGFloat) -> CGFloat {
+        value * sizeScale * textScale
     }
     
     var body: some View {
@@ -234,12 +250,12 @@ struct SearchResultRow: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
-                    .font(.system(size: scaled(27), weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: scaledText(27), weight: isSelected ? .semibold : .regular))
                     .foregroundColor(.white.opacity(isSelected ? 1 : 0.86))
                     .lineLimit(1)
                 if !item.subtitle.isEmpty {
                     Text(item.subtitle)
-                        .font(.system(size: scaled(17), weight: .medium))
+                        .font(.system(size: scaledText(17), weight: .medium))
                         .foregroundColor(.white.opacity(isSelected ? 0.78 : 0.56))
                         .lineLimit(1)
                 }
@@ -253,7 +269,7 @@ struct SearchResultRow: View {
                         Image(systemName: "folder")
                             .font(.system(size: scaled(16), weight: .semibold))
                         Text("Reveal in Finder")
-                            .font(.system(size: scaled(14), weight: .semibold))
+                            .font(.system(size: scaledText(14), weight: .semibold))
                     }
                     .foregroundColor(.white.opacity(0.72))
                 } else {

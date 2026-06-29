@@ -65,8 +65,6 @@ struct QuickShortcutItemsSidebar: View {
             }
         }
         .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.2), lineWidth: 1))
     }
 
     private func deleteSelectedItem() {

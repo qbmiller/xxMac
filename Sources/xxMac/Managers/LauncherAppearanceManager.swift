@@ -4,6 +4,8 @@ import SwiftUI
 
 final class LauncherAppearanceManager: ObservableObject {
     static let shared = LauncherAppearanceManager()
+    static let sizeScaleRange: ClosedRange<Double> = 0.50...1.05
+    static let textScaleRange: ClosedRange<Double> = 0.50...1.20
 
     @Published var backgroundHex: String {
         didSet { save() }
@@ -14,7 +16,25 @@ final class LauncherAppearanceManager: ObservableObject {
     }
 
     @Published var sizeScale: Double {
-        didSet { save() }
+        didSet {
+            let clampedValue = Self.clampedSizeScale(sizeScale)
+            if clampedValue != sizeScale {
+                sizeScale = clampedValue
+                return
+            }
+            save()
+        }
+    }
+
+    @Published var textScale: Double {
+        didSet {
+            let clampedValue = Self.clampedTextScale(textScale)
+            if clampedValue != textScale {
+                textScale = clampedValue
+                return
+            }
+            save()
+        }
     }
 
     @Published var launcherWidth: Double {
@@ -28,6 +48,7 @@ final class LauncherAppearanceManager: ObservableObject {
     private let backgroundKey = "LauncherAppearanceBackgroundHex"
     private let opacityKey = "LauncherAppearanceOpacity"
     private let sizeScaleKey = "LauncherAppearanceSizeScale"
+    private let textScaleKey = "LauncherAppearanceTextScale"
     private let launcherWidthKey = "LauncherAppearanceWidth"
     private let launcherHeightKey = "LauncherAppearanceHeight"
 
@@ -35,7 +56,8 @@ final class LauncherAppearanceManager: ObservableObject {
         let store = PreferencesStore.shared
         backgroundHex = store.string(forKey: backgroundKey) ?? "#5C9AAF"
         opacity = store.doubleObject(forKey: opacityKey) ?? 0.78
-        sizeScale = store.doubleObject(forKey: sizeScaleKey) ?? 0.82
+        sizeScale = Self.clampedSizeScale(store.doubleObject(forKey: sizeScaleKey) ?? 0.82)
+        textScale = Self.clampedTextScale(store.doubleObject(forKey: textScaleKey) ?? 1.0)
         launcherWidth = store.doubleObject(forKey: launcherWidthKey) ?? 760
         launcherHeight = store.doubleObject(forKey: launcherHeightKey) ?? 328
     }
@@ -56,6 +78,7 @@ final class LauncherAppearanceManager: ObservableObject {
         backgroundHex = "#5C9AAF"
         opacity = 0.78
         sizeScale = 0.82
+        textScale = 1.0
         launcherWidth = 760
         launcherHeight = 328
     }
@@ -65,8 +88,17 @@ final class LauncherAppearanceManager: ObservableObject {
         store.set(backgroundHex, forKey: backgroundKey)
         store.set(opacity, forKey: opacityKey)
         store.set(sizeScale, forKey: sizeScaleKey)
+        store.set(textScale, forKey: textScaleKey)
         store.set(launcherWidth, forKey: launcherWidthKey)
         store.set(launcherHeight, forKey: launcherHeightKey)
+    }
+
+    private static func clampedSizeScale(_ value: Double) -> Double {
+        min(max(value, sizeScaleRange.lowerBound), sizeScaleRange.upperBound)
+    }
+
+    private static func clampedTextScale(_ value: Double) -> Double {
+        min(max(value, textScaleRange.lowerBound), textScaleRange.upperBound)
     }
 }
 

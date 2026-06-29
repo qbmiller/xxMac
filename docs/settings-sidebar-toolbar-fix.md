@@ -32,27 +32,25 @@
 处理原则：
 
 1. 仅保留一个可见入口。
-2. 左侧按钮不直接改 `NavigationSplitViewVisibility`。
-3. 左侧按钮调用系统原生 `NSSplitViewController.toggleSidebar(_:)`，保持和系统按钮一致的折叠行为，避免窗口变大。
-4. 用 `SettingsToolbarCleanup` 删除 SwiftUI 自动插入的 `com.apple.SwiftUI.navigationSplitView.toggleSidebar` 和 `com.apple.SwiftUI.splitViewSeparator-0`。
-5. 不再依赖自然语言、本地化字符串或“sidebar”字样来识别按钮。
+2. 设置窗口不再使用 `NavigationSplitView` 的自动三栏和自动 toolbar 项。
+3. 顶层改为显式 `HStack` 四段布局：固定按钮栏、工具栏、二级功能栏、详情栏。
+4. 固定按钮栏永远可见，按钮只切换工具栏显示状态，不依赖系统 toolbar 或 `NavigationSplitViewVisibility`。
+5. 二级功能栏和详情栏始终保留，避免收起工具栏后丢失上下文。
 
 当前可见结果：
 
-1. 系统自动生成的第二个按钮已删除。
-2. 右侧竖线来自 SwiftUI 自动分隔项，当前按稳定 id 直接删除。
-3. 如果后续仍出现新的 toolbar 项，先查真实 `NSToolbarItem.Identifier`，不要继续猜测文案或图标。
+1. 展开 / 收起只影响第一列工具分类。
+2. 固定按钮位于窗口内容左侧窄栏顶部，不随展开 / 收起侧边栏移动，也不会消失。
+3. 不再需要清理 SwiftUI 自动插入的 sidebar toolbar item。
+4. 二级栏使用普通 sidebar 列表风格，避免卡片套卡片。
 
 ## 关键经验
 
 1. SwiftUI 的 `NavigationSplitView` 会自动给 macOS toolbar 注入 sidebar 相关 item。
 2. 这些 item 的 `itemIdentifier.rawValue` 更稳定，调试时应以真实 id 为准。
 3. 自定义按钮如果直接改 `columnVisibility`，行为不等同于系统 `toggleSidebar:`，可能导致窗口尺寸变化。
-4. 更稳妥的方式是让固定按钮走 AppKit responder chain：
-
-```swift
-NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
-```
+4. 通过 `NSViewRepresentable` 往 `NSToolbar` 异步插入自定义按钮也不够稳定；`NavigationSplitView` 收起 / 展开可能重建 toolbar 项，导致按钮暂时消失，直到其它状态变化触发 SwiftUI 更新。
+5. 如果需要按钮位置完全稳定，应把按钮纳入自有布局，而不是混在 SwiftUI / AppKit 自动 toolbar 系统里。
 
 ## 后续注意
 

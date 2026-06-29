@@ -173,6 +173,7 @@ final class PreferencesStore {
     private static let doubleKeys = [
         "LauncherAppearanceOpacity",
         "LauncherAppearanceSizeScale",
+        "LauncherAppearanceTextScale",
         "LauncherAppearanceWidth",
         "LauncherAppearanceHeight"
     ]

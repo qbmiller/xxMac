@@ -284,6 +284,7 @@ struct CommonSettingsView: View {
         let launcherAppearanceBackgroundHex: String?
         let launcherAppearanceOpacity: Double?
         let launcherAppearanceSizeScale: Double?
+        let launcherAppearanceTextScale: Double?
         let launcherAppearanceWidth: Double?
         let launcherAppearanceHeight: Double?
         let appLauncherShortcuts: Data?
@@ -311,6 +312,7 @@ struct CommonSettingsView: View {
             launcherAppearanceBackgroundHex: store.string(forKey: "LauncherAppearanceBackgroundHex"),
             launcherAppearanceOpacity: store.doubleObject(forKey: "LauncherAppearanceOpacity"),
             launcherAppearanceSizeScale: store.doubleObject(forKey: "LauncherAppearanceSizeScale"),
+            launcherAppearanceTextScale: store.doubleObject(forKey: "LauncherAppearanceTextScale"),
             launcherAppearanceWidth: store.doubleObject(forKey: "LauncherAppearanceWidth"),
             launcherAppearanceHeight: store.doubleObject(forKey: "LauncherAppearanceHeight"),
             appLauncherShortcuts: store.data(forKey: "AppLauncherShortcuts"),
@@ -359,6 +361,10 @@ struct CommonSettingsView: View {
 
         if let sizeScale = config.launcherAppearanceSizeScale {
             LauncherAppearanceManager.shared.sizeScale = sizeScale
+        }
+
+        if let textScale = config.launcherAppearanceTextScale {
+            LauncherAppearanceManager.shared.textScale = textScale
         }
 
         if let width = config.launcherAppearanceWidth {

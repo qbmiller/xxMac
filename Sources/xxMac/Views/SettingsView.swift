@@ -1,10 +1,6 @@
 import SwiftUI
 import HotKey
 
-private let settingsSidebarToggleItemID = "xxmac.settings.sidebarToggle"
-private let swiftUISidebarToggleItemID = "com.apple.SwiftUI.navigationSplitView.toggleSidebar"
-private let swiftUISplitViewSeparatorItemID = "com.apple.SwiftUI.splitViewSeparator-0"
-
 // MARK: - Main View
 
 struct SettingsView: View {
@@ -12,69 +8,34 @@ struct SettingsView: View {
     @State private var selectedFunction: ToolFunction? = ToolOption.allTools.first?.functions.first
     @State private var selectedSnippetCollectionID: SnippetCollection.ID?
     @State private var selectedQuickShortcutID: QuickShortcut.ID?
+    @State private var isToolSidebarVisible = true
     @State private var monitor: Any?
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var snippetManager = SnippetManager.shared
     
     var body: some View {
-        NavigationSplitView {
-            // Column 1: Tools
-            List(ToolOption.allTools, selection: $selectedTool) { tool in
-                NavigationLink(value: tool) {
-                    Label(tool.type.displayName, systemImage: tool.type.icon)
-                        .padding(.vertical, 4)
-                }
+        HStack(spacing: 0) {
+            sidebarToggleRail
+
+            if isToolSidebarVisible {
+                Divider()
+                toolSidebar
+                    .frame(width: 240)
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
-            .navigationTitle(L10n.t("settings.tools"))
-            .listStyle(.sidebar)
-            .frame(minWidth: 200)
-            
-        } content: {
-            // Column 2: Functions
-            if let tool = selectedTool {
-                if tool.type == .snippets {
-                    SnippetCollectionSidebar(selection: $selectedSnippetCollectionID)
-                        .navigationTitle(L10n.t("snippets.collections"))
-                        .frame(minWidth: 200, idealWidth: 240)
-                } else if tool.type == .quickShortcut {
-                    QuickShortcutItemsSidebar(selection: $selectedQuickShortcutID)
-                        .navigationTitle(L10n.t("tool.quick_shortcut"))
-                        .frame(minWidth: 220, idealWidth: 280)
-                } else {
-                    List(tool.functions, selection: $selectedFunction) { function in
-                        NavigationLink(value: function) {
-                            Label(function.name, systemImage: function.icon)
-                                .padding(.vertical, 4)
-                        }
-                    }
-                    .navigationTitle(tool.type.displayName)
-                    .listStyle(.sidebar) // Use sidebar style for consistency or .plain
-                    .frame(minWidth: 200)
-                }
-            } else {
-                Text(L10n.t("settings.select_tool"))
-                    .foregroundColor(.secondary)
-            }
-            
-        } detail: {
-            // Column 3: Configuration
-            if selectedTool?.type == .snippets {
-                SnippetsSettingsView(selectedCollectionID: $selectedSnippetCollectionID)
-            } else if selectedTool?.type == .quickShortcut {
-                QuickShortcutDetailView(selectedItemID: $selectedQuickShortcutID)
-            } else if let function = selectedFunction {
-                ConfigurationView(function: function)
-            } else {
-                Text(L10n.t("settings.select_function"))
-                    .foregroundColor(.secondary)
-            }
+
+            Divider()
+
+            secondarySidebar
+                .frame(width: secondaryColumnWidth)
+
+            Divider()
+
+            detailContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 900, minHeight: 600)
-        .background(SettingsToolbarCleanup())
-        .fixedSidebarToggle(
-            title: L10n.t("settings.toggle_sidebar"),
-            action: toggleSidebar
-        )
+        .background(Color(NSColor.windowBackgroundColor))
         .id(localization.language)
         .onAppear {
             setupWindowCloseMonitor()
@@ -99,6 +60,127 @@ struct SettingsView: View {
         }
         .onChange(of: QuickShortcutManager.shared.items) { _ in
             ensureQuickShortcutSelection()
+        }
+    }
+
+    private var secondaryColumnWidth: CGFloat {
+        switch selectedTool?.type {
+        case .quickShortcut:
+            return 300
+        case .snippets:
+            return 260
+        default:
+            return 240
+        }
+    }
+
+    private var sidebarToggleRail: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    isToolSidebarVisible.toggle()
+                }
+            } label: {
+                Image(systemName: "sidebar.leading")
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.borderless)
+            .help(L10n.t("settings.toggle_sidebar"))
+            .padding(.top, 12)
+
+            Spacer()
+        }
+        .frame(width: 48)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    private var toolSidebar: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(L10n.t("settings.tools"))
+                    .font(.headline)
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+
+            List(selection: $selectedTool) {
+                ForEach(ToolOption.allTools) { tool in
+                    Label(tool.type.displayName, systemImage: tool.type.icon)
+                        .padding(.vertical, 4)
+                        .tag(tool)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedTool = tool
+                        }
+                }
+            }
+            .listStyle(.sidebar)
+        }
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    private var secondarySidebar: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(selectedTool?.type.displayName ?? L10n.t("settings.select_tool"))
+                    .font(.headline)
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            secondaryContent
+        }
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    @ViewBuilder
+    private var secondaryContent: some View {
+        if let tool = selectedTool {
+            if tool.type == .snippets {
+                SnippetCollectionSidebar(selection: $selectedSnippetCollectionID)
+            } else if tool.type == .quickShortcut {
+                QuickShortcutItemsSidebar(selection: $selectedQuickShortcutID)
+            } else {
+                List(selection: $selectedFunction) {
+                    ForEach(tool.functions) { function in
+                        Label(function.name, systemImage: function.icon)
+                            .padding(.vertical, 4)
+                            .tag(function)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedFunction = function
+                            }
+                    }
+                }
+                .listStyle(.sidebar)
+            }
+        } else {
+            VStack {
+                Spacer()
+                Text(L10n.t("settings.select_tool"))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var detailContent: some View {
+        if selectedTool?.type == .snippets {
+            SnippetsSettingsView(selectedCollectionID: $selectedSnippetCollectionID)
+        } else if selectedTool?.type == .quickShortcut {
+            QuickShortcutDetailView(selectedItemID: $selectedQuickShortcutID)
+        } else if let function = selectedFunction {
+            ConfigurationView(function: function)
+        } else {
+            Text(L10n.t("settings.select_function"))
+                .foregroundColor(.secondary)
         }
     }
     
@@ -148,86 +230,6 @@ struct SettingsView: View {
             self.monitor = nil
         }
     }
-
-    private func toggleSidebar() {
-        NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
-    }
-}
-
-private extension View {
-    func fixedSidebarToggle(title: String, action: @escaping () -> Void) -> some View {
-        toolbar {
-            ToolbarItem(id: settingsSidebarToggleItemID, placement: .navigation) {
-                Button(action: action) {
-                    Image(systemName: "sidebar.leading")
-                }
-                .help(title)
-            }
-        }
-    }
-}
-
-private struct SettingsToolbarCleanup: NSViewRepresentable {
-    func makeNSView(context: Context) -> SettingsToolbarCleanupView {
-        SettingsToolbarCleanupView()
-    }
-
-    func updateNSView(_ nsView: SettingsToolbarCleanupView, context: Context) {
-        nsView.removeSwiftUISidebarItems()
-    }
-}
-
-private final class SettingsToolbarCleanupView: NSView {
-    private var observer: NSObjectProtocol?
-
-    deinit {
-        if let observer {
-            NotificationCenter.default.removeObserver(observer)
-        }
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        installObserver()
-        removeSwiftUISidebarItems()
-    }
-
-    override func viewWillMove(toWindow newWindow: NSWindow?) {
-        if newWindow == nil, let observer {
-            NotificationCenter.default.removeObserver(observer)
-            self.observer = nil
-        }
-        super.viewWillMove(toWindow: newWindow)
-    }
-
-    private func installObserver() {
-        guard observer == nil else { return }
-        observer = NotificationCenter.default.addObserver(
-            forName: NSToolbar.willAddItemNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self,
-                  let toolbar = notification.object as? NSToolbar,
-                  toolbar === self.window?.toolbar else {
-                return
-            }
-            self.removeSwiftUISidebarItems()
-        }
-    }
-
-    func removeSwiftUISidebarItems() {
-        DispatchQueue.main.async { [weak self] in
-            guard let toolbar = self?.window?.toolbar else { return }
-            for index in toolbar.items.indices.reversed() {
-                let item = toolbar.items[index]
-                if item.itemIdentifier.rawValue == swiftUISidebarToggleItemID ||
-                    item.itemIdentifier.rawValue == swiftUISplitViewSeparatorItemID {
-                    toolbar.removeItem(at: index)
-                }
-            }
-        }
-    }
 }
 
 private struct SnippetCollectionSidebar: View {
@@ -236,10 +238,7 @@ private struct SnippetCollectionSidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text(L10n.t("snippets.collections"))
-                    .font(.headline)
-                Spacer()
+            HStack(spacing: 8) {
                 Button {
                     if let selection,
                        let collection = manager.collections.first(where: { $0.id == selection }) {
@@ -259,7 +258,7 @@ private struct SnippetCollectionSidebar: View {
                 .buttonStyle(.borderless)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, 8)
 
             List(selection: $selection) {
                 ForEach(manager.collections) { collection in
@@ -276,6 +275,7 @@ private struct SnippetCollectionSidebar: View {
             }
             .listStyle(.sidebar)
         }
+        .background(Color(NSColor.controlBackgroundColor))
     }
 }
 
@@ -852,7 +852,17 @@ struct LauncherAppearanceSettingsView: View {
                         Text("\(Int(appearance.sizeScale * 100))%")
                             .foregroundColor(.secondary)
                     }
-                    Slider(value: $appearance.sizeScale, in: 0.70...1.05, step: 0.01)
+                    Slider(value: $appearance.sizeScale, in: LauncherAppearanceManager.sizeScaleRange, step: 0.01)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(L10n.t("launcher_appearance.text_size"))
+                        Spacer()
+                        Text("\(Int(appearance.textScale * 100))%")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $appearance.textScale, in: LauncherAppearanceManager.textScaleRange, step: 0.01)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -914,8 +924,16 @@ private struct LauncherAppearancePreview: View {
         CGFloat(appearance.sizeScale)
     }
 
+    private var textScale: CGFloat {
+        CGFloat(appearance.textScale)
+    }
+
     private func scaled(_ value: CGFloat) -> CGFloat {
         value * sizeScale
+    }
+
+    private func scaledText(_ value: CGFloat) -> CGFloat {
+        value * sizeScale * textScale
     }
 
     var body: some View {
@@ -925,7 +943,7 @@ private struct LauncherAppearancePreview: View {
                     .font(.system(size: scaled(22), weight: .medium))
                     .foregroundColor(.white.opacity(0.72))
                 Text("xxMac")
-                    .font(.system(size: scaled(28), weight: .light))
+                    .font(.system(size: scaledText(28), weight: .light))
                     .foregroundColor(.white)
                 Spacer()
             }
@@ -939,10 +957,10 @@ private struct LauncherAppearancePreview: View {
                     .frame(width: scaled(36), height: scaled(36))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("MacEfficiencyTool")
-                        .font(.system(size: scaled(17), weight: .semibold))
+                        .font(.system(size: scaledText(17), weight: .semibold))
                         .foregroundColor(.white)
                     Text("/Applications/MacEfficiencyTool.app")
-                        .font(.system(size: scaled(12)))
+                        .font(.system(size: scaledText(12)))
                         .foregroundColor(.white.opacity(0.64))
                 }
                 Spacer()

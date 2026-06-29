@@ -129,7 +129,8 @@
 "launcher.search_clipboard_placeholder" = "Search clipboard history...";
 "launcher_appearance.desc" = "Adjust the translucent background for the Control + Option + Space launcher panel.";
 "launcher_appearance.background" = "Background";
-"launcher_appearance.size" = "Size";
+"launcher_appearance.size" = "Scale";
+"launcher_appearance.text_size" = "Text Size";
 "launcher_appearance.width" = "Width";
 "launcher_appearance.height" = "Height";
 "launcher_appearance.opacity" = "Opacity";

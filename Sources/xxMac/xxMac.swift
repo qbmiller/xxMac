@@ -199,7 +199,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             AppSearchManager.shared.$isIndexing.map { _ in () }.eraseToAnyPublisher(),
             appearance.$launcherWidth.map { _ in () }.eraseToAnyPublisher(),
             appearance.$launcherHeight.map { _ in () }.eraseToAnyPublisher(),
-            appearance.$sizeScale.map { _ in () }.eraseToAnyPublisher()
+            appearance.$sizeScale.map { _ in () }.eraseToAnyPublisher(),
+            appearance.$textScale.map { _ in () }.eraseToAnyPublisher()
         ]
 
         Publishers.MergeMany(updates)

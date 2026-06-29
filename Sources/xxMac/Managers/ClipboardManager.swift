@@ -201,7 +201,11 @@ class ClipboardManager: ObservableObject {
                 items = allItems
             } else {
                 let normalizedQuery = trimmedQuery.lowercased()
-                items = allItems.filter { $0.content.lowercased().contains(normalizedQuery) }
+                items = allItems.filter { item in
+                    item.searchableContent(imageDescription: self.imageDisplayTitle(for: item))
+                        .lowercased()
+                        .contains(normalizedQuery)
+                }
             }
 
             DispatchQueue.main.async {
@@ -227,7 +231,7 @@ class ClipboardManager: ObservableObject {
             case .image:
                 return SearchItem(
                     id: "clipboard.\(item.id.uuidString)",
-                    title: L10n.t("clipboard.item.image_title"),
+                    title: imageDisplayTitle(for: item),
                     subtitle: L10n.f("clipboard.item.image_subtitle_format", formatSize(item.size), formatDate(item.timestamp)),
                     iconName: "photo",
                     type: .clipboard,
@@ -397,5 +401,31 @@ class ClipboardManager: ObservableObject {
         formatter.allowedUnits = [.useMB, .useKB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: Int64(bytes))
+    }
+
+    private func imageDisplayTitle(for item: ClipboardItem) -> String {
+        guard item.type == .image else { return item.content }
+
+        let url = storage.getImagePath(filename: item.content)
+        if let dimensions = imageDimensions(for: url) {
+            let width = dimensions.width
+            let height = dimensions.height
+            return "Image: \(width)x\(height) (\(formatSize(item.size)))"
+        }
+
+        return "Image: \(formatSize(item.size))"
+    }
+
+    private func imageDimensions(for url: URL) -> (width: Int, height: Int)? {
+        guard let image = NSImage(contentsOf: url) else { return nil }
+
+        if let representation = image.representations.first(where: { $0.pixelsWide > 0 && $0.pixelsHigh > 0 }) {
+            return (representation.pixelsWide, representation.pixelsHigh)
+        }
+
+        let width = Int(image.size.width.rounded())
+        let height = Int(image.size.height.rounded())
+        guard width > 0, height > 0 else { return nil }
+        return (width, height)
     }
 }
