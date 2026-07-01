@@ -107,6 +107,7 @@
 "clipboard.max_image_size" = "图片最大尺寸";
 "clipboard.max_history_items" = "最多保留";
 "clipboard.max_image_storage" = "图片缓存总量";
+"clipboard.thumbnail_threshold" = "超过此大小生成缩略图";
 "clipboard.toggle_history" = "切换剪贴板历史";
 "clipboard.type_hotkey" = "请输入快捷键...";
 "clipboard.none" = "无";
@@ -120,6 +121,7 @@
 "clipboard.max_size_format" = "%d MB";
 "clipboard.image_unavailable" = "图片不可用";
 "clipboard.select_item_preview" = "选择剪贴板项以预览";
+"clipboard.preview_truncated" = "内容较大，仅显示前一部分，回车将粘贴完整内容。";
 "clipboard.indexing_apps" = "正在索引应用...";
 "clipboard.item.text_format" = "文本 • %@";
 "clipboard.item.image_title" = "图片";

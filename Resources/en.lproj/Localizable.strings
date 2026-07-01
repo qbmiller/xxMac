@@ -107,6 +107,7 @@
 "clipboard.max_image_size" = "Max Image Size";
 "clipboard.max_history_items" = "Max History Items";
 "clipboard.max_image_storage" = "Image Cache Limit";
+"clipboard.thumbnail_threshold" = "Generate Thumbnails Above";
 "clipboard.toggle_history" = "Toggle Clipboard History";
 "clipboard.type_hotkey" = "Type Hotkey...";
 "clipboard.none" = "None";
@@ -120,6 +121,7 @@
 "clipboard.max_size_format" = "%d MB";
 "clipboard.image_unavailable" = "Image unavailable";
 "clipboard.select_item_preview" = "Select a clipboard item to preview";
+"clipboard.preview_truncated" = "This item is large. Showing the first part only; pressing Return still pastes the full content.";
 "clipboard.indexing_apps" = "Indexing apps...";
 "clipboard.item.text_format" = "Text • %@";
 "clipboard.item.image_title" = "Image";

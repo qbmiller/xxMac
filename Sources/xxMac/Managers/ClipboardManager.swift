@@ -13,6 +13,7 @@ struct ClipboardSettings: Codable {
     var maxImageSizeMB: Int = 100
     var maxHistoryItems: Int = 1000
     var maxImageStorageSizeMB: Int = 500
+    var thumbnailGenerationThresholdMB: Int = 5
     var hotKey: HotKeyConfiguration?
 
     enum CodingKeys: String, CodingKey {
@@ -23,6 +24,7 @@ struct ClipboardSettings: Codable {
         case maxImageSizeMB
         case maxHistoryItems
         case maxImageStorageSizeMB
+        case thumbnailGenerationThresholdMB
         case hotKey
     }
 
@@ -37,6 +39,7 @@ struct ClipboardSettings: Codable {
         maxImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageSizeMB) ?? 100
         maxHistoryItems = try container.decodeIfPresent(Int.self, forKey: .maxHistoryItems) ?? 1000
         maxImageStorageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageStorageSizeMB) ?? 500
+        thumbnailGenerationThresholdMB = try container.decodeIfPresent(Int.self, forKey: .thumbnailGenerationThresholdMB) ?? 5
         hotKey = try container.decodeIfPresent(HotKeyConfiguration.self, forKey: .hotKey)
     }
 }
@@ -54,7 +57,7 @@ class ClipboardManager: ObservableObject {
         }
     }
     
-    private var clipboardItems: [ClipboardItem] = []
+    private var clipboardItems: [ClipboardListItem] = []
     private var changeCount: Int
     private var timer: Timer?
     private var hotKey: HotKey?
@@ -167,7 +170,20 @@ class ClipboardManager: ObservableObject {
                 
                 do {
                     try pngData.write(to: fileURL)
-                    addItem(type: .image, content: filename, size: pngData.count)
+                    let dimensions = imageDimensions(from: bitmap, fallback: image)
+                    let thumbnailFilename = saveThumbnailIfNeeded(
+                        from: image,
+                        originalFilename: filename,
+                        byteSize: pngData.count
+                    )
+                    storage.saveImageItem(
+                        content: filename,
+                        size: pngData.count,
+                        width: dimensions.width,
+                        height: dimensions.height,
+                        thumbnailFilename: thumbnailFilename
+                    )
+                    refreshHistory()
                 } catch {
                     print("Failed to save clipboard image: \(error)")
                 }
@@ -182,7 +198,7 @@ class ClipboardManager: ObservableObject {
     
     func refreshHistory() {
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-            let items = self?.storage.getAllItems() ?? []
+            let items = self?.storage.getListItems() ?? []
             DispatchQueue.main.async {
                 self?.clipboardItems = items
                 self?.updatePublishedHistory()
@@ -194,22 +210,16 @@ class ClipboardManager: ObservableObject {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             guard let self = self else { return }
-            let allItems = self.storage.getAllItems()
-            let items: [ClipboardItem]
+            let listItems: [ClipboardListItem]
 
             if trimmedQuery.isEmpty {
-                items = allItems
+                listItems = self.storage.getListItems()
             } else {
-                let normalizedQuery = trimmedQuery.lowercased()
-                items = allItems.filter { item in
-                    item.searchableContent(imageDescription: self.imageDisplayTitle(for: item))
-                        .lowercased()
-                        .contains(normalizedQuery)
-                }
+                listItems = self.storage.searchListItems(query: trimmedQuery)
             }
 
             DispatchQueue.main.async {
-                self.clipboardItems = items
+                self.clipboardItems = listItems
                 self.updatePublishedHistory()
             }
         }
@@ -221,12 +231,16 @@ class ClipboardManager: ObservableObject {
             case .text:
                 return SearchItem(
                     id: "clipboard.\(item.id.uuidString)",
-                    title: item.content.prefix(100).replacingOccurrences(of: "\n", with: " "),
+                    title: item.previewContent.prefix(100).replacingOccurrences(of: "\n", with: " "),
                     subtitle: L10n.f("clipboard.item.text_format", formatDate(item.timestamp)),
                     iconName: "doc.text",
                     type: .clipboard,
-                    clipboardPreview: .text(item.content),
-                    action: { [weak self] in self?.paste(item) }
+                    clipboardPreview: .text(
+                        id: item.id,
+                        preview: item.previewContent,
+                        fullLength: item.fullContentLength
+                    ),
+                    action: { [weak self] in self?.pasteItem(id: item.id) }
                 )
             case .image:
                 return SearchItem(
@@ -235,11 +249,20 @@ class ClipboardManager: ObservableObject {
                     subtitle: L10n.f("clipboard.item.image_subtitle_format", formatSize(item.size), formatDate(item.timestamp)),
                     iconName: "photo",
                     type: .clipboard,
-                    clipboardPreview: .image(filename: item.content, byteSize: item.size),
-                    action: { [weak self] in self?.paste(item) }
+                    clipboardPreview: .image(
+                        filename: item.imageFilename ?? item.previewContent,
+                        thumbnailFilename: item.thumbnailFilename,
+                        byteSize: item.size
+                    ),
+                    action: { [weak self] in self?.pasteItem(id: item.id) }
                 )
             }
         }
+    }
+
+    private func pasteItem(id: UUID) {
+        guard let item = storage.getItem(id: id) else { return }
+        paste(item)
     }
     
     private func paste(_ item: ClipboardItem) {
@@ -406,26 +429,65 @@ class ClipboardManager: ObservableObject {
     private func imageDisplayTitle(for item: ClipboardItem) -> String {
         guard item.type == .image else { return item.content }
 
-        let url = storage.getImagePath(filename: item.content)
-        if let dimensions = imageDimensions(for: url) {
-            let width = dimensions.width
-            let height = dimensions.height
+        if let width = item.imageWidth, let height = item.imageHeight {
             return "Image: \(width)x\(height) (\(formatSize(item.size)))"
         }
 
         return "Image: \(formatSize(item.size))"
     }
 
-    private func imageDimensions(for url: URL) -> (width: Int, height: Int)? {
-        guard let image = NSImage(contentsOf: url) else { return nil }
+    private func imageDisplayTitle(for item: ClipboardListItem) -> String {
+        guard item.type == .image else { return item.previewContent }
 
-        if let representation = image.representations.first(where: { $0.pixelsWide > 0 && $0.pixelsHigh > 0 }) {
-            return (representation.pixelsWide, representation.pixelsHigh)
+        if let width = item.imageWidth, let height = item.imageHeight {
+            return "Image: \(width)x\(height) (\(formatSize(item.size)))"
         }
 
+        return "Image: \(formatSize(item.size))"
+    }
+
+    private func imageDimensions(from bitmap: NSBitmapImageRep, fallback image: NSImage) -> (width: Int?, height: Int?) {
+        if bitmap.pixelsWide > 0, bitmap.pixelsHigh > 0 {
+            return (bitmap.pixelsWide, bitmap.pixelsHigh)
+        }
         let width = Int(image.size.width.rounded())
         let height = Int(image.size.height.rounded())
-        guard width > 0, height > 0 else { return nil }
+        guard width > 0, height > 0 else { return (nil, nil) }
         return (width, height)
+    }
+
+    private func saveThumbnailIfNeeded(from image: NSImage, originalFilename: String, byteSize: Int) -> String? {
+        let thresholdBytes = max(1, settings.thumbnailGenerationThresholdMB) * 1024 * 1024
+        guard byteSize >= thresholdBytes else { return nil }
+        guard let thumbnail = resizedImage(image, maxPixelLength: 512),
+              let tiffData = thumbnail.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            return nil
+        }
+
+        let baseName = (originalFilename as NSString).deletingPathExtension
+        let thumbnailFilename = "\(baseName)-thumb.png"
+        let thumbnailURL = storage.getThumbnailPath(filename: thumbnailFilename)
+        do {
+            try pngData.write(to: thumbnailURL)
+            return thumbnailFilename
+        } catch {
+            print("Failed to save clipboard thumbnail: \(error)")
+            return nil
+        }
+    }
+
+    private func resizedImage(_ image: NSImage, maxPixelLength: CGFloat) -> NSImage? {
+        let sourceSize = image.size
+        guard sourceSize.width > 0, sourceSize.height > 0 else { return nil }
+
+        let scale = min(maxPixelLength / sourceSize.width, maxPixelLength / sourceSize.height, 1)
+        let targetSize = NSSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+        let thumbnail = NSImage(size: targetSize)
+        thumbnail.lockFocus()
+        defer { thumbnail.unlockFocus() }
+        image.draw(in: NSRect(origin: .zero, size: targetSize), from: .zero, operation: .copy, fraction: 1)
+        return thumbnail
     }
 }

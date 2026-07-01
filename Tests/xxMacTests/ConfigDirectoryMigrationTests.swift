@@ -27,6 +27,8 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         try Data("wal".utf8).write(to: manager.currentDirectory.appendingPathComponent("clipboard.db-wal"))
         let imageURL = manager.clipboardImagesDirectoryURL.appendingPathComponent("a.png")
         try Data("image".utf8).write(to: imageURL)
+        let thumbnailURL = manager.clipboardThumbnailsDirectoryURL.appendingPathComponent("a-thumb.png")
+        try Data("thumbnail".utf8).write(to: thumbnailURL)
         let originalDirectory = manager.currentDirectory
 
         try manager.changeDirectory(to: targetRoot)
@@ -43,6 +45,10 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         XCTAssertEqual(
             try String(contentsOf: manager.clipboardImagesDirectoryURL.appendingPathComponent("a.png"), encoding: .utf8),
             "image"
+        )
+        XCTAssertEqual(
+            try String(contentsOf: manager.clipboardThumbnailsDirectoryURL.appendingPathComponent("a-thumb.png"), encoding: .utf8),
+            "thumbnail"
         )
         XCTAssertFalse(FileManager.default.fileExists(atPath: originalDirectory.path))
     }

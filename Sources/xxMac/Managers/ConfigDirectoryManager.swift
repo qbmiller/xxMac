@@ -63,6 +63,10 @@ final class ConfigDirectoryManager: ObservableObject {
         currentDirectory.appendingPathComponent("clipboard_images", isDirectory: true)
     }
 
+    var clipboardThumbnailsDirectoryURL: URL {
+        currentDirectory.appendingPathComponent("clipboard_thumbnails", isDirectory: true)
+    }
+
     var quickDirectoryURL: URL {
         currentDirectory.appendingPathComponent("quick", isDirectory: true)
     }
@@ -177,6 +181,7 @@ final class ConfigDirectoryManager: ObservableObject {
     private func ensureDirectoryReady() throws {
         try fileManager.createDirectory(at: currentDirectory, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: clipboardImagesDirectoryURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: clipboardThumbnailsDirectoryURL, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: quickDirectoryURL, withIntermediateDirectories: true)
 
         guard !fileManager.fileExists(atPath: manifestURL.path) else { return }
@@ -223,6 +228,17 @@ final class ConfigDirectoryManager: ObservableObject {
             try fileManager.copyItem(at: sourceImagesURL, to: targetImagesURL)
         } else {
             try fileManager.createDirectory(at: targetImagesURL, withIntermediateDirectories: true)
+        }
+
+        let sourceThumbnailsURL = sourceDirectory.appendingPathComponent("clipboard_thumbnails", isDirectory: true)
+        let targetThumbnailsURL = targetDirectory.appendingPathComponent("clipboard_thumbnails", isDirectory: true)
+        if fileManager.fileExists(atPath: sourceThumbnailsURL.path) {
+            if fileManager.fileExists(atPath: targetThumbnailsURL.path) {
+                try fileManager.removeItem(at: targetThumbnailsURL)
+            }
+            try fileManager.copyItem(at: sourceThumbnailsURL, to: targetThumbnailsURL)
+        } else {
+            try fileManager.createDirectory(at: targetThumbnailsURL, withIntermediateDirectories: true)
         }
 
         let sourceQuickURL = sourceDirectory.appendingPathComponent("quick", isDirectory: true)

@@ -12,8 +12,8 @@ enum SearchResultType {
 }
 
 enum ClipboardPreviewData: Hashable {
-    case text(String)
-    case image(filename: String, byteSize: Int)
+    case text(id: UUID, preview: String, fullLength: Int)
+    case image(filename: String, thumbnailFilename: String?, byteSize: Int)
 }
 
 struct SearchItem: Identifiable, Hashable {

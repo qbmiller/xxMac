@@ -363,16 +363,23 @@ struct ClipboardDetailPane: View {
         Group {
             if let item, let preview = item.clipboardPreview {
                 switch preview {
-                case .text(let text):
+                case .text(_, let preview, let fullLength):
                     ScrollView {
-                        Text(text)
-                            .font(.body)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .textSelection(.enabled)
-                            .padding(16)
+                        VStack(alignment: .leading, spacing: 12) {
+                            if fullLength > preview.count {
+                                Text(L10n.t("clipboard.preview_truncated"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text(preview)
+                                .font(.body)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                                .textSelection(.enabled)
+                        }
+                        .padding(16)
                     }
-                case .image(let filename, _):
-                    ClipboardImagePreview(filename: filename)
+                case .image(let filename, let thumbnailFilename, _):
+                    ClipboardImagePreview(filename: filename, thumbnailFilename: thumbnailFilename)
                         .id(filename)
                 }
             } else {
@@ -391,9 +398,10 @@ struct ClipboardDetailPane: View {
 
 struct ClipboardImagePreview: View {
     let filename: String
+    let thumbnailFilename: String?
 
     var body: some View {
-        let imageURL = ClipboardStorageManager.shared.getImagePath(filename: filename)
+        let imageURL = imageURL
         let image = NSImage(contentsOf: imageURL)
 
         return Group {
@@ -419,6 +427,13 @@ struct ClipboardImagePreview: View {
                 }
             }
         }
+    }
+
+    private var imageURL: URL {
+        if let thumbnailFilename {
+            return ClipboardStorageManager.shared.getThumbnailPath(filename: thumbnailFilename)
+        }
+        return ClipboardStorageManager.shared.getImagePath(filename: filename)
     }
 }
 

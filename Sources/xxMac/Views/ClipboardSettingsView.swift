@@ -82,6 +82,18 @@ struct ClipboardSettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+
+                    Stepper(value: Binding(
+                        get: { clipboardManager.settings.thumbnailGenerationThresholdMB },
+                        set: { clipboardManager.settings.thumbnailGenerationThresholdMB = $0 }
+                    ), in: 1...100, step: 1) {
+                        HStack {
+                            Text(L10n.t("clipboard.thumbnail_threshold"))
+                            Spacer()
+                            Text(L10n.f("clipboard.max_size_format", clipboardManager.settings.thumbnailGenerationThresholdMB))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     
                     HStack {
                         Spacer()

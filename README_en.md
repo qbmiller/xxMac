@@ -17,7 +17,7 @@ xxMac is a native macOS menu bar productivity tool built with `SwiftUI + AppKit`
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
 | Chinese Calendar | Shows the date in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar style. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
-| Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. | Clipboard manager |
+| Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews. | Clipboard manager |
 | Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; shortcuts can also be pinned into launcher results, useful for Google, Baidu, and similar search entries. | Alfred Web Search / Workflows |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
 
@@ -95,9 +95,10 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 - Hotkey settings, app quick-launch settings, launcher appearance, overall scale, text size, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder.
 - xxMac creates `quick/` inside the configuration folder for complex quick shortcut scripts. Command scripts receive `XXMAC_HOME` for the configuration folder and `XXMAC_QUICK_HOME` for `quick/`, for example `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`.
 - App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index cache is stored as `app-search-index.json` in the configuration folder and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
-- The clipboard database and image cache are stored as `clipboard.db` and `clipboard_images/` inside the configuration folder.
-- Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, or app index cache; use the configuration folder switch for a full migration.
+- The clipboard database, original image cache, and thumbnail cache are stored as `clipboard.db`, `clipboard_images/`, and `clipboard_thumbnails/` inside the configuration folder.
+- Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, thumbnail cache, or app index cache; use the configuration folder switch for a full migration.
 - The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.
+- Image thumbnails are generated only when an image exceeds the configured threshold. The default threshold is 5 MB and can be changed in Clipboard General.
 - In the settings window, the first column is tool categories, the second column is feature items, and the third column contains detailed configuration.
 
 ## Directory Structure

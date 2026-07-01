@@ -73,11 +73,15 @@ class DatabaseManager {
             type TEXT,
             content TEXT,
             timestamp REAL,
-            size INTEGER
+            size INTEGER,
+            image_width INTEGER,
+            image_height INTEGER,
+            thumbnail_filename TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
         execute(sql: createTable)
+        ensureClipboardMetadataColumns()
 
         // FTS5 virtual table for full-text search
         // We only index text content. For images, we might index their metadata or just leave them out of FTS.
@@ -114,11 +118,15 @@ class DatabaseManager {
             type TEXT,
             content TEXT,
             timestamp REAL,
-            size INTEGER
+            size INTEGER,
+            image_width INTEGER,
+            image_height INTEGER,
+            thumbnail_filename TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
         _ = executeUnlocked(sql: createTable)
+        ensureClipboardMetadataColumnsUnlocked()
 
         let createFtsTable = "CREATE VIRTUAL TABLE IF NOT EXISTS clipboard_fts USING fts5(id UNINDEXED, content);"
         _ = executeUnlocked(sql: createFtsTable)
@@ -145,6 +153,38 @@ class DatabaseManager {
         _ = executeUnlocked(sql: createTriggers)
     }
 
+    private func ensureClipboardMetadataColumns() {
+        withDatabase {
+            ensureClipboardMetadataColumnsUnlocked()
+        }
+    }
+
+    private func ensureClipboardMetadataColumnsUnlocked() {
+        ensureColumnExists(table: "clipboard_items", column: "image_width", definition: "INTEGER")
+        ensureColumnExists(table: "clipboard_items", column: "image_height", definition: "INTEGER")
+        ensureColumnExists(table: "clipboard_items", column: "thumbnail_filename", definition: "TEXT")
+    }
+
+    private func ensureColumnExists(table: String, column: String, definition: String) {
+        let pragma = "PRAGMA table_info(\(table));"
+        var statement: OpaquePointer?
+        var exists = false
+
+        if sqlite3_prepare_v2(db, pragma, -1, &statement, nil) == SQLITE_OK {
+            while sqlite3_step(statement) == SQLITE_ROW {
+                guard let name = sqlite3_column_text(statement, 1) else { continue }
+                if String(cString: name) == column {
+                    exists = true
+                    break
+                }
+            }
+        }
+        sqlite3_finalize(statement)
+
+        guard !exists else { return }
+        _ = executeUnlocked(sql: "ALTER TABLE \(table) ADD COLUMN \(column) \(definition);")
+    }
+
     @discardableResult
     func execute(sql: String) -> Bool {
         return withDatabase {
@@ -163,7 +203,15 @@ class DatabaseManager {
         return true
     }
 
-    func insertItem(id: String, type: String, content: String, size: Int) {
+    func insertItem(
+        id: String,
+        type: String,
+        content: String,
+        size: Int,
+        imageWidth: Int? = nil,
+        imageHeight: Int? = nil,
+        thumbnailFilename: String? = nil
+    ) {
         withDatabase {
             // Deduplication: If same content exists, we update its timestamp and move to top
             // For text items, we check content. For images, we usually treat each as unique since they have unique filenames.
@@ -193,7 +241,11 @@ class DatabaseManager {
                 }
             }
 
-            let sql = "INSERT OR REPLACE INTO clipboard_items (id, type, content, timestamp, size) VALUES (?, ?, ?, ?, ?);"
+            let sql = """
+            INSERT OR REPLACE INTO clipboard_items
+            (id, type, content, timestamp, size, image_width, image_height, thumbnail_filename)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            """
             var statement: OpaquePointer?
             
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
@@ -202,12 +254,31 @@ class DatabaseManager {
                 sqlite3_bind_text(statement, 3, (content as NSString).utf8String, -1, nil)
                 sqlite3_bind_double(statement, 4, Date().timeIntervalSince1970)
                 sqlite3_bind_int64(statement, 5, Int64(size))
+                bindOptionalInt(imageWidth, to: statement, index: 6)
+                bindOptionalInt(imageHeight, to: statement, index: 7)
+                bindOptionalText(thumbnailFilename, to: statement, index: 8)
                 
                 if sqlite3_step(statement) != SQLITE_DONE {
                     print("Error inserting item")
                 }
             }
             sqlite3_finalize(statement)
+        }
+    }
+
+    private func bindOptionalInt(_ value: Int?, to statement: OpaquePointer?, index: Int32) {
+        if let value {
+            sqlite3_bind_int(statement, index, Int32(value))
+        } else {
+            sqlite3_bind_null(statement, index)
+        }
+    }
+
+    private func bindOptionalText(_ value: String?, to statement: OpaquePointer?, index: Int32) {
+        if let value {
+            sqlite3_bind_text(statement, index, (value as NSString).utf8String, -1, nil)
+        } else {
+            sqlite3_bind_null(statement, index)
         }
     }
 
@@ -238,7 +309,7 @@ class DatabaseManager {
 
     func getAllItems(limit: Int = 100) -> [ClipboardItem] {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -258,8 +329,55 @@ class DatabaseManager {
                             type: type,
                             content: content,
                             timestamp: Date(timeIntervalSince1970: timestamp),
-                            size: Int(size)
+                            size: Int(size),
+                            imageWidth: optionalInt(statement, 5),
+                            imageHeight: optionalInt(statement, 6),
+                            thumbnailFilename: optionalString(statement, 7)
                         ))
+                    }
+                }
+            }
+            sqlite3_finalize(statement)
+            return items
+        }
+    }
+
+    func getItem(id itemID: String) -> ClipboardItem? {
+        return withDatabase {
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items WHERE id = ? LIMIT 1;"
+            var statement: OpaquePointer?
+            var item: ClipboardItem?
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_text(statement, 1, (itemID as NSString).utf8String, -1, nil)
+                if sqlite3_step(statement) == SQLITE_ROW {
+                    item = makeClipboardItem(from: statement)
+                }
+            }
+            sqlite3_finalize(statement)
+            return item
+        }
+    }
+
+    func getListItems(limit: Int = 100, previewLimit: Int = 4096) -> [ClipboardListItem] {
+        return withDatabase {
+            let sql = """
+            SELECT id, type,
+                   CASE WHEN type = 'text' THEN substr(content, 1, ?) ELSE content END,
+                   length(content), timestamp, size, image_width, image_height, thumbnail_filename
+            FROM clipboard_items
+            ORDER BY timestamp DESC
+            LIMIT ?;
+            """
+            var statement: OpaquePointer?
+            var items: [ClipboardListItem] = []
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, Int32(previewLimit))
+                sqlite3_bind_int(statement, 2, Int32(limit))
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    if let item = makeClipboardListItem(from: statement) {
+                        items.append(item)
                     }
                 }
             }
@@ -273,7 +391,7 @@ class DatabaseManager {
             // Search using FTS5 for text items, combined with simple LIKE for filename/meta if needed
             // Here we primarily use FTS5 for content search.
             let sql = """
-            SELECT i.id, i.type, i.content, i.timestamp, i.size 
+            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             WHERE f.content MATCH ?
@@ -291,20 +409,8 @@ class DatabaseManager {
                 sqlite3_bind_int(statement, 2, Int32(limit))
                 
                 while sqlite3_step(statement) == SQLITE_ROW {
-                    let id = String(cString: sqlite3_column_text(statement, 0))
-                    let typeStr = String(cString: sqlite3_column_text(statement, 1))
-                    let content = String(cString: sqlite3_column_text(statement, 2))
-                    let timestamp = sqlite3_column_double(statement, 3)
-                    let size = sqlite3_column_int64(statement, 4)
-                    
-                    if let type = ClipboardContentType(rawValue: typeStr), let uuid = UUID(uuidString: id) {
-                        items.append(ClipboardItem(
-                            id: uuid,
-                            type: type,
-                            content: content,
-                            timestamp: Date(timeIntervalSince1970: timestamp),
-                            size: Int(size)
-                        ))
+                    if let item = makeClipboardItem(from: statement) {
+                        items.append(item)
                     }
                 }
             } else {
@@ -315,11 +421,71 @@ class DatabaseManager {
             return items
         }
     }
+
+    func searchListItems(query: String, limit: Int = 50, previewLimit: Int = 4096) -> [ClipboardListItem] {
+        return withDatabase {
+            let sql = """
+            SELECT i.id, i.type, substr(i.content, 1, ?), length(i.content),
+                   i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename
+            FROM clipboard_items i
+            JOIN clipboard_fts f ON i.id = f.id
+            WHERE f.content MATCH ?
+            ORDER BY rank
+            LIMIT ?;
+            """
+
+            var statement: OpaquePointer?
+            var items: [ClipboardListItem] = []
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                let searchPattern = "\(query)*"
+                sqlite3_bind_int(statement, 1, Int32(previewLimit))
+                sqlite3_bind_text(statement, 2, (searchPattern as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 3, Int32(limit))
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    if let item = makeClipboardListItem(from: statement) {
+                        items.append(item)
+                    }
+                }
+            } else {
+                let error = String(cString: sqlite3_errmsg(db))
+                print("Search Prepare Error: \(error)")
+            }
+            sqlite3_finalize(statement)
+            return items
+        }
+    }
+
+    func getImageListItems(limit: Int = 50) -> [ClipboardListItem] {
+        return withDatabase {
+            let sql = """
+            SELECT id, type, content, length(content), timestamp, size,
+                   image_width, image_height, thumbnail_filename
+            FROM clipboard_items
+            WHERE type = 'image'
+            ORDER BY timestamp DESC
+            LIMIT ?;
+            """
+            var statement: OpaquePointer?
+            var items: [ClipboardListItem] = []
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, Int32(limit))
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    if let item = makeClipboardListItem(from: statement) {
+                        items.append(item)
+                    }
+                }
+            }
+            sqlite3_finalize(statement)
+            return items
+        }
+    }
     
     func getOldItems(maxCount: Int) -> [ClipboardItem] {
         return withDatabase {
             // We want items beyond the first N items.
-            let sqlCorrect = "SELECT id, type, content, timestamp, size FROM clipboard_items ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
+            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
             
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
@@ -328,20 +494,8 @@ class DatabaseManager {
                 sqlite3_bind_int(statement, 1, Int32(maxCount))
                 
                 while sqlite3_step(statement) == SQLITE_ROW {
-                    let id = String(cString: sqlite3_column_text(statement, 0))
-                    let typeStr = String(cString: sqlite3_column_text(statement, 1))
-                    let content = String(cString: sqlite3_column_text(statement, 2))
-                    let timestamp = sqlite3_column_double(statement, 3)
-                    let size = sqlite3_column_int64(statement, 4)
-                    
-                    if let type = ClipboardContentType(rawValue: typeStr), let uuid = UUID(uuidString: id) {
-                        items.append(ClipboardItem(
-                            id: uuid,
-                            type: type,
-                            content: content,
-                            timestamp: Date(timeIntervalSince1970: timestamp),
-                            size: Int(size)
-                        ))
+                    if let item = makeClipboardItem(from: statement) {
+                        items.append(item)
                     }
                 }
             }
@@ -353,27 +507,15 @@ class DatabaseManager {
     func deleteItemsOlderThan(date: Date) -> [ClipboardItem] {
         return withDatabase {
             // We return items to be deleted so file cache can be cleaned up
-            let selectSql = "SELECT id, type, content, timestamp, size FROM clipboard_items WHERE timestamp < ?;"
+            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items WHERE timestamp < ?;"
             var selectStatement: OpaquePointer?
             var items: [ClipboardItem] = []
             
             if sqlite3_prepare_v2(db, selectSql, -1, &selectStatement, nil) == SQLITE_OK {
                 sqlite3_bind_double(selectStatement, 1, date.timeIntervalSince1970)
                 while sqlite3_step(selectStatement) == SQLITE_ROW {
-                    let id = String(cString: sqlite3_column_text(selectStatement, 0))
-                    let typeStr = String(cString: sqlite3_column_text(selectStatement, 1))
-                    let content = String(cString: sqlite3_column_text(selectStatement, 2))
-                    let timestamp = sqlite3_column_double(selectStatement, 3)
-                    let size = sqlite3_column_int64(selectStatement, 4)
-                    
-                    if let type = ClipboardContentType(rawValue: typeStr), let uuid = UUID(uuidString: id) {
-                        items.append(ClipboardItem(
-                            id: uuid,
-                            type: type,
-                            content: content,
-                            timestamp: Date(timeIntervalSince1970: timestamp),
-                            size: Int(size)
-                        ))
+                    if let item = makeClipboardItem(from: selectStatement) {
+                        items.append(item)
                     }
                 }
             }
@@ -393,5 +535,83 @@ class DatabaseManager {
     
     func vacuum() {
         _ = execute(sql: "VACUUM;")
+    }
+
+    private func makeClipboardItem(from statement: OpaquePointer?) -> ClipboardItem? {
+        guard
+            let idText = sqlite3_column_text(statement, 0),
+            let typeText = sqlite3_column_text(statement, 1),
+            let contentText = sqlite3_column_text(statement, 2)
+        else {
+            return nil
+        }
+
+        let id = String(cString: idText)
+        let typeStr = String(cString: typeText)
+        let content = String(cString: contentText)
+        let timestamp = sqlite3_column_double(statement, 3)
+        let size = sqlite3_column_int64(statement, 4)
+
+        guard let type = ClipboardContentType(rawValue: typeStr), let uuid = UUID(uuidString: id) else {
+            return nil
+        }
+
+        return ClipboardItem(
+            id: uuid,
+            type: type,
+            content: content,
+            timestamp: Date(timeIntervalSince1970: timestamp),
+            size: Int(size),
+            imageWidth: optionalInt(statement, 5),
+            imageHeight: optionalInt(statement, 6),
+            thumbnailFilename: optionalString(statement, 7)
+        )
+    }
+
+    private func makeClipboardListItem(from statement: OpaquePointer?) -> ClipboardListItem? {
+        guard
+            let idText = sqlite3_column_text(statement, 0),
+            let typeText = sqlite3_column_text(statement, 1),
+            let previewText = sqlite3_column_text(statement, 2)
+        else {
+            return nil
+        }
+
+        let id = String(cString: idText)
+        let typeStr = String(cString: typeText)
+        let previewContent = String(cString: previewText)
+        let fullContentLength = sqlite3_column_int(statement, 3)
+        let timestamp = sqlite3_column_double(statement, 4)
+        let size = sqlite3_column_int64(statement, 5)
+
+        guard let type = ClipboardContentType(rawValue: typeStr), let uuid = UUID(uuidString: id) else {
+            return nil
+        }
+
+        return ClipboardListItem(
+            id: uuid,
+            type: type,
+            previewContent: previewContent,
+            fullContentLength: Int(fullContentLength),
+            timestamp: Date(timeIntervalSince1970: timestamp),
+            size: Int(size),
+            imageFilename: type == .image ? previewContent : nil,
+            imageWidth: optionalInt(statement, 6),
+            imageHeight: optionalInt(statement, 7),
+            thumbnailFilename: optionalString(statement, 8)
+        )
+    }
+
+    private func optionalInt(_ statement: OpaquePointer?, _ index: Int32) -> Int? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else { return nil }
+        return Int(sqlite3_column_int(statement, index))
+    }
+
+    private func optionalString(_ statement: OpaquePointer?, _ index: Int32) -> String? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL,
+              let text = sqlite3_column_text(statement, index) else {
+            return nil
+        }
+        return String(cString: text)
     }
 }

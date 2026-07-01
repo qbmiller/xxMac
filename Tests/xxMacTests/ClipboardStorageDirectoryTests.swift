@@ -19,7 +19,9 @@ final class ClipboardStorageDirectoryTests: XCTestCase {
         XCTAssertEqual(storage.storageDirectory.path, root.standardizedFileURL.path)
         XCTAssertEqual(storage.databasePath, root.appendingPathComponent("clipboard.db").path)
         XCTAssertEqual(storage.imagesDirectory.path, root.appendingPathComponent("clipboard_images").path)
+        XCTAssertEqual(storage.thumbnailsDirectory.path, root.appendingPathComponent("clipboard_thumbnails").path)
         XCTAssertTrue(FileManager.default.fileExists(atPath: storage.imagesDirectory.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: storage.thumbnailsDirectory.path))
     }
 
     func testReloadStorageDirectoryUpdatesPaths() throws {
@@ -32,6 +34,7 @@ final class ClipboardStorageDirectoryTests: XCTestCase {
         XCTAssertEqual(storage.storageDirectory.path, second.standardizedFileURL.path)
         XCTAssertEqual(storage.databasePath, second.appendingPathComponent("clipboard.db").path)
         XCTAssertTrue(FileManager.default.fileExists(atPath: storage.imagesDirectory.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: storage.thumbnailsDirectory.path))
     }
 
     private func makeTemporaryDirectory() -> URL {
