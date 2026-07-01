@@ -714,6 +714,11 @@ final class CalendarMenuBarController {
         button.toolTip = L10n.t("calendar.menu_bar_tooltip")
     }
 
+    func closeTransientUI() {
+        closePopover()
+        statusItem.menu = nil
+    }
+
     private func configureStatusItem() {
         guard let button = statusItem.button else { return }
         statusItem.menu = nil

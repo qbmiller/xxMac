@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 struct CommonSettingsView: View {
+    @ObservedObject private var generalSettings = GeneralSettingsManager.shared
     @ObservedObject private var appSearchManager = AppSearchManager.shared
     @ObservedObject private var configDirectoryManager = ConfigDirectoryManager.shared
     @State private var showingExportSuccess = false
@@ -16,6 +17,26 @@ struct CommonSettingsView: View {
                 .foregroundColor(.secondary)
             
             VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.t("common.menu_bar"))
+                        .font(.headline)
+                    Text(L10n.t("common.menu_bar_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Toggle(L10n.t("common.show_menu_bar_item"), isOn: $generalSettings.showMenuBarItem)
+                        .toggleStyle(.checkbox)
+                        .padding(.top, 4)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
+
                 // Global Hotkey Section
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.t("common.global_hotkey"))
@@ -277,6 +298,7 @@ struct CommonSettingsView: View {
     }
     
     struct AppConfiguration: Codable {
+        let showMenuBarItem: Bool?
         let appLanguage: String?
         let searchPaths: [String]?
         let hotKeyConfigurations: Data?
@@ -305,6 +327,7 @@ struct CommonSettingsView: View {
         let store = PreferencesStore.shared
         
         return AppConfiguration(
+            showMenuBarItem: store.boolObject(forKey: GeneralPreferencesKey.showMenuBarItem),
             appLanguage: store.string(forKey: UserDefaultsKeys.appLanguage),
             searchPaths: store.stringArray(forKey: "AppSearchPaths"),
             hotKeyConfigurations: store.data(forKey: "HotKeyConfigurations"),
@@ -332,6 +355,10 @@ struct CommonSettingsView: View {
     
     private func restoreConfigurations(_ config: AppConfiguration) {
         let store = PreferencesStore.shared
+
+        if let showMenuBarItem = config.showMenuBarItem {
+            GeneralSettingsManager.shared.showMenuBarItem = showMenuBarItem
+        }
 
         if let appLanguage = config.appLanguage,
            let language = AppLanguage(rawValue: appLanguage) {

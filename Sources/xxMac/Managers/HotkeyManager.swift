@@ -51,7 +51,7 @@ class HotKeyManager: ObservableObject {
     static let configurationsDidChangeNotification = Notification.Name("HotKeyConfigurationsDidChange")
     private static let clearedActionsKey = "ClearedHotKeyActions"
     
-    private var hotKeys: [WindowAction: HotKey] = [:]
+    private var hotKeys: [WindowAction: CarbonHotKeyRegistration] = [:]
     private var pauseTokens = Set<UUID>()
     
     @Published var configurations: [WindowAction: HotKeyConfiguration] = [:]
@@ -138,14 +138,13 @@ class HotKeyManager: ObservableObject {
     }
     
     func refreshHotKeys() {
-        hotKeys.values.forEach { $0.keyDownHandler = nil }
         hotKeys.removeAll()
         
         for (action, config) in configurations {
-            let hotKey = HotKey(key: config.key, modifiers: config.modifiers)
-            hotKey.isPaused = isPaused
-            hotKey.keyDownHandler = { [weak self] in
+            guard let hotKey = CarbonHotKeyRegistration(configuration: config, name: "window.\(action.rawValue)", handler: { [weak self] in
                 self?.performAction(action)
+            }) else {
+                continue
             }
             hotKeys[action] = hotKey
         }
@@ -170,7 +169,6 @@ class HotKeyManager: ObservableObject {
         guard shouldPause != isPaused else { return }
 
         isPaused = shouldPause
-        hotKeys.values.forEach { $0.isPaused = shouldPause }
         NSLog("[HotKeyManager] hotkeys paused=%@ activePauseTokens=%d", shouldPause.description, pauseTokens.count)
     }
     
@@ -205,6 +203,8 @@ class HotKeyManager: ObservableObject {
     }
     
     private func performAction(_ action: WindowAction) {
+        guard !isPaused else { return }
+
         let hotkeyDisplay = configurations[action].map {
             $0.modifiers.displayString + $0.key.displayString
         } ?? L10n.t("general.unknown")

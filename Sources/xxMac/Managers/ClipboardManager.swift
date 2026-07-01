@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import HotKey
 import ApplicationServices
+import OSLog
 
 // MARK: - Clipboard Manager
 
@@ -55,6 +56,7 @@ struct ClipboardSettings: Codable {
 
 class ClipboardManager: ObservableObject {
     static let shared = ClipboardManager()
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "ClipboardFlow")
     
     @Published var history: [SearchItem] = []
     @Published var settings: ClipboardSettings = ClipboardSettings() {
@@ -69,7 +71,7 @@ class ClipboardManager: ObservableObject {
     private var clipboardItems: [ClipboardListItem] = []
     private var changeCount: Int
     private var timer: Timer?
-    private var hotKey: HotKey?
+    private var hotKey: CarbonHotKeyRegistration?
     private var previousFrontmostApp: NSRunningApplication?
     
     private let storage = ClipboardStorageManager.shared
@@ -81,12 +83,7 @@ class ClipboardManager: ObservableObject {
         let pid = frontmost?.processIdentifier ?? 0
         let previous = previousFrontmostApp?.bundleIdentifier ?? "nil"
         let previousPID = previousFrontmostApp?.processIdentifier ?? 0
-        NSLog("[ClipboardFlow][%@] frontmost=%@#%d appActive=%@ appHidden=%@",
-              "\(stage) previous=\(previous)#\(previousPID)",
-              bundleID,
-              pid,
-              NSApp.isActive.description,
-              NSApp.isHidden.description)
+        Self.logger.notice("stage=\(stage, privacy: .public) frontmost=\(bundleID, privacy: .public)#\(pid) previous=\(previous, privacy: .public)#\(previousPID) appActive=\(NSApp.isActive) appHidden=\(NSApp.isHidden)")
     }
     
     private init() {
@@ -323,6 +320,7 @@ class ClipboardManager: ObservableObject {
             guard let self = self else { return }
             self.logClipboardFlow("pasteToActiveApp.begin")
             NotificationCenter.default.post(name: NSNotification.Name("CloseLauncherPanelOnly"), object: nil)
+            AccessibilityManager.shared.restoreSuspendedTextInputFocus()
             self.restoreFocusToCapturedApp()
             self.sendPasteCommandWhenReady(retries: 8)
         }
@@ -410,21 +408,25 @@ class ClipboardManager: ObservableObject {
     private func updateHotKey() {
         hotKey = nil
         if let config = settings.hotKey {
-            hotKey = HotKey(key: config.key, modifiers: config.modifiers)
-            hotKey?.keyDownHandler = { [weak self] in
-                self?.toggleClipboardHistory()
+            hotKey = CarbonHotKeyRegistration(configuration: config, name: "clipboard") { [weak self] in
+                self?.showClipboardHistory()
             }
         }
     }
-    
-    private func toggleClipboardHistory() {
+
+    func captureCurrentFrontmostApp() {
+        if let app = NSWorkspace.shared.frontmostApplication,
+           app.bundleIdentifier != Bundle.main.bundleIdentifier {
+            previousFrontmostApp = app
+        }
+    }
+
+    func showClipboardHistory() {
         DispatchQueue.main.async {
-            self.logClipboardFlow("toggleClipboardHistory.begin")
-            if let app = NSWorkspace.shared.frontmostApplication,
-               app.bundleIdentifier != Bundle.main.bundleIdentifier {
-                self.previousFrontmostApp = app
-            }
-            self.logClipboardFlow("toggleClipboardHistory.afterCapture")
+            self.logClipboardFlow("showClipboardHistory.begin")
+            self.captureCurrentFrontmostApp()
+            AccessibilityManager.shared.suspendFocusedTextInputForOverlay()
+            self.logClipboardFlow("showClipboardHistory.postNotification")
             NotificationCenter.default.post(name: NSNotification.Name("ShowClipboardHistory"), object: nil)
         }
     }

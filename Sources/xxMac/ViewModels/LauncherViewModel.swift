@@ -254,6 +254,7 @@ class LauncherViewModel: ObservableObject {
                 type: .quickShortcutOutput,
                 action: {
                     QuickShortcutManager.shared.copyToPasteboard(line)
+                    NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
                 }
             )
         }

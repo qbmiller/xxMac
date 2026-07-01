@@ -22,6 +22,10 @@ enum ClipboardPreviewData: Hashable {
     )
 }
 
+struct SnippetPreviewData: Hashable {
+    let content: String
+}
+
 struct SearchItem: Identifiable, Hashable {
     let id: String
     let title: String
@@ -29,6 +33,7 @@ struct SearchItem: Identifiable, Hashable {
     let iconName: String
     let type: SearchResultType
     let clipboardPreview: ClipboardPreviewData?
+    let snippetPreview: SnippetPreviewData?
     let action: () -> Void
     
     init(
@@ -38,6 +43,7 @@ struct SearchItem: Identifiable, Hashable {
         iconName: String,
         type: SearchResultType,
         clipboardPreview: ClipboardPreviewData? = nil,
+        snippetPreview: SnippetPreviewData? = nil,
         action: @escaping () -> Void
     ) {
         self.id = id ?? "\(type)_\(title)"
@@ -46,6 +52,7 @@ struct SearchItem: Identifiable, Hashable {
         self.iconName = iconName
         self.type = type
         self.clipboardPreview = clipboardPreview
+        self.snippetPreview = snippetPreview
         self.action = action
     }
     

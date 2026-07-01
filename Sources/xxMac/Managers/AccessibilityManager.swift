@@ -1,9 +1,17 @@
 import AppKit
 import ApplicationServices
+import OSLog
 
 class AccessibilityManager {
     static let shared = AccessibilityManager()
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "Accessibility")
 
+    struct FocusedTextInputSnapshot {
+        let app: NSRunningApplication
+        let element: AXUIElement
+    }
+
+    private var suspendedTextInput: FocusedTextInputSnapshot?
     private var lastPermissionAlertAt = Date.distantPast
     private let permissionAlertCooldown: TimeInterval = 10
     
@@ -21,6 +29,70 @@ class AccessibilityManager {
             return false
         }
         return true
+    }
+
+    func suspendFocusedTextInputForOverlay() {
+        guard checkAccessibilityPermissions(),
+              let snapshot = captureFocusedTextInputSnapshot() else {
+            return
+        }
+
+        suspendedTextInput = snapshot
+        AXUIElementSetAttributeValue(snapshot.element, kAXFocusedAttribute as CFString, kCFBooleanFalse)
+        Self.logger.notice("suspended focused text input app=\(snapshot.app.bundleIdentifier ?? "unknown.bundle", privacy: .public)#\(snapshot.app.processIdentifier)")
+    }
+
+    func restoreSuspendedTextInputFocus() {
+        guard let snapshot = suspendedTextInput else { return }
+        suspendedTextInput = nil
+
+        if snapshot.app.isHidden {
+            snapshot.app.unhide()
+        }
+        snapshot.app.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+        AXUIElementSetAttributeValue(snapshot.element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        Self.logger.notice("restored focused text input app=\(snapshot.app.bundleIdentifier ?? "unknown.bundle", privacy: .public)#\(snapshot.app.processIdentifier)")
+    }
+
+    private func captureFocusedTextInputSnapshot() -> FocusedTextInputSnapshot? {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier != Bundle.main.bundleIdentifier else {
+            return nil
+        }
+
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedElement: AnyObject?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success,
+              focusedElement != nil else {
+            return nil
+        }
+        let element = focusedElement as! AXUIElement
+        guard isTextInputElement(element) else { return nil }
+
+        return FocusedTextInputSnapshot(app: app, element: element)
+    }
+
+    private func isTextInputElement(_ element: AXUIElement) -> Bool {
+        let role = stringAttribute(element, kAXRoleAttribute as CFString)
+        let subrole = stringAttribute(element, kAXSubroleAttribute as CFString)
+        let roleDescription = stringAttribute(element, kAXRoleDescriptionAttribute as CFString)
+
+        let joined = [role, subrole, roleDescription]
+            .compactMap { $0?.lowercased() }
+            .joined(separator: " ")
+
+        return joined.contains("text") ||
+            joined.contains("edit") ||
+            joined.contains("secure") ||
+            joined.contains("password")
+    }
+
+    private func stringAttribute(_ element: AXUIElement, _ attribute: CFString) -> String? {
+        var value: AnyObject?
+        guard AXUIElementCopyAttributeValue(element, attribute, &value) == .success else {
+            return nil
+        }
+        return value as? String
     }
 
     private func showAccessibilityPermissionAlert() {

@@ -1,5 +1,6 @@
 "menu.toggle_launcher" = "切換啟動器";
 "menu.calendar" = "日曆";
+"menu.clipboard_history" = "剪貼簿歷史";
 "menu.lock_ai" = "LockJob";
 "menu.settings" = "設定...";
 "menu.quit" = "退出";
@@ -15,6 +16,9 @@
 "settings.configuration_coming_soon" = "「%@」的設定即將上線。";
 
 "common.manage_configurations" = "管理應用設定。";
+"common.menu_bar" = "選單列";
+"common.menu_bar_desc" = "控制 xxMac 是否顯示選單列入口。關閉後仍可使用全域快速鍵和已開啟的設定視窗。";
+"common.show_menu_bar_item" = "顯示在選單列中";
 "common.global_hotkey" = "全域快速鍵";
 "common.global_hotkey_desc" = "設定用於顯示或隱藏主啟動器視窗的快速鍵。";
 "common.toggle_launcher" = "切換啟動器";
@@ -249,6 +253,8 @@
 "snippets.delete_entry" = "刪除項目";
 "snippets.edit_entry" = "編輯項目";
 "snippets.select_entry" = "選擇一個項目開始編輯";
+"snippets.select_item_preview" = "選擇 Snippet 以預覽";
+"snippets.empty_content" = "內容為空";
 "snippets.empty_entries" = "目前分類還沒有項目。";
 "snippets.items_count_format" = "%d 個片段";
 "snippets.uncategorized" = "未分類";

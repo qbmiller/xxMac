@@ -22,6 +22,11 @@ struct LauncherView: View {
         return viewModel.results[viewModel.selectedIndex]
     }
 
+    private var selectedSnippetItem: SearchItem? {
+        guard viewModel.mode == .snippets, viewModel.results.indices.contains(viewModel.selectedIndex) else { return nil }
+        return viewModel.results[viewModel.selectedIndex]
+    }
+
     private var sizeScale: CGFloat {
         CGFloat(appearance.sizeScale)
     }
@@ -121,7 +126,7 @@ struct LauncherView: View {
                 .padding(.vertical, scaled(6))
             }
             
-            if viewModel.mode == .clipboard {
+            if viewModel.mode == .clipboard || viewModel.mode == .snippets {
                 Divider()
                     .overlay(Color.white.opacity(0.12))
 
@@ -156,8 +161,13 @@ struct LauncherView: View {
                     Divider()
                         .overlay(Color.white.opacity(0.12))
 
-                    ClipboardDetailPane(item: selectedClipboardItem)
-                        .frame(maxWidth: .infinity, maxHeight: launcherHeight)
+                    if viewModel.mode == .clipboard {
+                        ClipboardDetailPane(item: selectedClipboardItem)
+                            .frame(maxWidth: .infinity, maxHeight: launcherHeight)
+                    } else {
+                        SnippetDetailPane(item: selectedSnippetItem)
+                            .frame(maxWidth: .infinity, maxHeight: launcherHeight)
+                    }
                 }
             } else if shouldShowLauncherResults {
                 Divider()
@@ -191,7 +201,7 @@ struct LauncherView: View {
                 .frame(maxHeight: launcherHeight)
             }
         }
-        .frame(width: viewModel.mode == .clipboard ? max(launcherWidth, 920) : launcherWidth)
+        .frame(width: viewModel.mode == .clipboard || viewModel.mode == .snippets ? max(launcherWidth, 920) : launcherWidth)
         .background(
             ZStack {
                 if reduceTransparency {
@@ -389,6 +399,34 @@ struct ClipboardDetailPane: View {
                 VStack {
                     Spacer()
                     Text(L10n.t("clipboard.select_item_preview"))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+            }
+        }
+        .background(Color.white.opacity(0.08))
+        .id(item?.id)
+    }
+}
+
+struct SnippetDetailPane: View {
+    let item: SearchItem?
+
+    var body: some View {
+        Group {
+            if let content = item?.snippetPreview?.content {
+                ScrollView {
+                    Text(content.isEmpty ? L10n.t("snippets.empty_content") : content)
+                        .font(.body)
+                        .foregroundColor(content.isEmpty ? .secondary : .primary)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .textSelection(.enabled)
+                        .padding(16)
+                }
+            } else {
+                VStack {
+                    Spacer()
+                    Text(L10n.t("snippets.select_item_preview"))
                         .foregroundColor(.secondary)
                     Spacer()
                 }

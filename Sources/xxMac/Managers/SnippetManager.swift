@@ -1,10 +1,11 @@
 import AppKit
 import ApplicationServices
 import Combine
-import HotKey
+import OSLog
 
 final class SnippetManager: ObservableObject {
     static let shared = SnippetManager()
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "SnippetFlow")
 
     @Published var settings = SnippetSettings() {
         didSet {
@@ -22,7 +23,7 @@ final class SnippetManager: ObservableObject {
     private let settingsKey = "SnippetSettings"
     private let collectionsKey = "SnippetCollections"
     private let entriesKey = "SnippetEntries"
-    private var hotKey: HotKey?
+    private var hotKey: CarbonHotKeyRegistration?
     private var previousFrontmostApp: NSRunningApplication?
 
     private init() {
@@ -101,6 +102,7 @@ final class SnippetManager: ObservableObject {
                 subtitle: subtitle,
                 iconName: "text.quote",
                 type: .snippet,
+                snippetPreview: SnippetPreviewData(content: entry.content),
                 action: { [weak self] in self?.paste(entry) }
             )
         }
@@ -114,9 +116,18 @@ final class SnippetManager: ObservableObject {
 
     private func typeInCapturedApp(_ text: String) {
         guard !text.isEmpty else { return }
+        copySnippetToPasteboard(text)
         NotificationCenter.default.post(name: NSNotification.Name("CloseLauncherPanelOnly"), object: nil)
+        AccessibilityManager.shared.restoreSuspendedTextInputFocus()
         restoreFocusToCapturedApp()
         sendTextWhenReady(text, retries: 8)
+    }
+
+    private func copySnippetToPasteboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        let copied = pasteboard.setString(text, forType: .string)
+        Self.logger.notice("snippet copied to pasteboard copied=\(copied)")
     }
 
     private func sendTextWhenReady(_ text: String, retries: Int) {
@@ -181,19 +192,34 @@ final class SnippetManager: ObservableObject {
     private func updateHotKey() {
         hotKey = nil
         if let config = settings.hotKey {
-            hotKey = HotKey(key: config.key, modifiers: config.modifiers)
-            hotKey?.keyDownHandler = { [weak self] in
+            hotKey = CarbonHotKeyRegistration(configuration: config, name: "snippets") { [weak self] in
                 self?.showSnippets()
             }
         }
     }
 
+    func captureCurrentFrontmostApp() {
+        if let app = NSWorkspace.shared.frontmostApplication,
+           app.bundleIdentifier != Bundle.main.bundleIdentifier {
+            previousFrontmostApp = app
+        }
+    }
+
+    private func logSnippetFlow(_ stage: String) {
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        let bundleID = frontmost?.bundleIdentifier ?? "nil"
+        let pid = frontmost?.processIdentifier ?? 0
+        let previous = previousFrontmostApp?.bundleIdentifier ?? "nil"
+        let previousPID = previousFrontmostApp?.processIdentifier ?? 0
+        Self.logger.notice("stage=\(stage, privacy: .public) frontmost=\(bundleID, privacy: .public)#\(pid) previous=\(previous, privacy: .public)#\(previousPID) appActive=\(NSApp.isActive) appHidden=\(NSApp.isHidden)")
+    }
+
     private func showSnippets() {
         DispatchQueue.main.async {
-            if let app = NSWorkspace.shared.frontmostApplication,
-               app.bundleIdentifier != Bundle.main.bundleIdentifier {
-                self.previousFrontmostApp = app
-            }
+            self.logSnippetFlow("showSnippets.begin")
+            self.captureCurrentFrontmostApp()
+            AccessibilityManager.shared.suspendFocusedTextInputForOverlay()
+            self.logSnippetFlow("showSnippets.postNotification")
             NotificationCenter.default.post(name: NSNotification.Name("ShowSnippets"), object: nil)
         }
     }
