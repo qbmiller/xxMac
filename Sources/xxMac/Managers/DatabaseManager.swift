@@ -76,7 +76,10 @@ class DatabaseManager {
             size INTEGER,
             image_width INTEGER,
             image_height INTEGER,
-            thumbnail_filename TEXT
+            thumbnail_filename TEXT,
+            image_ocr_text TEXT,
+            image_ocr_status TEXT,
+            image_ocr_updated_at REAL
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
@@ -90,6 +93,8 @@ class DatabaseManager {
         
         // Triggers to keep FTS in sync
         let createTriggers = """
+        DROP TRIGGER IF EXISTS after_delete_clipboard_items;
+
         CREATE TRIGGER IF NOT EXISTS after_insert_clipboard_items AFTER INSERT ON clipboard_items
         WHEN new.type = 'text'
         BEGIN
@@ -97,7 +102,6 @@ class DatabaseManager {
         END;
 
         CREATE TRIGGER IF NOT EXISTS after_delete_clipboard_items AFTER DELETE ON clipboard_items
-        WHEN old.type = 'text'
         BEGIN
             DELETE FROM clipboard_fts WHERE id = old.id;
         END;
@@ -121,7 +125,10 @@ class DatabaseManager {
             size INTEGER,
             image_width INTEGER,
             image_height INTEGER,
-            thumbnail_filename TEXT
+            thumbnail_filename TEXT,
+            image_ocr_text TEXT,
+            image_ocr_status TEXT,
+            image_ocr_updated_at REAL
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
@@ -132,6 +139,8 @@ class DatabaseManager {
         _ = executeUnlocked(sql: createFtsTable)
 
         let createTriggers = """
+        DROP TRIGGER IF EXISTS after_delete_clipboard_items;
+
         CREATE TRIGGER IF NOT EXISTS after_insert_clipboard_items AFTER INSERT ON clipboard_items
         WHEN new.type = 'text'
         BEGIN
@@ -139,7 +148,6 @@ class DatabaseManager {
         END;
 
         CREATE TRIGGER IF NOT EXISTS after_delete_clipboard_items AFTER DELETE ON clipboard_items
-        WHEN old.type = 'text'
         BEGIN
             DELETE FROM clipboard_fts WHERE id = old.id;
         END;
@@ -163,6 +171,9 @@ class DatabaseManager {
         ensureColumnExists(table: "clipboard_items", column: "image_width", definition: "INTEGER")
         ensureColumnExists(table: "clipboard_items", column: "image_height", definition: "INTEGER")
         ensureColumnExists(table: "clipboard_items", column: "thumbnail_filename", definition: "TEXT")
+        ensureColumnExists(table: "clipboard_items", column: "image_ocr_text", definition: "TEXT")
+        ensureColumnExists(table: "clipboard_items", column: "image_ocr_status", definition: "TEXT")
+        ensureColumnExists(table: "clipboard_items", column: "image_ocr_updated_at", definition: "REAL")
     }
 
     private func ensureColumnExists(table: String, column: String, definition: String) {
@@ -210,7 +221,10 @@ class DatabaseManager {
         size: Int,
         imageWidth: Int? = nil,
         imageHeight: Int? = nil,
-        thumbnailFilename: String? = nil
+        thumbnailFilename: String? = nil,
+        imageOCRText: String? = nil,
+        imageOCRStatus: ClipboardOCRStatus? = nil,
+        imageOCRUpdatedAt: Date? = nil
     ) {
         withDatabase {
             // Deduplication: If same content exists, we update its timestamp and move to top
@@ -243,8 +257,9 @@ class DatabaseManager {
 
             let sql = """
             INSERT OR REPLACE INTO clipboard_items
-            (id, type, content, timestamp, size, image_width, image_height, thumbnail_filename)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            (id, type, content, timestamp, size, image_width, image_height, thumbnail_filename,
+             image_ocr_text, image_ocr_status, image_ocr_updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
             var statement: OpaquePointer?
             
@@ -257,6 +272,9 @@ class DatabaseManager {
                 bindOptionalInt(imageWidth, to: statement, index: 6)
                 bindOptionalInt(imageHeight, to: statement, index: 7)
                 bindOptionalText(thumbnailFilename, to: statement, index: 8)
+                bindOptionalText(imageOCRText, to: statement, index: 9)
+                bindOptionalText(imageOCRStatus?.rawValue, to: statement, index: 10)
+                bindOptionalDouble(imageOCRUpdatedAt?.timeIntervalSince1970, to: statement, index: 11)
                 
                 if sqlite3_step(statement) != SQLITE_DONE {
                     print("Error inserting item")
@@ -277,6 +295,14 @@ class DatabaseManager {
     private func bindOptionalText(_ value: String?, to statement: OpaquePointer?, index: Int32) {
         if let value {
             sqlite3_bind_text(statement, index, (value as NSString).utf8String, -1, nil)
+        } else {
+            sqlite3_bind_null(statement, index)
+        }
+    }
+
+    private func bindOptionalDouble(_ value: Double?, to statement: OpaquePointer?, index: Int32) {
+        if let value {
+            sqlite3_bind_double(statement, index, value)
         } else {
             sqlite3_bind_null(statement, index)
         }
@@ -309,7 +335,7 @@ class DatabaseManager {
 
     func getAllItems(limit: Int = 100) -> [ClipboardItem] {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -332,7 +358,10 @@ class DatabaseManager {
                             size: Int(size),
                             imageWidth: optionalInt(statement, 5),
                             imageHeight: optionalInt(statement, 6),
-                            thumbnailFilename: optionalString(statement, 7)
+                            thumbnailFilename: optionalString(statement, 7),
+                            imageOCRText: optionalString(statement, 8),
+                            imageOCRStatus: optionalOCRStatus(statement, 9),
+                            imageOCRUpdatedAt: optionalDate(statement, 10)
                         ))
                     }
                 }
@@ -344,7 +373,7 @@ class DatabaseManager {
 
     func getItem(id itemID: String) -> ClipboardItem? {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items WHERE id = ? LIMIT 1;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items WHERE id = ? LIMIT 1;"
             var statement: OpaquePointer?
             var item: ClipboardItem?
 
@@ -364,7 +393,10 @@ class DatabaseManager {
             let sql = """
             SELECT id, type,
                    CASE WHEN type = 'text' THEN substr(content, 1, ?) ELSE content END,
-                   length(content), timestamp, size, image_width, image_height, thumbnail_filename
+                   length(content), timestamp, size, image_width, image_height, thumbnail_filename,
+                   image_ocr_status,
+                   CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
+                   substr(image_ocr_text, 1, 500)
             FROM clipboard_items
             ORDER BY timestamp DESC
             LIMIT ?;
@@ -391,7 +423,7 @@ class DatabaseManager {
             // Search using FTS5 for text items, combined with simple LIKE for filename/meta if needed
             // Here we primarily use FTS5 for content search.
             let sql = """
-            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename
+            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename, i.image_ocr_text, i.image_ocr_status, i.image_ocr_updated_at
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             WHERE f.content MATCH ?
@@ -426,7 +458,10 @@ class DatabaseManager {
         return withDatabase {
             let sql = """
             SELECT i.id, i.type, substr(i.content, 1, ?), length(i.content),
-                   i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename
+                   i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename,
+                   i.image_ocr_status,
+                   CASE WHEN i.image_ocr_text IS NULL OR length(i.image_ocr_text) = 0 THEN 0 ELSE 1 END,
+                   substr(i.image_ocr_text, 1, 500)
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             WHERE f.content MATCH ?
@@ -460,7 +495,10 @@ class DatabaseManager {
         return withDatabase {
             let sql = """
             SELECT id, type, content, length(content), timestamp, size,
-                   image_width, image_height, thumbnail_filename
+                   image_width, image_height, thumbnail_filename,
+                   image_ocr_status,
+                   CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
+                   substr(image_ocr_text, 1, 500)
             FROM clipboard_items
             WHERE type = 'image'
             ORDER BY timestamp DESC
@@ -485,7 +523,7 @@ class DatabaseManager {
     func getOldItems(maxCount: Int) -> [ClipboardItem] {
         return withDatabase {
             // We want items beyond the first N items.
-            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
+            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
             
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
@@ -507,7 +545,7 @@ class DatabaseManager {
     func deleteItemsOlderThan(date: Date) -> [ClipboardItem] {
         return withDatabase {
             // We return items to be deleted so file cache can be cleaned up
-            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename FROM clipboard_items WHERE timestamp < ?;"
+            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items WHERE timestamp < ?;"
             var selectStatement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -537,6 +575,73 @@ class DatabaseManager {
         _ = execute(sql: "VACUUM;")
     }
 
+    func updateImageOCR(id: String, text: String?, status: ClipboardOCRStatus) {
+        withDatabase {
+            let sql = """
+            UPDATE clipboard_items
+            SET image_ocr_text = ?, image_ocr_status = ?, image_ocr_updated_at = ?
+            WHERE id = ? AND type = 'image';
+            """
+            var statement: OpaquePointer?
+            let trimmedText = text?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                bindOptionalText(trimmedText?.isEmpty == true ? nil : trimmedText, to: statement, index: 1)
+                sqlite3_bind_text(statement, 2, (status.rawValue as NSString).utf8String, -1, nil)
+                sqlite3_bind_double(statement, 3, Date().timeIntervalSince1970)
+                sqlite3_bind_text(statement, 4, (id as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+
+            updateImageFTS(id: id, ocrText: trimmedText)
+        }
+    }
+
+    private func updateImageFTS(id: String, ocrText: String?) {
+        let fetchSql = "SELECT content FROM clipboard_items WHERE id = ? AND type = 'image' LIMIT 1;"
+        var fetchStatement: OpaquePointer?
+        var filename: String?
+
+        if sqlite3_prepare_v2(db, fetchSql, -1, &fetchStatement, nil) == SQLITE_OK {
+            sqlite3_bind_text(fetchStatement, 1, (id as NSString).utf8String, -1, nil)
+            if sqlite3_step(fetchStatement) == SQLITE_ROW, let content = sqlite3_column_text(fetchStatement, 0) {
+                filename = String(cString: content)
+            }
+        }
+        sqlite3_finalize(fetchStatement)
+
+        let deleteSql = "DELETE FROM clipboard_fts WHERE id = ?;"
+        var deleteStatement: OpaquePointer?
+        if sqlite3_prepare_v2(db, deleteSql, -1, &deleteStatement, nil) == SQLITE_OK {
+            sqlite3_bind_text(deleteStatement, 1, (id as NSString).utf8String, -1, nil)
+            sqlite3_step(deleteStatement)
+        }
+        sqlite3_finalize(deleteStatement)
+
+        guard let filename else { return }
+
+        let searchableText = [
+            "image images img photo photos picture pictures 图片 照片",
+            filename,
+            ocrText
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !searchableText.isEmpty else { return }
+
+        let insertSql = "INSERT INTO clipboard_fts(id, content) VALUES (?, ?);"
+        var insertStatement: OpaquePointer?
+        if sqlite3_prepare_v2(db, insertSql, -1, &insertStatement, nil) == SQLITE_OK {
+            sqlite3_bind_text(insertStatement, 1, (id as NSString).utf8String, -1, nil)
+            sqlite3_bind_text(insertStatement, 2, (searchableText as NSString).utf8String, -1, nil)
+            sqlite3_step(insertStatement)
+        }
+        sqlite3_finalize(insertStatement)
+    }
+
     private func makeClipboardItem(from statement: OpaquePointer?) -> ClipboardItem? {
         guard
             let idText = sqlite3_column_text(statement, 0),
@@ -564,7 +669,10 @@ class DatabaseManager {
             size: Int(size),
             imageWidth: optionalInt(statement, 5),
             imageHeight: optionalInt(statement, 6),
-            thumbnailFilename: optionalString(statement, 7)
+            thumbnailFilename: optionalString(statement, 7),
+            imageOCRText: optionalString(statement, 8),
+            imageOCRStatus: optionalOCRStatus(statement, 9),
+            imageOCRUpdatedAt: optionalDate(statement, 10)
         )
     }
 
@@ -598,7 +706,10 @@ class DatabaseManager {
             imageFilename: type == .image ? previewContent : nil,
             imageWidth: optionalInt(statement, 6),
             imageHeight: optionalInt(statement, 7),
-            thumbnailFilename: optionalString(statement, 8)
+            thumbnailFilename: optionalString(statement, 8),
+            imageOCRStatus: optionalOCRStatus(statement, 9),
+            hasImageOCRText: optionalInt(statement, 10) == 1,
+            imageOCRTextPreview: optionalString(statement, 11)
         )
     }
 
@@ -613,5 +724,15 @@ class DatabaseManager {
             return nil
         }
         return String(cString: text)
+    }
+
+    private func optionalDate(_ statement: OpaquePointer?, _ index: Int32) -> Date? {
+        guard sqlite3_column_type(statement, index) != SQLITE_NULL else { return nil }
+        return Date(timeIntervalSince1970: sqlite3_column_double(statement, index))
+    }
+
+    private func optionalOCRStatus(_ statement: OpaquePointer?, _ index: Int32) -> ClipboardOCRStatus? {
+        guard let rawValue = optionalString(statement, index) else { return nil }
+        return ClipboardOCRStatus(rawValue: rawValue)
     }
 }

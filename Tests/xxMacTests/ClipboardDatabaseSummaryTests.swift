@@ -37,6 +37,48 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
         XCTAssertEqual(fullItem.content, largeText)
     }
 
+    func testImageOCRMetadataPersistsAndIsSearchable() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveImageItem(
+            content: "screen.png",
+            size: 1024,
+            width: 800,
+            height: 600,
+            thumbnailFilename: nil
+        )
+
+        let item = try XCTUnwrap(storage.getListItems(limit: 1).first)
+        storage.updateImageOCR(
+            id: item.id,
+            text: "invoice number ABC123",
+            status: .ready
+        )
+
+        let results = storage.searchListItems(query: "ABC123")
+        XCTAssertEqual(results.first?.id, item.id)
+
+        let fullItem = try XCTUnwrap(storage.getItem(id: item.id))
+        XCTAssertEqual(fullItem.imageOCRText, "invoice number ABC123")
+        XCTAssertEqual(fullItem.imageOCRStatus, .ready)
+        XCTAssertNotNil(fullItem.imageOCRUpdatedAt)
+    }
+
+    func testDeletingImageRemovesOCRSearchIndex() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveImageItem(content: "ocr.png", size: 1024, width: nil, height: nil, thumbnailFilename: nil)
+        let item = try XCTUnwrap(storage.getItem(id: try XCTUnwrap(storage.getListItems().first).id))
+
+        storage.updateImageOCR(id: item.id, text: "temporary searchable text", status: .ready)
+        XCTAssertFalse(storage.searchListItems(query: "temporary").isEmpty)
+
+        storage.deleteItem(item)
+        XCTAssertTrue(storage.searchListItems(query: "temporary").isEmpty)
+    }
+
     private func makeTemporaryDirectory() -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

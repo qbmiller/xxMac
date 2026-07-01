@@ -65,14 +65,17 @@ class ClipboardStorageManager {
         }
     }
 
+    @discardableResult
     func saveImageItem(
         content: String,
         size: Int,
         width: Int?,
         height: Int?,
-        thumbnailFilename: String?
-    ) {
-        let id = UUID().uuidString
+        thumbnailFilename: String?,
+        ocrStatus: ClipboardOCRStatus? = nil
+    ) -> UUID {
+        let itemID = UUID()
+        let id = itemID.uuidString
         dbManager.insertItem(
             id: id,
             type: ClipboardContentType.image.rawValue,
@@ -80,12 +83,16 @@ class ClipboardStorageManager {
             size: size,
             imageWidth: width,
             imageHeight: height,
-            thumbnailFilename: thumbnailFilename
+            thumbnailFilename: thumbnailFilename,
+            imageOCRStatus: ocrStatus,
+            imageOCRUpdatedAt: ocrStatus == nil ? nil : Date()
         )
 
         DispatchQueue.global(qos: .background).async {
             self.performLRU()
         }
+
+        return itemID
     }
     
     func getAllItems(limit: Int = 100) -> [ClipboardItem] {
@@ -98,6 +105,10 @@ class ClipboardStorageManager {
 
     func getItem(id: UUID) -> ClipboardItem? {
         return dbManager.getItem(id: id.uuidString)
+    }
+
+    func updateImageOCR(id: UUID, text: String?, status: ClipboardOCRStatus) {
+        dbManager.updateImageOCR(id: id.uuidString, text: text, status: status)
     }
     
     func search(query: String) -> [ClipboardItem] {

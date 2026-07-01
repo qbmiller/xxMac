@@ -108,6 +108,14 @@
 "clipboard.max_history_items" = "最多保留";
 "clipboard.max_image_storage" = "圖片快取總量";
 "clipboard.thumbnail_threshold" = "超過此大小產生縮圖";
+"clipboard.ocr_enable" = "啟用本機 OCR";
+"clipboard.ocr_enable_desc" = "使用系統 Vision 在本機辨識圖片文字，用於剪貼簿搜尋，不上傳圖片";
+"clipboard.ocr_max_image_size" = "OCR 最大圖片大小";
+"clipboard.ocr_status_pending" = "OCR 處理中";
+"clipboard.ocr_status_ready" = "已辨識文字";
+"clipboard.ocr_status_failed" = "OCR 失敗";
+"clipboard.ocr_status_skipped" = "未進行 OCR";
+"clipboard.ocr_recognized_text" = "已辨識文字";
 "clipboard.toggle_history" = "切換剪貼簿歷史";
 "clipboard.type_hotkey" = "請輸入快速鍵...";
 "clipboard.none" = "無";

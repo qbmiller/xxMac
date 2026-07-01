@@ -94,6 +94,29 @@ struct ClipboardSettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+
+                    Toggle(isOn: $clipboardManager.settings.imageOCREnabled) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L10n.t("clipboard.ocr_enable"))
+                            Text(L10n.t("clipboard.ocr_enable_desc"))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    if clipboardManager.settings.imageOCREnabled {
+                        Stepper(value: Binding(
+                            get: { clipboardManager.settings.maxOCRImageSizeMB },
+                            set: { clipboardManager.settings.maxOCRImageSizeMB = $0 }
+                        ), in: 1...100, step: 1) {
+                            HStack {
+                                Text(L10n.t("clipboard.ocr_max_image_size"))
+                                Spacer()
+                                Text(L10n.f("clipboard.max_size_format", clipboardManager.settings.maxOCRImageSizeMB))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
                     
                     HStack {
                         Spacer()

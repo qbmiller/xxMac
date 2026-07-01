@@ -108,6 +108,14 @@
 "clipboard.max_history_items" = "Max History Items";
 "clipboard.max_image_storage" = "Image Cache Limit";
 "clipboard.thumbnail_threshold" = "Generate Thumbnails Above";
+"clipboard.ocr_enable" = "Enable Local OCR";
+"clipboard.ocr_enable_desc" = "Uses system Vision on this Mac to recognize image text for clipboard search. Images are not uploaded.";
+"clipboard.ocr_max_image_size" = "Max OCR Image Size";
+"clipboard.ocr_status_pending" = "OCR pending";
+"clipboard.ocr_status_ready" = "OCR text";
+"clipboard.ocr_status_failed" = "OCR failed";
+"clipboard.ocr_status_skipped" = "OCR skipped";
+"clipboard.ocr_recognized_text" = "Recognized Text";
 "clipboard.toggle_history" = "Toggle Clipboard History";
 "clipboard.type_hotkey" = "Type Hotkey...";
 "clipboard.none" = "None";

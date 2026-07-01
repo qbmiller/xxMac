@@ -378,8 +378,11 @@ struct ClipboardDetailPane: View {
                         }
                         .padding(16)
                     }
-                case .image(let filename, let thumbnailFilename, _):
-                    ClipboardImagePreview(filename: filename, thumbnailFilename: thumbnailFilename)
+                case .image(let filename, let thumbnailFilename, _, let ocrStatus, let ocrTextPreview):
+                    VStack(spacing: 0) {
+                        ClipboardImagePreview(filename: filename, thumbnailFilename: thumbnailFilename)
+                        ClipboardOCRSummary(status: ocrStatus, textPreview: ocrTextPreview)
+                    }
                         .id(filename)
                 }
             } else {
@@ -393,6 +396,56 @@ struct ClipboardDetailPane: View {
         }
         .background(Color.white.opacity(0.08))
         .id(item?.id)
+    }
+}
+
+struct ClipboardOCRSummary: View {
+    let status: ClipboardOCRStatus?
+    let textPreview: String?
+
+    var body: some View {
+        if let displayText {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(displayText)
+                    .font(.caption)
+                    .lineLimit(4)
+                    .textSelection(.enabled)
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color.white.opacity(0.06))
+        }
+    }
+
+    private var title: String {
+        switch status {
+        case .pending:
+            return L10n.t("clipboard.ocr_status_pending")
+        case .ready:
+            return L10n.t("clipboard.ocr_recognized_text")
+        case .failed:
+            return L10n.t("clipboard.ocr_status_failed")
+        case .skipped:
+            return L10n.t("clipboard.ocr_status_skipped")
+        case nil:
+            return ""
+        }
+    }
+
+    private var displayText: String? {
+        switch status {
+        case .ready:
+            return textPreview?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? textPreview : nil
+        case .pending, .failed:
+            return title
+        case .skipped, nil:
+            return nil
+        }
     }
 }
 

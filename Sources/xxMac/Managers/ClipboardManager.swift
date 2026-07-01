@@ -14,6 +14,9 @@ struct ClipboardSettings: Codable {
     var maxHistoryItems: Int = 1000
     var maxImageStorageSizeMB: Int = 500
     var thumbnailGenerationThresholdMB: Int = 5
+    var imageOCREnabled: Bool = false
+    var maxOCRImageSizeMB: Int = 20
+    var imageOCRLanguages: [String] = ["zh-Hans", "en-US"]
     var hotKey: HotKeyConfiguration?
 
     enum CodingKeys: String, CodingKey {
@@ -25,6 +28,9 @@ struct ClipboardSettings: Codable {
         case maxHistoryItems
         case maxImageStorageSizeMB
         case thumbnailGenerationThresholdMB
+        case imageOCREnabled
+        case maxOCRImageSizeMB
+        case imageOCRLanguages
         case hotKey
     }
 
@@ -40,6 +46,9 @@ struct ClipboardSettings: Codable {
         maxHistoryItems = try container.decodeIfPresent(Int.self, forKey: .maxHistoryItems) ?? 1000
         maxImageStorageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageStorageSizeMB) ?? 500
         thumbnailGenerationThresholdMB = try container.decodeIfPresent(Int.self, forKey: .thumbnailGenerationThresholdMB) ?? 5
+        imageOCREnabled = try container.decodeIfPresent(Bool.self, forKey: .imageOCREnabled) ?? false
+        maxOCRImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxOCRImageSizeMB) ?? 20
+        imageOCRLanguages = try container.decodeIfPresent([String].self, forKey: .imageOCRLanguages) ?? ["zh-Hans", "en-US"]
         hotKey = try container.decodeIfPresent(HotKeyConfiguration.self, forKey: .hotKey)
     }
 }
@@ -91,6 +100,13 @@ class ClipboardManager: ObservableObject {
         updateStorageLimits()
         updateMonitoringState()
         updateHotKey()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onClipboardOCRDidUpdate),
+            name: .clipboardOCRDidUpdate,
+            object: nil
+        )
     }
 
     private func updateStorageLimits() {
@@ -176,13 +192,22 @@ class ClipboardManager: ObservableObject {
                         originalFilename: filename,
                         byteSize: pngData.count
                     )
-                    storage.saveImageItem(
+                    let shouldOCR = shouldOCRImage(byteSize: pngData.count)
+                    let itemID = storage.saveImageItem(
                         content: filename,
                         size: pngData.count,
                         width: dimensions.width,
                         height: dimensions.height,
-                        thumbnailFilename: thumbnailFilename
+                        thumbnailFilename: thumbnailFilename,
+                        ocrStatus: shouldOCR ? .pending : .skipped
                     )
+                    if shouldOCR {
+                        ClipboardOCRManager.shared.enqueueImageOCR(
+                            itemID: itemID,
+                            imageURL: fileURL,
+                            languages: settings.imageOCRLanguages
+                        )
+                    }
                     refreshHistory()
                 } catch {
                     print("Failed to save clipboard image: \(error)")
@@ -246,13 +271,15 @@ class ClipboardManager: ObservableObject {
                 return SearchItem(
                     id: "clipboard.\(item.id.uuidString)",
                     title: imageDisplayTitle(for: item),
-                    subtitle: L10n.f("clipboard.item.image_subtitle_format", formatSize(item.size), formatDate(item.timestamp)),
+                    subtitle: imageSubtitle(for: item),
                     iconName: "photo",
                     type: .clipboard,
                     clipboardPreview: .image(
                         filename: item.imageFilename ?? item.previewContent,
                         thumbnailFilename: item.thumbnailFilename,
-                        byteSize: item.size
+                        byteSize: item.size,
+                        ocrStatus: item.imageOCRStatus,
+                        ocrTextPreview: item.imageOCRTextPreview
                     ),
                     action: { [weak self] in self?.pasteItem(id: item.id) }
                 )
@@ -401,6 +428,10 @@ class ClipboardManager: ObservableObject {
             NotificationCenter.default.post(name: NSNotification.Name("ShowClipboardHistory"), object: nil)
         }
     }
+
+    @objc private func onClipboardOCRDidUpdate() {
+        refreshHistory()
+    }
     
     func clearPlainTextHistory() {
         storage.clearHistory(type: .text)
@@ -446,6 +477,18 @@ class ClipboardManager: ObservableObject {
         return "Image: \(formatSize(item.size))"
     }
 
+    private func imageSubtitle(for item: ClipboardListItem) -> String {
+        let base = L10n.f("clipboard.item.image_subtitle_format", formatSize(item.size), formatDate(item.timestamp))
+        switch item.imageOCRStatus {
+        case .pending:
+            return "\(L10n.t("clipboard.ocr_status_pending")) • \(base)"
+        case .ready where item.hasImageOCRText:
+            return "\(L10n.t("clipboard.ocr_status_ready")) • \(base)"
+        default:
+            return base
+        }
+    }
+
     private func imageDimensions(from bitmap: NSBitmapImageRep, fallback image: NSImage) -> (width: Int?, height: Int?) {
         if bitmap.pixelsWide > 0, bitmap.pixelsHigh > 0 {
             return (bitmap.pixelsWide, bitmap.pixelsHigh)
@@ -489,5 +532,11 @@ class ClipboardManager: ObservableObject {
         defer { thumbnail.unlockFocus() }
         image.draw(in: NSRect(origin: .zero, size: targetSize), from: .zero, operation: .copy, fraction: 1)
         return thumbnail
+    }
+
+    private func shouldOCRImage(byteSize: Int) -> Bool {
+        guard settings.imageOCREnabled else { return false }
+        let maxBytes = max(1, settings.maxOCRImageSizeMB) * 1024 * 1024
+        return byteSize <= maxBytes
     }
 }

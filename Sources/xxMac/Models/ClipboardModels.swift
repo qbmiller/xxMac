@@ -5,6 +5,13 @@ enum ClipboardContentType: String, Codable {
     case image
 }
 
+enum ClipboardOCRStatus: String, Codable {
+    case pending
+    case ready
+    case failed
+    case skipped
+}
+
 struct ClipboardItem: Codable, Identifiable {
     var id = UUID()
     let type: ClipboardContentType
@@ -14,6 +21,9 @@ struct ClipboardItem: Codable, Identifiable {
     var imageWidth: Int?
     var imageHeight: Int?
     var thumbnailFilename: String?
+    var imageOCRText: String?
+    var imageOCRStatus: ClipboardOCRStatus?
+    var imageOCRUpdatedAt: Date?
 
     func searchableContent(imageDescription: String? = nil) -> String {
         switch type {
@@ -23,6 +33,7 @@ struct ClipboardItem: Codable, Identifiable {
             return [
                 "image images img photo photos picture pictures 图片 照片",
                 imageDescription,
+                imageOCRText,
                 content
             ]
             .compactMap { $0 }
@@ -42,4 +53,7 @@ struct ClipboardListItem: Identifiable, Equatable {
     let imageWidth: Int?
     let imageHeight: Int?
     let thumbnailFilename: String?
+    let imageOCRStatus: ClipboardOCRStatus?
+    let hasImageOCRText: Bool
+    let imageOCRTextPreview: String?
 }

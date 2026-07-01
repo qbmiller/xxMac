@@ -13,7 +13,13 @@ enum SearchResultType {
 
 enum ClipboardPreviewData: Hashable {
     case text(id: UUID, preview: String, fullLength: Int)
-    case image(filename: String, thumbnailFilename: String?, byteSize: Int)
+    case image(
+        filename: String,
+        thumbnailFilename: String?,
+        byteSize: Int,
+        ocrStatus: ClipboardOCRStatus?,
+        ocrTextPreview: String?
+    )
 }
 
 struct SearchItem: Identifiable, Hashable {
