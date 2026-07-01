@@ -1,5 +1,6 @@
 "menu.toggle_launcher" = "切换启动器";
 "menu.calendar" = "日历";
+"menu.clipboard_history" = "剪贴板历史";
 "menu.lock_ai" = "LockJob";
 "menu.settings" = "设置...";
 "menu.quit" = "退出";
@@ -15,6 +16,9 @@
 "settings.configuration_coming_soon" = "“%@”的配置即将上线。";
 
 "common.manage_configurations" = "管理应用配置。";
+"common.menu_bar" = "菜单栏";
+"common.menu_bar_desc" = "控制 xxMac 是否显示菜单栏入口。关闭后仍可使用全局热键和已打开的设置窗口。";
+"common.show_menu_bar_item" = "显示在菜单栏里";
 "common.global_hotkey" = "全局热键";
 "common.global_hotkey_desc" = "设置用于显示或隐藏主启动器窗口的热键。";
 "common.toggle_launcher" = "切换启动器";
@@ -239,6 +243,8 @@
 "snippets.delete_entry" = "删除条目";
 "snippets.edit_entry" = "编辑条目";
 "snippets.select_entry" = "选择一个条目开始编辑";
+"snippets.select_item_preview" = "选择 Snippet 以预览";
+"snippets.empty_content" = "内容为空";
 "snippets.empty_entries" = "当前分类还没有条目。";
 "snippets.items_count_format" = "%d 个片段";
 "snippets.uncategorized" = "未分类";

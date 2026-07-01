@@ -17,6 +17,7 @@ final class PreferencesStoreMigrationTests: XCTestCase {
         let configManager = makeConfigManager(defaults: defaults)
 
         defaults.set("zh-Hans", forKey: "AppLanguage")
+        defaults.set(false, forKey: "GeneralShowMenuBarItem")
         defaults.set(["/Applications"], forKey: "AppSearchPaths")
         defaults.set(Data([1, 2, 3]), forKey: "HotKeyConfigurations")
         defaults.set(["window.leftHalf"], forKey: "ClearedHotKeyActions")
@@ -46,6 +47,7 @@ final class PreferencesStoreMigrationTests: XCTestCase {
         )
 
         XCTAssertEqual(store.string(forKey: "AppLanguage"), "zh-Hans")
+        XCTAssertEqual(store.boolObject(forKey: "GeneralShowMenuBarItem"), false)
         XCTAssertEqual(store.stringArray(forKey: "AppSearchPaths"), ["/Applications"])
         XCTAssertEqual(store.data(forKey: "HotKeyConfigurations"), Data([1, 2, 3]))
         XCTAssertEqual(store.stringArray(forKey: "ClearedHotKeyActions"), ["window.leftHalf"])

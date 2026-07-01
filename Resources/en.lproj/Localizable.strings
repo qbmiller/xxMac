@@ -1,5 +1,6 @@
 "menu.toggle_launcher" = "Toggle Launcher";
 "menu.calendar" = "Calendar";
+"menu.clipboard_history" = "Clipboard History";
 "menu.lock_ai" = "LockJob";
 "menu.settings" = "Settings...";
 "menu.quit" = "Quit";
@@ -15,6 +16,9 @@
 "settings.configuration_coming_soon" = "Configuration for %@ is coming soon.";
 
 "common.manage_configurations" = "Manage application configurations.";
+"common.menu_bar" = "Menu Bar";
+"common.menu_bar_desc" = "Control whether xxMac shows its menu bar item. Global hotkeys and an already-open Settings window still work when it is hidden.";
+"common.show_menu_bar_item" = "Show in menu bar";
 "common.global_hotkey" = "Global Hotkey";
 "common.global_hotkey_desc" = "Set the hotkey to show or hide the main launcher window.";
 "common.toggle_launcher" = "Toggle Launcher";
@@ -239,6 +243,8 @@
 "snippets.delete_entry" = "Delete Entry";
 "snippets.edit_entry" = "Edit Entry";
 "snippets.select_entry" = "Select an entry to edit";
+"snippets.select_item_preview" = "Select a snippet to preview";
+"snippets.empty_content" = "No content";
 "snippets.empty_entries" = "This category has no entries yet.";
 "snippets.items_count_format" = "%d snippets";
 "snippets.uncategorized" = "Uncategorized";

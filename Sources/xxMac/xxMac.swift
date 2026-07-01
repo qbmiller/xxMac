@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import OSLog
 
 @main
 struct xxMacApp: App {
@@ -41,24 +42,36 @@ class FloatingPanel: NSPanel {
     }
 }
 
-class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    var statusItem: NSStatusItem!
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
+    private static let launcherLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherPanel")
+
+    var statusItem: NSStatusItem?
     var launcherPanel: NSPanel!
     var settingsWindow: NSWindow?
     var calendarMenuBarController: CalendarMenuBarController?
     var launcherViewModel = LauncherViewModel()
     var eventMonitor: Any?
     private var toggleLauncherMenuItem: NSMenuItem?
+    private var showClipboardHistoryMenuItem: NSMenuItem?
     private var lockAIMenuItem: NSMenuItem?
     private var settingsMenuItem: NSMenuItem?
     private var quitMenuItem: NSMenuItem?
     private var localizationCancellable: AnyCancellable?
+    private var generalSettingsCancellable: AnyCancellable?
     private var launcherPanelCancellables = Set<AnyCancellable>()
     private var isOpeningLauncher = false
     private var pendingLauncherRestore = false
+    private var ignoreLauncherResignKeyUntil = Date.distantPast
+    private var launcherOpenAttempt = 0
     private var previousFrontmostApp: NSRunningApplication?
     private var lastOpenFallbackAtByBundleID: [String: Date] = [:]
     private let openFallbackCooldown: TimeInterval = 3
+    private let launcherRestingLevel: NSWindow.Level = .floating
+    private let launcherPresentationLevel: NSWindow.Level = .statusBar
+
+    private var launcherCollectionBehavior: NSWindow.CollectionBehavior {
+        [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+    }
 
     private func appDescriptor(_ app: NSRunningApplication?) -> String {
         guard let app = app else { return "nil" }
@@ -76,11 +89,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
               NSApp.isHidden.description,
               launcherPanel?.isVisible.description ?? "false")
     }
+
+    private var launcherModeDescription: String {
+        switch launcherViewModel.mode {
+        case .launcher:
+            return "launcher"
+        case .clipboard:
+            return "clipboard"
+        case .snippets:
+            return "snippets"
+        }
+    }
+
+    private func launcherStateDescription() -> String {
+        guard let launcherPanel else {
+            return "panel=nil"
+        }
+
+        return [
+            "visible=\(launcherPanel.isVisible)",
+            "key=\(launcherPanel.isKeyWindow)",
+            "miniaturized=\(launcherPanel.isMiniaturized)",
+            "level=\(launcherPanel.level.rawValue)",
+            "appActive=\(NSApp.isActive)",
+            "appHidden=\(NSApp.isHidden)",
+            "frontmost=\(appDescriptor(NSWorkspace.shared.frontmostApplication))"
+        ].joined(separator: " ")
+    }
+
+    private func logLauncherState(_ stage: String) {
+        Self.launcherLogger.notice("\(stage, privacy: .public) mode=\(self.launcherModeDescription, privacy: .public) \(self.launcherStateDescription(), privacy: .public)")
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize file-backed configuration before any manager reads settings.
         _ = ConfigDirectoryManager.shared
         _ = PreferencesStore.shared
+        _ = GeneralSettingsManager.shared
         // Initialize HotKeyManager
         _ = HotKeyManager.shared
         // Initialize AppLauncherManager
@@ -110,25 +155,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // }
         
         // 1. Setup Menu Bar
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
-        let menu = NSMenu()
-        let toggleItem = NSMenuItem(title: L10n.t("menu.toggle_launcher"), action: #selector(toggleLauncher), keyEquivalent: "")
-        toggleLauncherMenuItem = toggleItem
-        menu.addItem(toggleItem)
-        let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "")
-        lockAIMenuItem = lockAIItem
-        menu.addItem(lockAIItem)
-        let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
-        settingsMenuItem = settingsItem
-        menu.addItem(settingsItem)
-        menu.addItem(NSMenuItem.separator())
-        let quitItem = NSMenuItem(title: L10n.t("menu.quit"), action: #selector(confirmQuit), keyEquivalent: "q")
-        quitItem.target = self
-        quitMenuItem = quitItem
-        menu.addItem(quitItem)
-        calendarMenuBarController = CalendarMenuBarController(statusItem: statusItem, contextMenu: menu)
-        updateMenuTitles()
+        syncMenuBarVisibility()
         
         // 2. Setup Launcher Window
         createLauncherPanel()
@@ -155,8 +182,100 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         localizationCancellable = LocalizationManager.shared.$language.sink { [weak self] _ in
             self?.updateMenuTitles()
         }
+        generalSettingsCancellable = GeneralSettingsManager.shared.$showMenuBarItem
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    self?.syncMenuBarVisibility(recreateWhenShowing: true)
+                }
+            }
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuShortcuts), name: HotKeyManager.configurationsDidChangeNotification, object: nil)
         updateMenuShortcuts()
+    }
+
+    @MainActor
+    private func makeStatusMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.delegate = self
+
+        let toggleItem = NSMenuItem(title: L10n.t("menu.toggle_launcher"), action: #selector(toggleLauncher), keyEquivalent: "")
+        toggleItem.target = self
+        toggleLauncherMenuItem = toggleItem
+        menu.addItem(toggleItem)
+
+        let clipboardItem = NSMenuItem(title: L10n.t("menu.clipboard_history"), action: #selector(openClipboardHistoryFromMenu), keyEquivalent: "")
+        clipboardItem.target = self
+        showClipboardHistoryMenuItem = clipboardItem
+        menu.addItem(clipboardItem)
+
+        let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "")
+        lockAIItem.target = self
+        lockAIMenuItem = lockAIItem
+        menu.addItem(lockAIItem)
+
+        let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        settingsMenuItem = settingsItem
+        menu.addItem(settingsItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let quitItem = NSMenuItem(title: L10n.t("menu.quit"), action: #selector(confirmQuit), keyEquivalent: "q")
+        quitItem.target = self
+        quitMenuItem = quitItem
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    @MainActor
+    private func syncMenuBarVisibility(recreateWhenShowing: Bool = false) {
+        if GeneralSettingsManager.shared.showMenuBarItem {
+            ensureMenuBarItem(recreate: recreateWhenShowing)
+        } else {
+            removeMenuBarItem()
+        }
+    }
+
+    @MainActor
+    private func ensureMenuBarItem(recreate: Bool = false) {
+        if recreate, statusItem != nil {
+            removeMenuBarItem()
+        }
+
+        guard statusItem == nil else {
+            updateMenuTitles()
+            updateMenuShortcuts()
+            return
+        }
+
+        let newStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        newStatusItem.length = 28
+        statusItem = newStatusItem
+        calendarMenuBarController = CalendarMenuBarController(statusItem: newStatusItem, contextMenu: makeStatusMenu())
+        updateMenuTitles()
+        updateMenuShortcuts()
+        NSLog("[MenuBar] status item shown")
+    }
+
+    @MainActor
+    private func removeMenuBarItem() {
+        guard let existingStatusItem = statusItem else { return }
+
+        calendarMenuBarController = nil
+        NSStatusBar.system.removeStatusItem(existingStatusItem)
+        statusItem = nil
+        toggleLauncherMenuItem = nil
+        showClipboardHistoryMenuItem = nil
+        lockAIMenuItem = nil
+        settingsMenuItem = nil
+        quitMenuItem = nil
+        NSLog("[MenuBar] status item hidden")
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        ClipboardManager.shared.captureCurrentFrontmostApp()
     }
     
     func createLauncherPanel() {
@@ -164,7 +283,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         launcherPanel = FloatingPanel(
             contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -173,12 +292,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         launcherPanel.backgroundColor = .clear
         launcherPanel.isOpaque = false
         launcherPanel.hasShadow = true
-        launcherPanel.level = .floating
+        launcherPanel.level = launcherRestingLevel
         launcherPanel.center()
         launcherPanel.isMovableByWindowBackground = false
         launcherPanel.becomesKeyOnlyIfNeeded = false
+        launcherPanel.hidesOnDeactivate = false
+        launcherPanel.isReleasedWhenClosed = false
         // .canJoinAllSpaces and .moveToActiveSpace are mutually exclusive for NSPanel.
-        launcherPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        launcherPanel.collectionBehavior = launcherCollectionBehavior
         launcherPanel.delegate = self
         
         (launcherPanel as? FloatingPanel)?.keyDownHandler = { [weak self] event in
@@ -288,6 +409,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func showSnippets() {
         openLauncher()
     }
+
+    @objc func openClipboardHistoryFromMenu() {
+        ClipboardManager.shared.showClipboardHistory()
+    }
     
     @objc func toggleLauncher() {
         NSLog("=== toggleLauncher === isVisible:%@ isMiniaturized:%@ isKeyWindow:%@ appActive:%@",
@@ -384,6 +509,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @MainActor
     private func updateMenuTitles() {
         toggleLauncherMenuItem?.title = L10n.t("menu.toggle_launcher")
+        showClipboardHistoryMenuItem?.title = L10n.t("menu.clipboard_history")
         lockAIMenuItem?.title = L10n.t("menu.lock_ai")
         settingsMenuItem?.title = L10n.t("menu.settings")
         quitMenuItem?.title = L10n.t("menu.quit")
@@ -411,10 +537,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     func openLauncher() {
+        launcherOpenAttempt += 1
+        let openAttempt = launcherOpenAttempt
         isOpeningLauncher = true
         pendingLauncherRestore = true
+        ignoreLauncherResignKeyUntil = Date().addingTimeInterval(0.8)
         capturePreviousFrontmostApp(force: false)
         logFocusState("openLauncher.begin")
+        logLauncherState("openLauncher.begin attempt=\(openAttempt)")
 
         NSLog("=== openLauncher === isHidden:%@ isMiniaturized:%@ isVisible:%@",
               NSApp.isHidden.description,
@@ -433,7 +563,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             launcherPanel.deminiaturize(nil)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 self.bringLauncherToFront()
-                self.finishOpenLauncher()
+                self.finishOpenLauncher(openAttempt: openAttempt)
             }
         } else if NSApp.isHidden {
             NSApp.unhide(nil)
@@ -442,14 +572,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 self.bringLauncherToFront()
-                self.finishOpenLauncher()
+                self.finishOpenLauncher(openAttempt: openAttempt)
             }
         } else {
             bringLauncherToFront()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                 self.bringLauncherToFront()
             }
-            finishOpenLauncher()
+            finishOpenLauncher(openAttempt: openAttempt)
         }
     }
 
@@ -539,6 +669,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func closeLauncherForClipboardPaste() {
         logFocusState("closeLauncherForPaste.before")
         launcherPanel.orderOut(nil)
+        resetLauncherPanelPresentation()
         isOpeningLauncher = false
         pendingLauncherRestore = false
         launcherViewModel.onCloseLauncher()
@@ -561,11 +692,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         return error == nil
     }
 
-    private func finishOpenLauncher() {
+    private func finishOpenLauncher(openAttempt: Int) {
+        verifyLauncherPresentation(openAttempt: openAttempt, pass: 0)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            guard self.launcherOpenAttempt == openAttempt else { return }
+            NotificationCenter.default.post(name: NSNotification.Name("FocusLauncherSearch"), object: nil)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard self.launcherOpenAttempt == openAttempt else { return }
+            self.verifyLauncherPresentation(openAttempt: openAttempt, pass: 3)
             NotificationCenter.default.post(name: NSNotification.Name("FocusLauncherSearch"), object: nil)
             self.isOpeningLauncher = false
             self.pendingLauncherRestore = false
+            self.logLauncherState("openLauncher.finish attempt=\(openAttempt)")
         }
     }
 
@@ -573,11 +712,48 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSLog("=== bringLauncherToFront === isHidden:%@ isVisible:%@",
               NSApp.isHidden.description,
               launcherPanel.isVisible.description)
-        NSApp.activate(ignoringOtherApps: true)
+        logLauncherState("bringLauncherToFront.before")
+        prepareLauncherPanelForPresentation()
         updateLauncherPanelFrame(keepingCenter: false)
         launcherPanel.center()
+        launcherPanel.orderFrontRegardless()
+        NSApp.activate(ignoringOtherApps: true)
         launcherPanel.makeKeyAndOrderFront(nil)
         launcherPanel.orderFrontRegardless()
+        logLauncherState("bringLauncherToFront.after")
+    }
+
+    private func prepareLauncherPanelForPresentation() {
+        launcherPanel.hidesOnDeactivate = false
+        launcherPanel.level = launcherPresentationLevel
+        launcherPanel.collectionBehavior = launcherCollectionBehavior
+    }
+
+    private func resetLauncherPanelPresentation() {
+        guard launcherPanel != nil else { return }
+        launcherPanel.level = launcherRestingLevel
+        launcherPanel.collectionBehavior = launcherCollectionBehavior
+    }
+
+    private func verifyLauncherPresentation(openAttempt: Int, pass: Int) {
+        guard launcherOpenAttempt == openAttempt else { return }
+        logLauncherState("launcherPresentation.verify attempt=\(openAttempt) pass=\(pass)")
+
+        if !launcherPanel.isVisible {
+            prepareLauncherPanelForPresentation()
+            launcherPanel.orderFrontRegardless()
+        }
+
+        if !launcherPanel.isKeyWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            launcherPanel.makeKeyAndOrderFront(nil)
+            launcherPanel.orderFrontRegardless()
+        }
+
+        guard pass < 2, (!launcherPanel.isVisible || !launcherPanel.isKeyWindow) else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            self.verifyLauncherPresentation(openAttempt: openAttempt, pass: pass + 1)
+        }
     }
 
     private func restoreLauncherWindow() {
@@ -586,6 +762,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
     @objc func closeLauncher() {
         launcherPanel.orderOut(nil)
+        resetLauncherPanelPresentation()
+        AccessibilityManager.shared.restoreSuspendedTextInputFocus()
         
         // Check if there are other visible windows (like Settings)
         let otherVisibleWindows = NSApp.windows.filter { window in
@@ -599,20 +777,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func closeLauncherPanelOnly() {
         launcherPanel.orderOut(nil)
+        resetLauncherPanelPresentation()
     }
     
     func windowDidResignKey(_ notification: Notification) {
-        if isOpeningLauncher {
+        guard let window = notification.object as? NSWindow, window == launcherPanel else {
             return
         }
 
-        if let window = notification.object as? NSWindow, window == launcherPanel {
-            closeLauncher()
+        if isOpeningLauncher {
+            logLauncherState("windowDidResignKey.ignored opening")
+            return
         }
+
+        if Date() < ignoreLauncherResignKeyUntil {
+            logLauncherState("windowDidResignKey.ignored grace")
+            return
+        }
+
+        logLauncherState("windowDidResignKey.close")
+        closeLauncher()
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
         if let window = notification.object as? NSWindow, window == launcherPanel {
+            logLauncherState("windowDidBecomeKey")
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: NSNotification.Name("FocusLauncherSearch"), object: nil)
             }
@@ -622,6 +811,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         NSLog("=== applicationDidBecomeActive === pendingRestore:%@",
               pendingLauncherRestore.description)
+        logLauncherState("applicationDidBecomeActive pendingRestore=\(pendingLauncherRestore)")
         if pendingLauncherRestore {
             restoreLauncherWindow()
         }
