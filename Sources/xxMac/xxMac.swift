@@ -44,6 +44,7 @@ class FloatingPanel: NSPanel {
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     private static let launcherLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherPanel")
+    private static let menuBarLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "MenuBar")
 
     var statusItem: NSStatusItem?
     var launcherPanel: NSPanel!
@@ -187,7 +188,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             .dropFirst()
             .sink { [weak self] _ in
                 Task { @MainActor in
-                    self?.syncMenuBarVisibility(recreateWhenShowing: true)
+                    self?.syncMenuBarVisibility()
                 }
             }
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuShortcuts), name: HotKeyManager.configurationsDidChangeNotification, object: nil)
@@ -231,6 +232,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     @MainActor
     private func syncMenuBarVisibility(recreateWhenShowing: Bool = false) {
+        Self.menuBarLogger.notice("sync requested show=\(GeneralSettingsManager.shared.showMenuBarItem) hasStatusItem=\(self.statusItem != nil) recreate=\(recreateWhenShowing)")
+
         if GeneralSettingsManager.shared.showMenuBarItem {
             ensureMenuBarItem(recreate: recreateWhenShowing)
         } else {
@@ -240,13 +243,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     @MainActor
     private func ensureMenuBarItem(recreate: Bool = false) {
-        if recreate, statusItem != nil {
-            removeMenuBarItem()
-        }
-
         guard statusItem == nil else {
+            statusItem?.isVisible = true
+            calendarMenuBarController?.refreshStatusItem()
             updateMenuTitles()
             updateMenuShortcuts()
+            Self.menuBarLogger.notice("status item shown existing")
             return
         }
 
@@ -256,22 +258,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         calendarMenuBarController = CalendarMenuBarController(statusItem: newStatusItem, contextMenu: makeStatusMenu())
         updateMenuTitles()
         updateMenuShortcuts()
-        NSLog("[MenuBar] status item shown")
+        newStatusItem.isVisible = true
+        Self.menuBarLogger.notice("status item created and shown")
     }
 
     @MainActor
     private func removeMenuBarItem() {
-        guard let existingStatusItem = statusItem else { return }
+        guard let statusItem else {
+            Self.menuBarLogger.notice("hide skipped: no status item")
+            return
+        }
 
-        calendarMenuBarController = nil
-        NSStatusBar.system.removeStatusItem(existingStatusItem)
-        statusItem = nil
-        toggleLauncherMenuItem = nil
-        showClipboardHistoryMenuItem = nil
-        lockAIMenuItem = nil
-        settingsMenuItem = nil
-        quitMenuItem = nil
-        NSLog("[MenuBar] status item hidden")
+        calendarMenuBarController?.closeTransientUI()
+        statusItem.isVisible = false
+        Self.menuBarLogger.notice("status item hidden via isVisible=false")
     }
 
     func menuWillOpen(_ menu: NSMenu) {
