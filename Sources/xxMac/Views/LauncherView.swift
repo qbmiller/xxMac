@@ -376,15 +376,22 @@ struct ClipboardDetailPane: View {
                 case .text(_, let preview, let fullLength):
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
-                            if fullLength > preview.count {
+                            let isTruncated = fullLength > preview.count
+                            if isTruncated {
                                 Text(L10n.t("clipboard.preview_truncated"))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            Text(preview)
-                                .font(.body)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                                .textSelection(.enabled)
+                            if isTruncated {
+                                Text(verbatim: preview)
+                                    .font(.body)
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                            } else {
+                                Text(verbatim: preview)
+                                    .font(.body)
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                                    .textSelection(.enabled)
+                            }
                         }
                         .padding(16)
                     }

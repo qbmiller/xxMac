@@ -214,8 +214,10 @@ class ClipboardManager: ObservableObject {
     }
     
     private func addItem(type: ClipboardContentType, content: String, size: Int) {
-        storage.saveItem(type: type, content: content, size: size)
-        refreshHistory()
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.storage.saveItem(type: type, content: content, size: size)
+            self?.refreshHistory()
+        }
     }
     
     func refreshHistory() {

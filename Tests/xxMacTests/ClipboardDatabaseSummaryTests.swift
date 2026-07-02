@@ -22,6 +22,7 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
         let items = storage.getListItems(limit: 10)
         XCTAssertEqual(items.count, 1)
         XCTAssertLessThan(items[0].previewContent.count, largeText.count)
+        XCTAssertLessThanOrEqual(items[0].previewContent.count, DatabaseManager.defaultTextPreviewLimit)
         XCTAssertEqual(items[0].fullContentLength, largeText.count)
     }
 

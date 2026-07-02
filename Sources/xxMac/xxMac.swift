@@ -436,6 +436,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
     
     @objc func openSettings() {
+        dismissLauncherBeforeOpeningSettings()
+
         if settingsWindow == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
@@ -758,6 +760,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     private func restoreLauncherWindow() {
         bringLauncherToFront()
+    }
+
+    private func dismissLauncherBeforeOpeningSettings() {
+        isOpeningLauncher = false
+        pendingLauncherRestore = false
+
+        guard launcherPanel != nil, launcherPanel.isVisible else { return }
+        ignoreLauncherResignKeyUntil = Date().addingTimeInterval(0.5)
+        launcherPanel.orderOut(nil)
+        resetLauncherPanelPresentation()
+        launcherViewModel.onCloseLauncher()
     }
     
     @objc func closeLauncher() {

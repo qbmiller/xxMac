@@ -2,6 +2,9 @@ import Foundation
 import SQLite3
 
 class DatabaseManager {
+    static let defaultTextPreviewLimit = 800
+    private static let textSearchIndexLimit = 20_000
+
     private var db: OpaquePointer?
     private var dbPath: String
     private let queue = DispatchQueue(label: "com.macefficiency.db", qos: .userInitiated)
@@ -93,12 +96,14 @@ class DatabaseManager {
         
         // Triggers to keep FTS in sync
         let createTriggers = """
+        DROP TRIGGER IF EXISTS after_insert_clipboard_items;
         DROP TRIGGER IF EXISTS after_delete_clipboard_items;
+        DROP TRIGGER IF EXISTS after_update_clipboard_items;
 
         CREATE TRIGGER IF NOT EXISTS after_insert_clipboard_items AFTER INSERT ON clipboard_items
         WHEN new.type = 'text'
         BEGIN
-            INSERT INTO clipboard_fts(id, content) VALUES (new.id, new.content);
+            INSERT INTO clipboard_fts(id, content) VALUES (new.id, substr(new.content, 1, \(Self.textSearchIndexLimit)));
         END;
 
         CREATE TRIGGER IF NOT EXISTS after_delete_clipboard_items AFTER DELETE ON clipboard_items
@@ -109,7 +114,7 @@ class DatabaseManager {
         CREATE TRIGGER IF NOT EXISTS after_update_clipboard_items AFTER UPDATE ON clipboard_items
         WHEN new.type = 'text'
         BEGIN
-            UPDATE clipboard_fts SET content = new.content WHERE id = old.id;
+            UPDATE clipboard_fts SET content = substr(new.content, 1, \(Self.textSearchIndexLimit)) WHERE id = old.id;
         END;
         """
         execute(sql: createTriggers)
@@ -139,12 +144,14 @@ class DatabaseManager {
         _ = executeUnlocked(sql: createFtsTable)
 
         let createTriggers = """
+        DROP TRIGGER IF EXISTS after_insert_clipboard_items;
         DROP TRIGGER IF EXISTS after_delete_clipboard_items;
+        DROP TRIGGER IF EXISTS after_update_clipboard_items;
 
         CREATE TRIGGER IF NOT EXISTS after_insert_clipboard_items AFTER INSERT ON clipboard_items
         WHEN new.type = 'text'
         BEGIN
-            INSERT INTO clipboard_fts(id, content) VALUES (new.id, new.content);
+            INSERT INTO clipboard_fts(id, content) VALUES (new.id, substr(new.content, 1, \(Self.textSearchIndexLimit)));
         END;
 
         CREATE TRIGGER IF NOT EXISTS after_delete_clipboard_items AFTER DELETE ON clipboard_items
@@ -155,7 +162,7 @@ class DatabaseManager {
         CREATE TRIGGER IF NOT EXISTS after_update_clipboard_items AFTER UPDATE ON clipboard_items
         WHEN new.type = 'text'
         BEGIN
-            UPDATE clipboard_fts SET content = new.content WHERE id = old.id;
+            UPDATE clipboard_fts SET content = substr(new.content, 1, \(Self.textSearchIndexLimit)) WHERE id = old.id;
         END;
         """
         _ = executeUnlocked(sql: createTriggers)
@@ -388,7 +395,7 @@ class DatabaseManager {
         }
     }
 
-    func getListItems(limit: Int = 100, previewLimit: Int = 4096) -> [ClipboardListItem] {
+    func getListItems(limit: Int = 100, previewLimit: Int = DatabaseManager.defaultTextPreviewLimit) -> [ClipboardListItem] {
         return withDatabase {
             let sql = """
             SELECT id, type,
@@ -454,7 +461,7 @@ class DatabaseManager {
         }
     }
 
-    func searchListItems(query: String, limit: Int = 50, previewLimit: Int = 4096) -> [ClipboardListItem] {
+    func searchListItems(query: String, limit: Int = 50, previewLimit: Int = DatabaseManager.defaultTextPreviewLimit) -> [ClipboardListItem] {
         return withDatabase {
             let sql = """
             SELECT i.id, i.type, substr(i.content, 1, ?), length(i.content),
