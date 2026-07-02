@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import Darwin
 import OSLog
 
 class AppSearchManager: ObservableObject {
@@ -22,6 +23,8 @@ class AppSearchManager: ObservableObject {
     private var appEntries: [AppEntry] = []
     private var scanGeneration = 0
     private var isLoadingSearchPaths = false
+    private var appDirectoryMonitors: [AppDirectoryMonitor] = []
+    private var appendWorkItem: DispatchWorkItem?
 
     private struct AppEntry {
         let id: String
@@ -45,9 +48,15 @@ class AppSearchManager: ObservableObject {
 
     private init() {
         loadSearchPaths()
+        configureAppDirectoryMonitors()
         if !loadCachedIndex() {
             scanApplications()
         }
+    }
+
+    deinit {
+        appDirectoryMonitors.removeAll()
+        appendWorkItem?.cancel()
     }
 
     private func loadSearchPaths() {
@@ -112,6 +121,24 @@ class AppSearchManager: ObservableObject {
 
     func resetPaths() {
         searchPaths = requiredSystemPaths
+    }
+
+    private func configureAppDirectoryMonitors() {
+        let pathsToWatch = prioritizedPaths(searchPaths)
+        appDirectoryMonitors = pathsToWatch.compactMap { path in
+            AppDirectoryMonitor(path: path) { [weak self] in
+                self?.scheduleAppendNewApplications()
+            }
+        }
+    }
+
+    private func scheduleAppendNewApplications() {
+        appendWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.appendNewApplications()
+        }
+        appendWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
     }
 
     private func ensureRequiredSearchPaths(in paths: [String]) -> [String] {
@@ -185,6 +212,7 @@ class AppSearchManager: ObservableObject {
     }
 
     func scanApplications() {
+        configureAppDirectoryMonitors()
         let pathsToScan = prioritizedPaths(searchPaths)
         scanGeneration += 1
         let generation = scanGeneration
@@ -217,6 +245,43 @@ class AppSearchManager: ObservableObject {
                 self.saveCachedIndex(sortedEntries)
                 self.isIndexing = false
                 Self.logger.debug("scan roots='\(pathsToScan.joined(separator: ","), privacy: .public)' indexed=\(sortedEntries.count)")
+            }
+        }
+    }
+
+    private func appendNewApplications() {
+        let pathsToScan = prioritizedPaths(searchPaths)
+        let existingPaths = Set(appEntries.map(\.path))
+
+        DispatchQueue.global(qos: .utility).async {
+            let fileManager = FileManager.default
+            var newEntries: [AppEntry] = []
+            var seenPaths = existingPaths
+
+            for rootPath in pathsToScan {
+                guard let subpaths = try? fileManager.subpathsOfDirectory(atPath: rootPath) else {
+                    Self.logger.debug("append skip root='\(rootPath, privacy: .public)' reason='unreadable'")
+                    continue
+                }
+
+                for subpath in subpaths where subpath.hasSuffix(".app") && !subpath.contains(".app/") {
+                    let fullPath = (rootPath as NSString).appendingPathComponent(subpath)
+                    guard !seenPaths.contains(fullPath) else { continue }
+                    seenPaths.insert(fullPath)
+                    newEntries.append(self.makeEntry(fromPath: fullPath, fileManager: fileManager))
+                }
+            }
+
+            guard !newEntries.isEmpty else { return }
+
+            DispatchQueue.main.async {
+                let mergedEntries = (self.appEntries + newEntries).sorted {
+                    $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                }
+                self.appEntries = mergedEntries
+                self.apps = mergedEntries.map(self.makeSearchItem)
+                self.saveCachedIndex(mergedEntries)
+                Self.logger.debug("append roots='\(pathsToScan.joined(separator: ","), privacy: .public)' added=\(newEntries.count) indexed=\(mergedEntries.count)")
             }
         }
     }
@@ -285,4 +350,30 @@ class AppSearchManager: ObservableObject {
         return results
     }
 
+}
+
+private final class AppDirectoryMonitor {
+    private let fileDescriptor: CInt
+    private let source: DispatchSourceFileSystemObject
+
+    init?(path: String, onChange: @escaping () -> Void) {
+        let descriptor = open(path, O_EVTONLY)
+        guard descriptor >= 0 else { return nil }
+
+        fileDescriptor = descriptor
+        source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: descriptor,
+            eventMask: [.write, .extend, .attrib, .rename, .delete],
+            queue: .main
+        )
+        source.setEventHandler(handler: onChange)
+        source.setCancelHandler {
+            close(descriptor)
+        }
+        source.resume()
+    }
+
+    deinit {
+        source.cancel()
+    }
 }

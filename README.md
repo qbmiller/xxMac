@@ -114,7 +114,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 - 配置目录可以是本地目录，也可以是 iCloud Drive、Dropbox 等同步服务下保持本地可用的目录；不建议选择系统目录、App 包内目录或临时移动磁盘路径。
 - 热键配置、应用快捷启动配置、启动器窗口宽高、整体大小、文字大小与外观、语言偏好、快捷指令、Snippets 和日历偏好保存在配置目录的 `preferences.json`。
 - 配置目录下会自动创建 `quick/`，用于放置复杂快捷指令脚本。命令脚本执行时会注入 `XXMAC_HOME`（配置目录）和 `XXMAC_QUICK_HOME`（`quick/` 目录），例如 `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`。
-- 应用搜索默认扫描 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；应用索引缓存保存在配置目录的 `app-search-index.json`，也可在“通用 > 配置”里手动点击“索引应用”重建。中文应用名会同时写入原文、全拼和拼音首字母索引；英文应用名也会写入单词首字母索引。
+- 应用搜索默认扫描 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；应用索引缓存保存在配置目录的 `app-search-index.json`。把新 App 拖入这些搜索目录后会自动追加到现有索引，不会重建整个索引；也可在“通用 > 配置”里手动点击“索引应用”重建。中文应用名会同时写入原文、全拼和拼音首字母索引；英文应用名也会写入单词首字母索引。
 - 剪贴板数据库、图片原图缓存与图片缩略图缓存位于配置目录的 `clipboard.db`、`clipboard_images/` 和 `clipboard_thumbnails/`。
 - “导出配置”只导出可配置设置，不导出剪贴板历史记录、SQLite 数据库、图片缓存、缩略图缓存或应用索引缓存；完整迁移请使用配置目录切换。
 - 剪贴板历史最多保留条数和图片缓存总量可在“剪贴板通用”中配置，默认分别为 1000 条和 500 MB。
