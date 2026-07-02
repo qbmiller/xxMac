@@ -19,7 +19,7 @@ class AppSearchManager: ObservableObject {
 
     private let requiredSystemPaths = ["/Applications", "/System/Applications", "/System/Library/CoreServices"]
     private let userDefaultsKey = "AppSearchPaths"
-    private let cacheDefaultsKey = "AppSearchIndexCacheV1"
+    private let cacheDefaultsKey = "AppSearchIndexCacheV2"
     private var appEntries: [AppEntry] = []
     private var scanGeneration = 0
     private var isLoadingSearchPaths = false
@@ -187,6 +187,7 @@ class AppSearchManager: ObservableObject {
     private func makeEntry(fromCached entry: CachedEntry) -> AppEntry {
         let keys = Set(entry.nameKeys + [entry.title])
         let generatedKeys = AppSearchKeyBuilder.keys(for: Array(keys))
+        let compactKeys = Set((entry.nameCompactKeys ?? []) + generatedKeys.compact)
 
         return AppEntry(
             id: entry.id,
@@ -194,7 +195,7 @@ class AppSearchManager: ObservableObject {
             subtitle: entry.subtitle,
             path: entry.path,
             nameSearchKeys: generatedKeys.normalized,
-            nameCompactSearchKeys: entry.nameCompactKeys ?? generatedKeys.compact,
+            nameCompactSearchKeys: compactKeys.sorted(),
             pathSearchKey: AppSearchKeyBuilder.normalize(entry.path),
             pathCompactSearchKey: AppSearchKeyBuilder.normalizeCompact(entry.path)
         )

@@ -27,4 +27,21 @@ final class AppSearchKeyBuilderTests: XCTestCase {
         XCTAssertTrue(keys.compact.contains("tengxunhuiyi"))
         XCTAssertTrue(keys.compact.contains("txhy"))
     }
+
+    func testMusicNameAddsYueInitialAlias() {
+        let keys = AppSearchKeyBuilder.keys(for: ["音乐"])
+
+        XCTAssertTrue(keys.normalized.contains("yin le"))
+        XCTAssertTrue(keys.compact.contains("yl"))
+        XCTAssertTrue(keys.normalized.contains("yin yue"))
+        XCTAssertTrue(keys.compact.contains("yy"))
+    }
+
+    func testPhrasePinyinAliasIsSearchable() {
+        let keys = AppSearchKeyBuilder.keys(for: ["音乐"])
+
+        XCTAssertTrue(keys.normalized.contains("yin yue"))
+        XCTAssertTrue(keys.compact.contains("yinyue"))
+        XCTAssertTrue(keys.compact.contains("yy"))
+    }
 }
