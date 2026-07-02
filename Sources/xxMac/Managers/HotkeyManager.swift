@@ -230,17 +230,11 @@ class HotKeyManager: ObservableObject {
         case .previousScreen: am.previousScreen()
         case .toggleLauncher:
             DispatchQueue.main.async {
-                // 1. Unhide and Activate
                 if NSApp.isHidden {
                     NSApp.unhide(nil)
                 }
                 NSApp.activate(ignoringOtherApps: true)
-                
-                // 2. Just post the notification and let the handler deal with window states
-                // Small delay to ensure activation is processed by the system
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    NotificationCenter.default.post(name: NSNotification.Name("ToggleLauncher"), object: nil)
-                }
+                NotificationCenter.default.post(name: NSNotification.Name("ToggleLauncher"), object: nil)
             }
         case .lockAI:
             DispatchQueue.main.async {

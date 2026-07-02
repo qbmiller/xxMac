@@ -10,9 +10,11 @@ struct LauncherView: View {
     @State private var isCommandPressed = false
 
     private func focusSearch() {
-        // Use a slightly longer delay and ensure reset
-        isSearchFocused = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        isSearchFocused = true
+        DispatchQueue.main.async {
+            isSearchFocused = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             isSearchFocused = true
         }
     }

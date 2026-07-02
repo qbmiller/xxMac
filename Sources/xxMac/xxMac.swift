@@ -52,6 +52,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     var calendarMenuBarController: CalendarMenuBarController?
     var launcherViewModel = LauncherViewModel()
     var eventMonitor: Any?
+    var launcherMouseMonitor: Any?
     private var toggleLauncherMenuItem: NSMenuItem?
     private var showClipboardHistoryMenuItem: NSMenuItem?
     private var lockAIMenuItem: NSMenuItem?
@@ -171,6 +172,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
                 }
             }
             return event
+        }
+
+        launcherMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self, self.launcherPanel.isVisible else { return }
+                self.logLauncherState("globalMouseDown.close")
+                self.closeLauncher()
+            }
         }
         
         // 4. Observers
@@ -722,6 +731,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         NSApp.activate(ignoringOtherApps: true)
         launcherPanel.makeKeyAndOrderFront(nil)
         launcherPanel.orderFrontRegardless()
+        NotificationCenter.default.post(name: NSNotification.Name("FocusLauncherSearch"), object: nil)
         logLauncherState("bringLauncherToFront.after")
     }
 
