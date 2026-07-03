@@ -5,7 +5,7 @@
 "menu.settings" = "设置...";
 "menu.quit" = "退出";
 "menu.quit_confirm_title" = "退出 xxMac？";
-"menu.quit_confirm_message" = "退出后，菜单栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
+"menu.quit_confirm_message" = "退出后，状态栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
 
 "window.settings" = "设置";
 
@@ -19,6 +19,8 @@
 "common.menu_bar" = "状态栏";
 "common.menu_bar_desc" = "控制 xxMac 是否显示在屏幕右上角状态栏。关闭后仍可使用全局热键和已打开的设置窗口。";
 "common.show_menu_bar_item" = "显示在右上角状态栏";
+"common.status_bar_diagnostics" = "状态栏诊断";
+"common.status_bar_reaffirm" = "刷新/重建";
 "common.global_hotkey" = "全局热键";
 "common.global_hotkey_desc" = "设置用于显示或隐藏主启动器窗口的热键。";
 "common.toggle_launcher" = "切换启动器";
@@ -43,7 +45,7 @@
 "common.error_format" = "错误：%@";
 "common.export_filename" = "xxMac_Config.json";
 "common.quit_app" = "退出应用";
-"common.quit_app_desc" = "退出后，菜单栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
+"common.quit_app_desc" = "退出后，状态栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
 "common.quit_app_button" = "退出 xxMac...";
 "general.cancel" = "取消";
 
@@ -206,8 +208,8 @@
 "calendar.weekday_monday" = "周一";
 "calendar.show_lunar" = "显示阴历";
 "calendar.show_week_numbers" = "显示周数";
-"calendar.show_app_icon_in_menu_bar" = "菜单栏显示 App 图标";
-"calendar.menu_bar_style" = "菜单栏样式";
+"calendar.show_app_icon_in_menu_bar" = "状态栏显示 App 图标";
+"calendar.menu_bar_style" = "状态栏样式";
 "calendar.menu_bar_display.calendar" = "日历";
 "calendar.menu_bar_display.app_icon" = "App 图标";
 "calendar.icon_style.day_only" = "日期";

@@ -27,6 +27,63 @@ enum MenuBarVisibilityPolicy {
     }
 }
 
+enum MenuBarStatusItemIdentity {
+    static let autosaveName = "xxMac.statusItem"
+    static let accessibilityLabel = "xxMac"
+    static let accessibilityIdentifier = "xxMac.statusItem"
+}
+
+extension Notification.Name {
+    static let menuBarStatusReaffirmRequested = Notification.Name("MenuBarStatusReaffirmRequested")
+}
+
+struct MenuBarStatusSnapshot {
+    let shouldShow: Bool
+    let hasStatusItem: Bool
+    let isVisible: Bool?
+    let hasButton: Bool
+    let buttonHasWindow: Bool
+    let buttonFrame: String
+    let accessibilityLabel: String
+    let accessibilityIdentifier: String
+    let autosaveName: String
+    let displayMode: String
+    let imageSize: String
+    let imageIsTemplate: Bool?
+    let imageVisiblePixelRatio: String
+    let lastEvent: String
+    let updatedAt: Date
+
+    static let initial = MenuBarStatusSnapshot(
+        shouldShow: true,
+        hasStatusItem: false,
+        isVisible: nil,
+        hasButton: false,
+        buttonHasWindow: false,
+        buttonFrame: "nil",
+        accessibilityLabel: "nil",
+        accessibilityIdentifier: "nil",
+        autosaveName: MenuBarStatusItemIdentity.autosaveName,
+        displayMode: "nil",
+        imageSize: "nil",
+        imageIsTemplate: nil,
+        imageVisiblePixelRatio: "nil",
+        lastEvent: "initial",
+        updatedAt: Date()
+    )
+}
+
+@MainActor
+final class MenuBarStatusDiagnostics: ObservableObject {
+    static let shared = MenuBarStatusDiagnostics()
+
+    @Published private(set) var snapshot = MenuBarStatusSnapshot.initial
+
+    func update(_ snapshot: MenuBarStatusSnapshot) {
+        self.snapshot = snapshot
+    }
+}
+
 @main
 struct xxMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -217,6 +274,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         NotificationCenter.default.addObserver(self, selector: #selector(closeLauncherPanelOnly), name: NSNotification.Name("CloseLauncherPanelOnly"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(showClipboardHistory), name: NSNotification.Name("ShowClipboardHistory"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(showSnippets), name: NSNotification.Name("ShowSnippets"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(reaffirmMenuBarStatusFromNotification), name: .menuBarStatusReaffirmRequested, object: nil)
 
         localizationCancellable = LocalizationManager.shared.$language.sink { [weak self] _ in
             self?.updateMenuTitles()
@@ -298,25 +356,97 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         }
     }
 
+    @objc private func reaffirmMenuBarStatusFromNotification() {
+        reaffirmMenuBarItemIfNeeded(trigger: "diagnostics")
+    }
+
+    @MainActor
+    private func updateMenuBarDiagnostics(event: String) {
+        let item = statusItem
+        let button = item?.button
+        let frameDescription = button.map { NSStringFromRect($0.frame) } ?? "nil"
+        let label = button?.accessibilityLabel() ?? "nil"
+        let identifier = button?.accessibilityIdentifier() ?? button?.identifier?.rawValue ?? "nil"
+        let autosaveName = item.map { String(describing: $0.autosaveName) } ?? "nil"
+        let imageSize = button?.image.map { NSStringFromSize($0.size) } ?? "nil"
+        let imageIsTemplate = button?.image?.isTemplate
+        let imageVisiblePixelRatio = Self.visiblePixelRatioDescription(for: button?.image)
+
+        MenuBarStatusDiagnostics.shared.update(
+            MenuBarStatusSnapshot(
+                shouldShow: GeneralSettingsManager.shared.showMenuBarItem,
+                hasStatusItem: item != nil,
+                isVisible: item?.isVisible,
+                hasButton: button != nil,
+                buttonHasWindow: button?.window != nil,
+                buttonFrame: frameDescription,
+                accessibilityLabel: label,
+                accessibilityIdentifier: identifier,
+                autosaveName: autosaveName,
+                displayMode: CalendarPreferencesStore.shared.menuBarDisplayMode.rawValue,
+                imageSize: imageSize,
+                imageIsTemplate: imageIsTemplate,
+                imageVisiblePixelRatio: imageVisiblePixelRatio,
+                lastEvent: event,
+                updatedAt: Date()
+            )
+        )
+    }
+
+    private static func visiblePixelRatioDescription(for image: NSImage?) -> String {
+        guard let image,
+              let data = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: data) else {
+            return "nil"
+        }
+
+        let width = bitmap.pixelsWide
+        let height = bitmap.pixelsHigh
+        guard width > 0, height > 0 else { return "nil" }
+
+        var visiblePixels = 0
+        for y in 0..<height {
+            for x in 0..<width where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.01 {
+                visiblePixels += 1
+            }
+        }
+
+        let ratio = Double(visiblePixels) / Double(width * height)
+        return String(format: "%.3f", ratio)
+    }
+
+    @MainActor
+    private func configureMenuBarStatusItemIdentity(_ statusItem: NSStatusItem) {
+        statusItem.autosaveName = NSStatusItem.AutosaveName(MenuBarStatusItemIdentity.autosaveName)
+        guard let button = statusItem.button else { return }
+        button.identifier = NSUserInterfaceItemIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
+        button.setAccessibilityLabel(MenuBarStatusItemIdentity.accessibilityLabel)
+        button.setAccessibilityIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
+    }
+
     @MainActor
     private func reaffirmMenuBarItemIfNeeded(trigger: String) {
         guard GeneralSettingsManager.shared.showMenuBarItem else { return }
 
         guard let existingStatusItem = statusItem else {
             ensureMenuBarItem()
+            updateMenuBarDiagnostics(event: "reaffirm-create:\(trigger)")
             Self.menuBarLogger.notice("status item reaffirmed by creating trigger=\(trigger, privacy: .public)")
             return
         }
 
         if existingStatusItem.isVisible {
             existingStatusItem.isVisible = true
+            configureMenuBarStatusItemIdentity(existingStatusItem)
             calendarMenuBarController?.refreshStatusItem()
+            updateMenuBarDiagnostics(event: "reaffirm-existing:\(trigger)")
             Self.menuBarLogger.notice("status item reaffirmed existing trigger=\(trigger, privacy: .public)")
             return
         }
 
         destroyMenuBarItemForRecreation()
         ensureMenuBarItem()
+        updateMenuBarDiagnostics(event: "reaffirm-recreate:\(trigger)")
         Self.menuBarLogger.notice("status item reaffirmed by recreating hidden item trigger=\(trigger, privacy: .public)")
     }
 
@@ -324,20 +454,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private func ensureMenuBarItem() {
         guard statusItem == nil else {
             statusItem?.isVisible = true
+            if let statusItem {
+                configureMenuBarStatusItemIdentity(statusItem)
+            }
             calendarMenuBarController?.refreshStatusItem()
             updateMenuTitles()
             updateMenuShortcuts()
+            updateMenuBarDiagnostics(event: "show-existing")
             Self.menuBarLogger.notice("status item shown existing")
             return
         }
 
         let newStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        newStatusItem.length = 28
+        newStatusItem.length = CalendarPreferencesStore.shared.menuBarDisplayMode == .appIcon ? NSStatusItem.squareLength : 28
+        configureMenuBarStatusItemIdentity(newStatusItem)
         statusItem = newStatusItem
         calendarMenuBarController = CalendarMenuBarController(statusItem: newStatusItem, contextMenu: makeStatusMenu())
         updateMenuTitles()
         updateMenuShortcuts()
         newStatusItem.isVisible = true
+        updateMenuBarDiagnostics(event: "create")
         Self.menuBarLogger.notice("status item created and shown")
     }
 
@@ -350,6 +486,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
         calendarMenuBarController?.closeTransientUI()
         existingStatusItem.isVisible = false
+        updateMenuBarDiagnostics(event: "hide")
         Self.menuBarLogger.notice("status item hidden via isVisible=false")
     }
 
@@ -369,6 +506,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         lockAIMenuItem = nil
         settingsMenuItem = nil
         quitMenuItem = nil
+        updateMenuBarDiagnostics(event: "destroy")
         Self.menuBarLogger.notice("status item destroyed for recreation")
     }
 
@@ -546,14 +684,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             window.center()
             window.title = L10n.t("window.settings")
             window.contentView = NSHostingView(rootView: SettingsView())
-            window.minSize = NSSize(width: 1050, height: 600)
+            configureSettingsWindow(window)
             window.setFrameAutosaveName("SettingsWindow")
             window.isReleasedWhenClosed = false
             settingsWindow = window
         }
+
+        if let settingsWindow {
+            configureSettingsWindow(settingsWindow)
+        }
         
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    private func configureSettingsWindow(_ window: NSWindow) {
+        window.styleMask.insert(.resizable)
+        window.minSize = NSSize(width: 1050, height: 600)
+        window.contentMinSize = NSSize(width: 1050, height: 600)
+        window.contentMaxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
     }
 
     @objc func lockAI() {

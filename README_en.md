@@ -2,9 +2,9 @@
 
 [简体中文](README.md) | English
 
-xxMac is a lightweight native macOS menu bar productivity tool with an installer of about 2 MB. Built with `SwiftUI + AppKit`, it brings window management, global hotkeys, a launcher, Chinese calendar, shortcut conflict detection, clipboard history, and common productivity workflows into one compact entry point. Its everyday workflow is:
+xxMac is a lightweight native macOS status bar productivity tool with an installer of about 2 MB. Built with `SwiftUI + AppKit`, it brings window management, global hotkeys, a launcher, Chinese calendar, shortcut conflict detection, clipboard history, and common productivity workflows into one compact entry point. Its everyday workflow is:
 
-1. A persistent menu bar entry.
+1. A persistent top-right status bar entry.
 2. A floating launcher panel opened by a global hotkey.
 3. A three-column settings window shown when opening the app directly, with a resizable window and draggable column widths.
 
@@ -15,7 +15,7 @@ xxMac is a lightweight native macOS menu bar productivity tool with an installer
 | Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Supports custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
 | App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. | Thor |
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
-| Chinese Calendar | Provides a calendar icon entry in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar icon styles. | CalendarX |
+| Chinese Calendar | Provides a top-right status bar entry, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable status bar icon styles. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
 | Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews; optional local OCR stores recognized image text as searchable metadata. | Clipboard manager |
 | Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; shortcuts can also be pinned into launcher results, useful for Google, Baidu, and similar search entries. | Alfred Web Search / Workflows |
@@ -91,6 +91,7 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 ## Configuration and Data
 
 - The default configuration folder is `~/Library/Application Support/xxMac`, and it can be changed from General > Configuration. Changing it moves the current preferences, app index cache, clipboard SQLite database, and image cache to the new folder, then removes xxMac data from the old folder.
+- The top-right status bar entry is shown by default. If the icon disappears or you want to hide it, use General > Configuration > Show in top-right status bar. The same area includes status bar diagnostics and a Refresh/Recreate button to confirm whether the `NSStatusItem` exists, is visible, and is attached to the system status bar.
 - The configuration folder can be local or managed by a sync service such as iCloud Drive or Dropbox, as long as files stay available offline. Avoid system folders, the app bundle, and temporary removable drives.
 - Hotkey settings, app quick-launch settings, launcher appearance, overall scale, text size, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder.
 - xxMac creates `quick/` inside the configuration folder for complex quick shortcut scripts. Command scripts receive `XXMAC_HOME` for the configuration folder and `XXMAC_QUICK_HOME` for `quick/`, for example `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`.

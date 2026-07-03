@@ -19,6 +19,8 @@
 "common.menu_bar" = "狀態列";
 "common.menu_bar_desc" = "控制 xxMac 是否顯示在螢幕右上角狀態列。關閉後仍可使用全域快速鍵和已開啟的設定視窗。";
 "common.show_menu_bar_item" = "顯示在右上角狀態列";
+"common.status_bar_diagnostics" = "狀態列診斷";
+"common.status_bar_reaffirm" = "刷新/重建";
 "common.global_hotkey" = "全域快速鍵";
 "common.global_hotkey_desc" = "設定用於顯示或隱藏主啟動器視窗的快速鍵。";
 "common.toggle_launcher" = "切換啟動器";
@@ -206,8 +208,8 @@
 "calendar.weekday_monday" = "週一";
 "calendar.show_lunar" = "顯示陰曆";
 "calendar.show_week_numbers" = "顯示週數";
-"calendar.show_app_icon_in_menu_bar" = "選單列顯示 App 圖示";
-"calendar.menu_bar_style" = "選單列樣式";
+"calendar.show_app_icon_in_menu_bar" = "狀態列顯示 App 圖示";
+"calendar.menu_bar_style" = "狀態列樣式";
 "calendar.menu_bar_display.calendar" = "日曆";
 "calendar.menu_bar_display.app_icon" = "App 圖示";
 "calendar.icon_style.day_only" = "日期";

@@ -80,7 +80,7 @@ final class CalendarPreferencesStore: ObservableObject {
         let rawStyle = store.string(forKey: CalendarPreferencesKey.menuBarIconStyle)
         menuBarIconStyle = rawStyle.flatMap(CalendarMenuBarIconStyle.init(rawValue:)) ?? .weekdayDay
         let rawDisplayMode = store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode)
-        menuBarDisplayMode = rawDisplayMode.flatMap(CalendarMenuBarDisplayMode.init(rawValue:)) ?? .calendar
+        menuBarDisplayMode = rawDisplayMode.flatMap(CalendarMenuBarDisplayMode.init(rawValue:)) ?? .appIcon
     }
 }
 
@@ -784,6 +784,7 @@ final class CalendarMenuBarController {
 
     func refreshStatusItem() {
         guard let button = statusItem.button else { return }
+        statusItem.length = preferences.menuBarDisplayMode == .appIcon ? NSStatusItem.squareLength : 28
         button.image = CalendarMenuBarIconRenderer.image(
             displayMode: preferences.menuBarDisplayMode,
             style: preferences.menuBarIconStyle,
@@ -792,6 +793,9 @@ final class CalendarMenuBarController {
         button.imagePosition = .imageOnly
         button.attributedTitle = NSAttributedString()
         button.toolTip = L10n.t("calendar.menu_bar_tooltip")
+        button.identifier = NSUserInterfaceItemIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
+        button.setAccessibilityLabel(MenuBarStatusItemIdentity.accessibilityLabel)
+        button.setAccessibilityIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
     }
 
     func closeTransientUI() {
@@ -806,6 +810,9 @@ final class CalendarMenuBarController {
         button.action = #selector(handleStatusItemClick)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = L10n.t("calendar.menu_bar_tooltip")
+        button.identifier = NSUserInterfaceItemIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
+        button.setAccessibilityLabel(MenuBarStatusItemIdentity.accessibilityLabel)
+        button.setAccessibilityIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
     }
 
     private func configurePopover() {
@@ -923,10 +930,31 @@ private enum CalendarMenuBarIconRenderer {
     private static func appIconImage() -> NSImage {
         let sourceImage = NSImage(named: "AppIcon")
             ?? Bundle.main.url(forResource: "AppIcon", withExtension: "icns").flatMap(NSImage.init(contentsOf:))
-            ?? drawSingleLineIcon("X")
+            ?? statusBarFallbackIcon()
         let image = (sourceImage.copy() as? NSImage) ?? sourceImage
         image.size = NSSize(width: 18, height: 18)
         image.isTemplate = false
+        return image
+    }
+
+    private static func statusBarFallbackIcon() -> NSImage {
+        if let image = NSImage(systemSymbolName: "app.fill", accessibilityDescription: "xxMac") {
+            image.size = NSSize(width: 18, height: 18)
+            image.isTemplate = true
+            return image
+        }
+
+        return drawStatusBarGlyphIcon()
+    }
+
+    private static func drawStatusBarGlyphIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.labelColor.setFill()
+            NSBezierPath(roundedRect: rect.insetBy(dx: 2, dy: 2), xRadius: 4, yRadius: 4).fill()
+            return true
+        }
+        image.isTemplate = true
         return image
     }
 

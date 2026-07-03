@@ -5,6 +5,7 @@ struct CommonSettingsView: View {
     @ObservedObject private var generalSettings = GeneralSettingsManager.shared
     @ObservedObject private var appSearchManager = AppSearchManager.shared
     @ObservedObject private var configDirectoryManager = ConfigDirectoryManager.shared
+    @ObservedObject private var menuBarStatusDiagnostics = MenuBarStatusDiagnostics.shared
     @State private var showingExportSuccess = false
     @State private var showingImportSuccess = false
     @State private var importError: String?
@@ -28,6 +29,31 @@ struct CommonSettingsView: View {
                     Toggle(L10n.t("common.show_menu_bar_item"), isOn: $generalSettings.showMenuBarItem)
                         .toggleStyle(.checkbox)
                         .padding(.top, 4)
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(L10n.t("common.status_bar_diagnostics"))
+                                .font(.caption)
+                                .fontWeight(.semibold)
+
+                            Spacer()
+
+                            Button {
+                                NotificationCenter.default.post(name: .menuBarStatusReaffirmRequested, object: nil)
+                            } label: {
+                                Label(L10n.t("common.status_bar_reaffirm"), systemImage: "arrow.clockwise")
+                            }
+                            .controlSize(.small)
+                        }
+
+                        Text(menuBarDiagnosticText)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .textSelection(.enabled)
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -233,6 +259,35 @@ struct CommonSettingsView: View {
             Text(L10n.t("menu.quit_confirm_message"))
         }
     }
+
+    private var menuBarDiagnosticText: String {
+        let snapshot = menuBarStatusDiagnostics.snapshot
+        let visible = snapshot.isVisible.map(String.init(describing:)) ?? "nil"
+
+        return [
+            "shouldShow: \(snapshot.shouldShow)",
+            "hasStatusItem: \(snapshot.hasStatusItem)",
+            "isVisible: \(visible)",
+            "hasButton: \(snapshot.hasButton)",
+            "buttonHasWindow: \(snapshot.buttonHasWindow)",
+            "buttonFrame: \(snapshot.buttonFrame)",
+            "accessibilityLabel: \(snapshot.accessibilityLabel)",
+            "accessibilityIdentifier: \(snapshot.accessibilityIdentifier)",
+            "autosaveName: \(snapshot.autosaveName)",
+            "displayMode: \(snapshot.displayMode)",
+            "imageSize: \(snapshot.imageSize)",
+            "imageIsTemplate: \(snapshot.imageIsTemplate.map(String.init(describing:)) ?? "nil")",
+            "imageVisiblePixelRatio: \(snapshot.imageVisiblePixelRatio)",
+            "lastEvent: \(snapshot.lastEvent)",
+            "updatedAt: \(Self.menuBarDiagnosticDateFormatter.string(from: snapshot.updatedAt))"
+        ].joined(separator: "\n")
+    }
+
+    private static let menuBarDiagnosticDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter
+    }()
 
     @ViewBuilder
     private var configDirectoryActions: some View {

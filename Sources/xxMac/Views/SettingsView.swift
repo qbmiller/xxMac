@@ -33,7 +33,7 @@ struct SettingsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(minWidth: 1050, minHeight: 600)
+        .frame(minWidth: 1050, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .background(Color(NSColor.windowBackgroundColor))
         .id(localization.language)
         .onAppear {
