@@ -17,24 +17,23 @@ struct SettingsView: View {
         HStack(spacing: 0) {
             sidebarToggleRail
 
-            if isToolSidebarVisible {
-                Divider()
-                toolSidebar
-                    .frame(width: 240)
-                    .transition(.move(edge: .leading).combined(with: .opacity))
+            Divider()
+
+            HSplitView {
+                if isToolSidebarVisible {
+                    toolSidebar
+                        .frame(minWidth: 220, idealWidth: 260, maxWidth: 360)
+                }
+
+                secondarySidebar
+                    .frame(minWidth: 220, idealWidth: secondaryColumnWidth, maxWidth: 380)
+
+                detailContent
+                    .frame(minWidth: 680, maxWidth: .infinity, maxHeight: .infinity)
             }
-
-            Divider()
-
-            secondarySidebar
-                .frame(width: secondaryColumnWidth)
-
-            Divider()
-
-            detailContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(minWidth: 900, minHeight: 600)
+        .frame(minWidth: 1050, minHeight: 600)
         .background(Color(NSColor.windowBackgroundColor))
         .id(localization.language)
         .onAppear {

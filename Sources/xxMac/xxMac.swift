@@ -2,6 +2,31 @@ import SwiftUI
 import Combine
 import OSLog
 
+enum MenuBarVisibilityAction: Equatable {
+    case create
+    case showExisting
+    case recreate
+    case hide
+    case none
+}
+
+enum MenuBarVisibilityPolicy {
+    static func action(
+        shouldShow: Bool,
+        hasStatusItem: Bool,
+        recreateWhenShowing: Bool
+    ) -> MenuBarVisibilityAction {
+        if shouldShow {
+            if hasStatusItem {
+                return recreateWhenShowing ? .recreate : .showExisting
+            }
+            return .create
+        }
+
+        return hasStatusItem ? .hide : .none
+    }
+}
+
 @main
 struct xxMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -42,6 +67,7 @@ class FloatingPanel: NSPanel {
     }
 }
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     private static let launcherLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherPanel")
     private static let menuBarLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "MenuBar")
@@ -158,6 +184,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         
         // 1. Setup Menu Bar
         syncMenuBarVisibility()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.reaffirmMenuBarItemIfNeeded(trigger: "launch")
+        }
         
         // 2. Setup Launcher Window
         createLauncherPanel()
@@ -195,13 +224,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         generalSettingsCancellable = GeneralSettingsManager.shared.$showMenuBarItem
             .removeDuplicates()
             .dropFirst()
-            .sink { [weak self] _ in
+            .sink { [weak self] showMenuBarItem in
                 Task { @MainActor in
-                    self?.syncMenuBarVisibility()
+                    self?.syncMenuBarVisibility(recreateWhenShowing: showMenuBarItem)
                 }
             }
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuShortcuts), name: HotKeyManager.configurationsDidChangeNotification, object: nil)
         updateMenuShortcuts()
+        openSettings()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettings()
+        return false
     }
 
     @MainActor
@@ -241,17 +276,52 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     @MainActor
     private func syncMenuBarVisibility(recreateWhenShowing: Bool = false) {
-        Self.menuBarLogger.notice("sync requested show=\(GeneralSettingsManager.shared.showMenuBarItem) hasStatusItem=\(self.statusItem != nil) recreate=\(recreateWhenShowing)")
+        let shouldShow = GeneralSettingsManager.shared.showMenuBarItem
+        let action = MenuBarVisibilityPolicy.action(
+            shouldShow: shouldShow,
+            hasStatusItem: statusItem != nil,
+            recreateWhenShowing: recreateWhenShowing
+        )
 
-        if GeneralSettingsManager.shared.showMenuBarItem {
-            ensureMenuBarItem(recreate: recreateWhenShowing)
-        } else {
+        Self.menuBarLogger.notice("sync requested show=\(shouldShow) hasStatusItem=\(self.statusItem != nil) recreate=\(recreateWhenShowing) action=\(String(describing: action), privacy: .public)")
+
+        switch action {
+        case .create, .showExisting:
+            ensureMenuBarItem()
+        case .recreate:
+            destroyMenuBarItemForRecreation()
+            ensureMenuBarItem()
+        case .hide:
             removeMenuBarItem()
+        case .none:
+            break
         }
     }
 
     @MainActor
-    private func ensureMenuBarItem(recreate: Bool = false) {
+    private func reaffirmMenuBarItemIfNeeded(trigger: String) {
+        guard GeneralSettingsManager.shared.showMenuBarItem else { return }
+
+        guard let existingStatusItem = statusItem else {
+            ensureMenuBarItem()
+            Self.menuBarLogger.notice("status item reaffirmed by creating trigger=\(trigger, privacy: .public)")
+            return
+        }
+
+        if existingStatusItem.isVisible {
+            existingStatusItem.isVisible = true
+            calendarMenuBarController?.refreshStatusItem()
+            Self.menuBarLogger.notice("status item reaffirmed existing trigger=\(trigger, privacy: .public)")
+            return
+        }
+
+        destroyMenuBarItemForRecreation()
+        ensureMenuBarItem()
+        Self.menuBarLogger.notice("status item reaffirmed by recreating hidden item trigger=\(trigger, privacy: .public)")
+    }
+
+    @MainActor
+    private func ensureMenuBarItem() {
         guard statusItem == nil else {
             statusItem?.isVisible = true
             calendarMenuBarController?.refreshStatusItem()
@@ -273,14 +343,33 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     @MainActor
     private func removeMenuBarItem() {
-        guard let statusItem else {
+        guard let existingStatusItem = statusItem else {
             Self.menuBarLogger.notice("hide skipped: no status item")
             return
         }
 
         calendarMenuBarController?.closeTransientUI()
-        statusItem.isVisible = false
+        existingStatusItem.isVisible = false
         Self.menuBarLogger.notice("status item hidden via isVisible=false")
+    }
+
+    @MainActor
+    private func destroyMenuBarItemForRecreation() {
+        guard let existingStatusItem = statusItem else {
+            Self.menuBarLogger.notice("recreate skipped destroy: no status item")
+            return
+        }
+
+        calendarMenuBarController?.closeTransientUI()
+        calendarMenuBarController = nil
+        NSStatusBar.system.removeStatusItem(existingStatusItem)
+        statusItem = nil
+        toggleLauncherMenuItem = nil
+        showClipboardHistoryMenuItem = nil
+        lockAIMenuItem = nil
+        settingsMenuItem = nil
+        quitMenuItem = nil
+        Self.menuBarLogger.notice("status item destroyed for recreation")
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -449,7 +538,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
         if settingsWindow == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
+                contentRect: NSRect(x: 0, y: 0, width: 1180, height: 720),
                 styleMask: [.titled, .closable, .resizable, .miniaturizable],
                 backing: .buffered,
                 defer: false
@@ -457,6 +546,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             window.center()
             window.title = L10n.t("window.settings")
             window.contentView = NSHostingView(rootView: SettingsView())
+            window.minSize = NSSize(width: 1050, height: 600)
+            window.setFrameAutosaveName("SettingsWindow")
             window.isReleasedWhenClosed = false
             settingsWindow = window
         }
@@ -835,6 +926,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         NSLog("=== applicationDidBecomeActive === pendingRestore:%@",
               pendingLauncherRestore.description)
         logLauncherState("applicationDidBecomeActive pendingRestore=\(pendingLauncherRestore)")
+        reaffirmMenuBarItemIfNeeded(trigger: "appActive")
         if pendingLauncherRestore {
             restoreLauncherWindow()
         }

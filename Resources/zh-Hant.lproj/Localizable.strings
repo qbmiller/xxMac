@@ -16,9 +16,9 @@
 "settings.configuration_coming_soon" = "「%@」的設定即將上線。";
 
 "common.manage_configurations" = "管理應用設定。";
-"common.menu_bar" = "選單列";
-"common.menu_bar_desc" = "控制 xxMac 是否顯示選單列入口。關閉後仍可使用全域快速鍵和已開啟的設定視窗。";
-"common.show_menu_bar_item" = "顯示在選單列中";
+"common.menu_bar" = "狀態列";
+"common.menu_bar_desc" = "控制 xxMac 是否顯示在螢幕右上角狀態列。關閉後仍可使用全域快速鍵和已開啟的設定視窗。";
+"common.show_menu_bar_item" = "顯示在右上角狀態列";
 "common.global_hotkey" = "全域快速鍵";
 "common.global_hotkey_desc" = "設定用於顯示或隱藏主啟動器視窗的快速鍵。";
 "common.toggle_launcher" = "切換啟動器";
@@ -42,6 +42,9 @@
 "common.import_success" = "設定匯入成功！";
 "common.error_format" = "錯誤：%@";
 "common.export_filename" = "xxMac_Config.json";
+"common.quit_app" = "退出應用";
+"common.quit_app_desc" = "退出後，選單列入口、全域快速鍵、視窗管理和 LockJob 都會停止工作。";
+"common.quit_app_button" = "退出 xxMac...";
 "general.cancel" = "取消";
 
 "accessibility.required_title" = "需要輔助使用權限";
@@ -204,6 +207,7 @@
 "calendar.show_lunar" = "顯示陰曆";
 "calendar.show_week_numbers" = "顯示週數";
 "calendar.menu_bar_style" = "選單列樣式";
+"calendar.icon_style.day_only" = "日期";
 "calendar.icon_style.weekday_day" = "週四 / 18";
 "calendar.icon_style.month_day" = "6月 / 18";
 "calendar.icon_style.lunar_month_day" = "五月 / 初四";

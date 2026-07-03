@@ -9,6 +9,7 @@ struct CommonSettingsView: View {
     @State private var showingImportSuccess = false
     @State private var importError: String?
     @State private var configDirectoryError: String?
+    @State private var showingQuitConfirmation = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -120,27 +121,7 @@ struct CommonSettingsView: View {
                         .textSelection(.enabled)
                         .padding(.top, 2)
 
-                    HStack(spacing: 10) {
-                        Button {
-                            chooseConfigDirectory()
-                        } label: {
-                            Label(L10n.t("common.set_config_directory"), systemImage: "folder")
-                        }
-
-                        Button {
-                            revealConfigDirectory()
-                        } label: {
-                            Label(L10n.t("common.reveal_config_directory"), systemImage: "arrow.up.forward.app")
-                        }
-
-                        Button {
-                            resetConfigDirectory()
-                        } label: {
-                            Label(L10n.t("common.reset_config_directory"), systemImage: "arrow.counterclockwise")
-                        }
-
-                        Spacer()
-                    }
+                    configDirectoryActions
 
                     if let configDirectoryError {
                         Text(configDirectoryError)
@@ -216,9 +197,75 @@ struct CommonSettingsView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                 )
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.t("common.quit_app"))
+                        .font(.headline)
+                    Text(L10n.t("common.quit_app_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Button(role: .destructive) {
+                        showingQuitConfirmation = true
+                    } label: {
+                        Label(L10n.t("common.quit_app_button"), systemImage: "power")
+                    }
+                    .padding(.top, 4)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                )
             }
             
             Spacer()
+        }
+        .alert(L10n.t("menu.quit_confirm_title"), isPresented: $showingQuitConfirmation) {
+            Button(L10n.t("general.cancel"), role: .cancel) {}
+            Button(L10n.t("menu.quit"), role: .destructive) {
+                NSApp.terminate(nil)
+            }
+        } message: {
+            Text(L10n.t("menu.quit_confirm_message"))
+        }
+    }
+
+    @ViewBuilder
+    private var configDirectoryActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                configDirectoryButtons
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                configDirectoryButtons
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var configDirectoryButtons: some View {
+        Button {
+            chooseConfigDirectory()
+        } label: {
+            Label(L10n.t("common.set_config_directory"), systemImage: "folder")
+        }
+
+        Button {
+            revealConfigDirectory()
+        } label: {
+            Label(L10n.t("common.reveal_config_directory"), systemImage: "arrow.up.forward.app")
+        }
+
+        Button {
+            resetConfigDirectory()
+        } label: {
+            Label(L10n.t("common.reset_config_directory"), systemImage: "arrow.counterclockwise")
         }
     }
     

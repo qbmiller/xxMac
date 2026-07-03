@@ -3,18 +3,21 @@ import Combine
 import SwiftUI
 
 enum CalendarMenuBarIconStyle: String, CaseIterable, Identifiable {
-    case weekdayDay
+    case dayOnly
     case monthDay
+    case weekdayDay
     case lunarMonthDay
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .weekdayDay:
-            return L10n.t("calendar.icon_style.weekday_day")
+        case .dayOnly:
+            return L10n.t("calendar.icon_style.day_only")
         case .monthDay:
             return L10n.t("calendar.icon_style.month_day")
+        case .weekdayDay:
+            return L10n.t("calendar.icon_style.weekday_day")
         case .lunarMonthDay:
             return L10n.t("calendar.icon_style.lunar_month_day")
         }
@@ -625,6 +628,11 @@ private struct CalendarDayCell: View {
 
 private struct CalendarSettingsControls: View {
     @ObservedObject private var preferences = CalendarPreferencesStore.shared
+    @ObservedObject private var localization = LocalizationManager.shared
+
+    private var locale: Locale {
+        Locale(identifier: localization.language.localeIdentifier)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -637,13 +645,51 @@ private struct CalendarSettingsControls: View {
             Toggle(L10n.t("calendar.show_lunar"), isOn: $preferences.showLunar)
             Toggle(L10n.t("calendar.show_week_numbers"), isOn: $preferences.showWeekNumbers)
 
-            Picker(L10n.t("calendar.menu_bar_style"), selection: $preferences.menuBarIconStyle) {
-                ForEach(CalendarMenuBarIconStyle.allCases) { style in
-                    Text(style.title).tag(style)
+            HStack(alignment: .center, spacing: 16) {
+                Text(L10n.t("calendar.menu_bar_style"))
+                    .font(.body)
+
+                HStack(alignment: .center, spacing: 18) {
+                    ForEach(CalendarMenuBarIconStyle.allCases) { style in
+                        CalendarMenuBarStyleButton(
+                            style: style,
+                            isSelected: preferences.menuBarIconStyle == style,
+                            locale: locale
+                        ) {
+                            preferences.menuBarIconStyle = style
+                        }
+                    }
                 }
             }
-            .pickerStyle(.segmented)
         }
+    }
+}
+
+private struct CalendarMenuBarStyleButton: View {
+    let style: CalendarMenuBarIconStyle
+    let isSelected: Bool
+    let locale: Locale
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(nsImage: CalendarMenuBarIconRenderer.image(style: style, locale: locale))
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 30, height: 28)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(isSelected ? Color.red : Color.clear)
+                    .frame(width: 36, height: 3)
+            }
+            .frame(width: 48, height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(style.title)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
@@ -815,11 +861,13 @@ private enum CalendarMenuBarIconRenderer {
         let subtitle: String
 
         switch style {
-        case .weekdayDay:
-            title = weekdayTitle(for: date, locale: locale)
-            subtitle = dayTitle(for: date)
+        case .dayOnly:
+            return drawSingleLineIcon(dayTitle(for: date))
         case .monthDay:
             title = monthTitle(for: date, locale: locale)
+            subtitle = dayTitle(for: date)
+        case .weekdayDay:
+            title = weekdayTitle(for: date, locale: locale)
             subtitle = dayTitle(for: date)
         case .lunarMonthDay:
             title = LunarCalendarText.month(for: date)
@@ -865,6 +913,25 @@ private enum CalendarMenuBarIconRenderer {
             NSGraphicsContext.current?.compositingOperation = .destinationOut
             titleString.draw(at: CGPoint(x: (rect.width - titleSize.width) / 2, y: 10.5))
             subtitleString.draw(at: CGPoint(x: (rect.width - subtitleSize.width) / 2, y: 1.3))
+            NSGraphicsContext.current?.compositingOperation = .sourceOver
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+
+    private static func drawSingleLineIcon(_ title: String) -> NSImage {
+        let size = NSSize(width: 24, height: 22)
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.labelColor.setFill()
+            NSBezierPath(roundedRect: rect.insetBy(dx: 2.5, dy: 2.5), xRadius: 2.5, yRadius: 2.5).fill()
+
+            let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .bold)
+            let string = NSAttributedString(string: title, attributes: [.font: font])
+            let textSize = string.size()
+
+            NSGraphicsContext.current?.compositingOperation = .destinationOut
+            string.draw(at: CGPoint(x: (rect.width - textSize.width) / 2, y: (rect.height - textSize.height) / 2 - 0.5))
             NSGraphicsContext.current?.compositingOperation = .sourceOver
             return true
         }

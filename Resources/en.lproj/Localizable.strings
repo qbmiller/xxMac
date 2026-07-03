@@ -16,9 +16,9 @@
 "settings.configuration_coming_soon" = "Configuration for %@ is coming soon.";
 
 "common.manage_configurations" = "Manage application configurations.";
-"common.menu_bar" = "Menu Bar";
-"common.menu_bar_desc" = "Control whether xxMac shows its menu bar item. Global hotkeys and an already-open Settings window still work when it is hidden.";
-"common.show_menu_bar_item" = "Show in menu bar";
+"common.menu_bar" = "Status Bar";
+"common.menu_bar_desc" = "Control whether xxMac shows in the top-right status bar. Global hotkeys and an already-open Settings window still work when it is hidden.";
+"common.show_menu_bar_item" = "Show in top-right status bar";
 "common.global_hotkey" = "Global Hotkey";
 "common.global_hotkey_desc" = "Set the hotkey to show or hide the main launcher window.";
 "common.toggle_launcher" = "Toggle Launcher";
@@ -42,6 +42,9 @@
 "common.import_success" = "Configuration imported successfully!";
 "common.error_format" = "Error: %@";
 "common.export_filename" = "xxMac_Config.json";
+"common.quit_app" = "Quit Application";
+"common.quit_app_desc" = "After quitting, the menu bar item, global shortcuts, window management, and LockJob will stop working.";
+"common.quit_app_button" = "Quit xxMac...";
 "general.cancel" = "Cancel";
 
 "accessibility.required_title" = "Accessibility Permission Required";
@@ -204,6 +207,7 @@
 "calendar.show_lunar" = "Show lunar date";
 "calendar.show_week_numbers" = "Show week numbers";
 "calendar.menu_bar_style" = "Menu bar style";
+"calendar.icon_style.day_only" = "Day";
 "calendar.icon_style.weekday_day" = "Thu / 18";
 "calendar.icon_style.month_day" = "Jun / 18";
 "calendar.icon_style.lunar_month_day" = "Lunar month / day";

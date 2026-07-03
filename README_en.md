@@ -2,11 +2,11 @@
 
 [简体中文](README.md) | English
 
-xxMac is a native macOS menu bar productivity tool built with `SwiftUI + AppKit`. It brings a launcher, app-specific hotkeys, window management, Chinese calendar, shortcut conflict detection, and clipboard history into one lightweight entry point. Its everyday workflow is:
+xxMac is a lightweight native macOS menu bar productivity tool with an installer of about 2 MB. Built with `SwiftUI + AppKit`, it brings window management, global hotkeys, a launcher, Chinese calendar, shortcut conflict detection, clipboard history, and common productivity workflows into one compact entry point. Its everyday workflow is:
 
 1. A persistent menu bar entry.
 2. A floating launcher panel opened by a global hotkey.
-3. A three-column settings window.
+3. A three-column settings window shown when opening the app directly, with a resizable window and draggable column widths.
 
 ## Feature Overview
 
@@ -15,7 +15,7 @@ xxMac is a native macOS menu bar productivity tool built with `SwiftUI + AppKit`
 | Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Supports custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
 | App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. | Thor |
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
-| Chinese Calendar | Shows the date in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar style. | CalendarX |
+| Chinese Calendar | Provides a calendar icon entry in the menu bar, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable menu bar icon styles. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
 | Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews; optional local OCR stores recognized image text as searchable metadata. | Clipboard manager |
 | Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; shortcuts can also be pinned into launcher results, useful for Google, Baidu, and similar search entries. | Alfred Web Search / Workflows |
@@ -97,6 +97,7 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 - App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index cache is stored as `app-search-index.json` in the configuration folder and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
 - The clipboard database, original image cache, and thumbnail cache are stored as `clipboard.db`, `clipboard_images/`, and `clipboard_thumbnails/` inside the configuration folder.
 - Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, thumbnail cache, or app index cache; use the configuration folder switch for a full migration.
+- General > Configuration includes a Quit Application button at the bottom and asks for confirmation before quitting.
 - The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.
 - Image thumbnails are generated only when an image exceeds the configured threshold. The default threshold is 5 MB and can be changed in Clipboard General.
 - Image OCR is disabled by default. When enabled, xxMac uses macOS Vision locally on this Mac and does not upload images. Recognized text is stored in `clipboard.db` as image metadata for clipboard search; Export Configuration does not export OCR history metadata.
