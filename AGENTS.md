@@ -17,19 +17,21 @@ ref/ 目录下是别的开源项目，开发时候参考的，不作为项目代
 <usage>
 When users ask you to perform tasks, check if any of the available skills below can help complete the task more effectively. Skills provide specialized capabilities and domain knowledge.
 
-How to use skills:
-- Invoke: `npx openskills read <skill-name>` (run in your shell)
-  - For multiple: `npx openskills read skill-one,skill-two`
-- The skill content will load with detailed instructions on how to complete the task
-- Base directory provided in output for resolving bundled resources (references/, scripts/, assets/)
-
-Usage notes:
-- Only use skills listed in <available_skills> below
-- Do not invoke a skill that is already loaded in your context
-- Each skill invocation is stateless
 </usage>
 
 <available_skills>
+
+<skill>
+<name>grill-me</name>
+<description>A relentless interview to sharpen a plan or design.</description>
+<location>global</location>
+</skill>
+
+<skill>
+<name>grill-with-docs</name>
+<description>A relentless interview to sharpen a plan or design, which also creates docs (ADR's and glossary) as we go.</description>
+<location>global</location>
+</skill>
 
 <skill>
 <name>karpathy-guidelines</name>
@@ -46,6 +48,18 @@ Usage notes:
 <skill>
 <name>macos-app-design</name>
 <description>Use when designing or building native macOS applications with SwiftUI or AppKit. Triggers on menu bar structure, keyboard shortcuts, multi-window behavior, Liquid Glass design system, macOS Tahoe/Sequoia, sidebar navigation, toolbar design, app icons, SF Symbols, or making an app feel like a "good Mac citizen."</description>
+<location>global</location>
+</skill>
+
+<skill>
+<name>to-issues</name>
+<description>Break a plan, spec, or PRD into independently-grabbable issues on the project issue tracker using tracer-bullet vertical slices.</description>
+<location>global</location>
+</skill>
+
+<skill>
+<name>to-prd</name>
+<description>Turn the current conversation into a PRD and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.</description>
 <location>global</location>
 </skill>
 

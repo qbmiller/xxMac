@@ -112,7 +112,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 - 默认配置目录是 `~/Library/Application Support/xxMac`，可在“通用 > 配置”里修改。修改后会把当前配置、应用索引缓存、剪贴板 SQLite 数据库和图片缓存迁移到新目录，并删除旧目录中的 xxMac 数据。
 - 菜单栏入口默认显示；如果图标异常消失，或希望隐藏菜单栏入口，可在“通用 > 配置”里切换“显示在菜单栏里”，重新勾选会立即重建菜单栏图标。
 - 配置目录可以是本地目录，也可以是 iCloud Drive、Dropbox 等同步服务下保持本地可用的目录；不建议选择系统目录、App 包内目录或临时移动磁盘路径。
-- 热键配置、应用快捷启动配置、启动器窗口宽高、整体大小、文字大小与外观、语言偏好、快捷指令、Snippets 和日历偏好保存在配置目录的 `preferences.json`。
+- 热键配置、应用快捷启动配置、启动器窗口宽高、整体大小、文字大小与外观、语言偏好、快捷指令、Snippets 和日历偏好保存在配置目录的 `preferences.json`。日历偏好包含菜单栏显示方式，默认使用日历图标，也可切换为 App 图标。
 - 配置目录下会自动创建 `quick/`，用于放置复杂快捷指令脚本。命令脚本执行时会注入 `XXMAC_HOME`（配置目录）和 `XXMAC_QUICK_HOME`（`quick/` 目录），例如 `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`。
 - 应用搜索默认扫描 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；应用索引缓存保存在配置目录的 `app-search-index.json`。把新 App 拖入这些搜索目录后会自动追加到现有索引，不会重建整个索引；也可在“通用 > 配置”里手动点击“索引应用”重建。中文应用名会同时写入原文、全拼和拼音首字母索引；英文应用名也会写入单词首字母索引。
 - 剪贴板数据库、图片原图缓存与图片缩略图缓存位于配置目录的 `clipboard.db`、`clipboard_images/` 和 `clipboard_thumbnails/`。

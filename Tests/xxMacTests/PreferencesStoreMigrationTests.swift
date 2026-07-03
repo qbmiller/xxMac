@@ -38,6 +38,7 @@ final class PreferencesStoreMigrationTests: XCTestCase {
         defaults.set(true, forKey: "CalendarShowWeekNumbers")
         defaults.set(2, forKey: "CalendarFirstWeekday")
         defaults.set("monthDay", forKey: "CalendarMenuBarIconStyle")
+        defaults.set("appIcon", forKey: "CalendarMenuBarDisplayMode")
         defaults.set("Working", forKey: "LockAIStatusText")
         defaults.set(Data([10]), forKey: "AppSearchIndexCacheV1")
 
@@ -68,6 +69,7 @@ final class PreferencesStoreMigrationTests: XCTestCase {
         XCTAssertEqual(store.boolObject(forKey: "CalendarShowWeekNumbers"), true)
         XCTAssertEqual(store.intObject(forKey: "CalendarFirstWeekday"), 2)
         XCTAssertEqual(store.string(forKey: "CalendarMenuBarIconStyle"), "monthDay")
+        XCTAssertEqual(store.string(forKey: "CalendarMenuBarDisplayMode"), "appIcon")
         XCTAssertEqual(store.string(forKey: "LockAIStatusText"), "Working")
         XCTAssertEqual(try Data(contentsOf: configManager.appSearchIndexURL), Data([10]))
     }

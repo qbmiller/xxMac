@@ -142,6 +142,7 @@ final class PreferencesStore {
         "AppLanguage",
         "LauncherAppearanceBackgroundHex",
         "CalendarMenuBarIconStyle",
+        "CalendarMenuBarDisplayMode",
         "LockAIStatusText"
     ]
 

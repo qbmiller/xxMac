@@ -367,6 +367,7 @@ struct CommonSettingsView: View {
         let calendarShowWeekNumbers: Bool?
         let calendarFirstWeekday: Int?
         let calendarMenuBarIconStyle: String?
+        let calendarMenuBarDisplayMode: String?
         let lockAIStatusText: String?
     }
     
@@ -396,6 +397,7 @@ struct CommonSettingsView: View {
             calendarShowWeekNumbers: store.boolObject(forKey: CalendarPreferencesKey.showWeekNumbers),
             calendarFirstWeekday: store.intObject(forKey: CalendarPreferencesKey.firstWeekday),
             calendarMenuBarIconStyle: store.string(forKey: CalendarPreferencesKey.menuBarIconStyle),
+            calendarMenuBarDisplayMode: store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode),
             lockAIStatusText: store.string(forKey: "LockAIStatusText")
         )
     }
@@ -500,6 +502,11 @@ struct CommonSettingsView: View {
         if let rawStyle = config.calendarMenuBarIconStyle,
            let style = CalendarMenuBarIconStyle(rawValue: rawStyle) {
             CalendarPreferencesStore.shared.menuBarIconStyle = style
+        }
+
+        if let rawDisplayMode = config.calendarMenuBarDisplayMode,
+           let displayMode = CalendarMenuBarDisplayMode(rawValue: rawDisplayMode) {
+            CalendarPreferencesStore.shared.menuBarDisplayMode = displayMode
         }
 
         if let lockAIStatusText = config.lockAIStatusText {

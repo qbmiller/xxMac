@@ -206,7 +206,10 @@
 "calendar.weekday_monday" = "Monday";
 "calendar.show_lunar" = "Show lunar date";
 "calendar.show_week_numbers" = "Show week numbers";
+"calendar.show_app_icon_in_menu_bar" = "Show App icon in menu bar";
 "calendar.menu_bar_style" = "Menu bar style";
+"calendar.menu_bar_display.calendar" = "Calendar";
+"calendar.menu_bar_display.app_icon" = "App icon";
 "calendar.icon_style.day_only" = "Day";
 "calendar.icon_style.weekday_day" = "Thu / 18";
 "calendar.icon_style.month_day" = "Jun / 18";

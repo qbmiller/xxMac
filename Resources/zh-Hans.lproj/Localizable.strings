@@ -206,7 +206,10 @@
 "calendar.weekday_monday" = "周一";
 "calendar.show_lunar" = "显示阴历";
 "calendar.show_week_numbers" = "显示周数";
+"calendar.show_app_icon_in_menu_bar" = "菜单栏显示 App 图标";
 "calendar.menu_bar_style" = "菜单栏样式";
+"calendar.menu_bar_display.calendar" = "日历";
+"calendar.menu_bar_display.app_icon" = "App 图标";
 "calendar.icon_style.day_only" = "日期";
 "calendar.icon_style.weekday_day" = "周四 / 18";
 "calendar.icon_style.month_day" = "6月 / 18";

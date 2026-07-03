@@ -24,11 +24,28 @@ enum CalendarMenuBarIconStyle: String, CaseIterable, Identifiable {
     }
 }
 
+enum CalendarMenuBarDisplayMode: String, CaseIterable, Identifiable {
+    case calendar
+    case appIcon
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .calendar:
+            return L10n.t("calendar.menu_bar_display.calendar")
+        case .appIcon:
+            return L10n.t("calendar.menu_bar_display.app_icon")
+        }
+    }
+}
+
 enum CalendarPreferencesKey {
     static let showLunar = "CalendarShowLunar"
     static let showWeekNumbers = "CalendarShowWeekNumbers"
     static let firstWeekday = "CalendarFirstWeekday"
     static let menuBarIconStyle = "CalendarMenuBarIconStyle"
+    static let menuBarDisplayMode = "CalendarMenuBarDisplayMode"
 }
 
 @MainActor
@@ -51,6 +68,10 @@ final class CalendarPreferencesStore: ObservableObject {
         didSet { PreferencesStore.shared.set(menuBarIconStyle.rawValue, forKey: CalendarPreferencesKey.menuBarIconStyle) }
     }
 
+    @Published var menuBarDisplayMode: CalendarMenuBarDisplayMode {
+        didSet { PreferencesStore.shared.set(menuBarDisplayMode.rawValue, forKey: CalendarPreferencesKey.menuBarDisplayMode) }
+    }
+
     private init() {
         let store = PreferencesStore.shared
         showLunar = store.boolObject(forKey: CalendarPreferencesKey.showLunar) ?? true
@@ -58,6 +79,8 @@ final class CalendarPreferencesStore: ObservableObject {
         firstWeekday = store.intObject(forKey: CalendarPreferencesKey.firstWeekday) ?? 2
         let rawStyle = store.string(forKey: CalendarPreferencesKey.menuBarIconStyle)
         menuBarIconStyle = rawStyle.flatMap(CalendarMenuBarIconStyle.init(rawValue:)) ?? .weekdayDay
+        let rawDisplayMode = store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode)
+        menuBarDisplayMode = rawDisplayMode.flatMap(CalendarMenuBarDisplayMode.init(rawValue:)) ?? .calendar
     }
 }
 
@@ -634,6 +657,13 @@ private struct CalendarSettingsControls: View {
         Locale(identifier: localization.language.localeIdentifier)
     }
 
+    private var appIconModeBinding: Binding<Bool> {
+        Binding(
+            get: { preferences.menuBarDisplayMode == .appIcon },
+            set: { preferences.menuBarDisplayMode = $0 ? .appIcon : .calendar }
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Picker(L10n.t("calendar.first_weekday"), selection: $preferences.firstWeekday) {
@@ -644,6 +674,7 @@ private struct CalendarSettingsControls: View {
 
             Toggle(L10n.t("calendar.show_lunar"), isOn: $preferences.showLunar)
             Toggle(L10n.t("calendar.show_week_numbers"), isOn: $preferences.showWeekNumbers)
+            Toggle(L10n.t("calendar.show_app_icon_in_menu_bar"), isOn: appIconModeBinding)
 
             HStack(alignment: .center, spacing: 16) {
                 Text(L10n.t("calendar.menu_bar_style"))
@@ -661,6 +692,8 @@ private struct CalendarSettingsControls: View {
                     }
                 }
             }
+            .disabled(preferences.menuBarDisplayMode == .appIcon)
+            .opacity(preferences.menuBarDisplayMode == .appIcon ? 0.55 : 1)
         }
     }
 }
@@ -752,6 +785,7 @@ final class CalendarMenuBarController {
     func refreshStatusItem() {
         guard let button = statusItem.button else { return }
         button.image = CalendarMenuBarIconRenderer.image(
+            displayMode: preferences.menuBarDisplayMode,
             style: preferences.menuBarIconStyle,
             locale: Locale(identifier: LocalizationManager.shared.language.localeIdentifier)
         )
@@ -855,6 +889,15 @@ final class CalendarMenuBarController {
 }
 
 private enum CalendarMenuBarIconRenderer {
+    static func image(displayMode: CalendarMenuBarDisplayMode, style: CalendarMenuBarIconStyle, locale: Locale) -> NSImage {
+        switch displayMode {
+        case .calendar:
+            return image(style: style, locale: locale)
+        case .appIcon:
+            return appIconImage()
+        }
+    }
+
     static func image(style: CalendarMenuBarIconStyle, locale: Locale) -> NSImage {
         let date = Date()
         let title: String
@@ -875,6 +918,16 @@ private enum CalendarMenuBarIconRenderer {
         }
 
         return drawTwoLineIcon(title: title, subtitle: subtitle)
+    }
+
+    private static func appIconImage() -> NSImage {
+        let sourceImage = NSImage(named: "AppIcon")
+            ?? Bundle.main.url(forResource: "AppIcon", withExtension: "icns").flatMap(NSImage.init(contentsOf:))
+            ?? drawSingleLineIcon("X")
+        let image = (sourceImage.copy() as? NSImage) ?? sourceImage
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = false
+        return image
     }
 
     private static func weekdayTitle(for date: Date, locale: Locale) -> String {
