@@ -49,6 +49,12 @@
 "common.quit_app" = "退出應用";
 "common.quit_app_desc" = "退出後，選單列入口、全域快速鍵、視窗管理和 LockJob 都會停止工作。";
 "common.quit_app_button" = "退出 xxMac...";
+"permissions.description" = "集中查看並取得 xxMac 需要的系統權限。";
+"permissions.accessibility" = "輔助使用";
+"permissions.accessibility_granted" = "已授權，可以控制視窗、監聽全域快速鍵並恢復輸入焦點。";
+"permissions.accessibility_missing" = "未授權，視窗管理、全域快速鍵和部分剪貼簿回貼功能可能無法使用。";
+"permissions.request_accessibility" = "取得輔助使用權限";
+"permissions.refresh" = "刷新狀態";
 "general.cancel" = "取消";
 
 "accessibility.required_title" = "需要輔助使用權限";
@@ -179,6 +185,7 @@
 "tool.about" = "關於";
 
 "function.configuration" = "設定";
+"function.common.permissions" = "權限設定";
 "function.common.shortcuts" = "快速鍵管理";
 "function.language" = "語言";
 "function.search.general" = "通用";

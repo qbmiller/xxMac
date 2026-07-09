@@ -49,6 +49,12 @@
 "common.quit_app" = "Quit Application";
 "common.quit_app_desc" = "After quitting, the status bar item, global shortcuts, window management, and LockJob will stop working.";
 "common.quit_app_button" = "Quit xxMac...";
+"permissions.description" = "Review and request the system permissions xxMac needs.";
+"permissions.accessibility" = "Accessibility";
+"permissions.accessibility_granted" = "Granted. xxMac can control windows, listen for global shortcuts, and restore input focus.";
+"permissions.accessibility_missing" = "Missing. Window management, global shortcuts, and some clipboard paste-back flows may not work.";
+"permissions.request_accessibility" = "Request Accessibility Permission";
+"permissions.refresh" = "Refresh Status";
 "general.cancel" = "Cancel";
 
 "accessibility.required_title" = "Accessibility Permission Required";
@@ -179,6 +185,7 @@
 "tool.about" = "About";
 
 "function.configuration" = "Configuration";
+"function.common.permissions" = "Permissions";
 "function.common.shortcuts" = "Shortcut Management";
 "function.language" = "Language";
 "function.search.general" = "General";

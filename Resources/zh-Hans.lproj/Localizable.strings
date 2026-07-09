@@ -49,6 +49,12 @@
 "common.quit_app" = "退出应用";
 "common.quit_app_desc" = "退出后，状态栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
 "common.quit_app_button" = "退出 xxMac...";
+"permissions.description" = "集中查看并获取 xxMac 需要的系统权限。";
+"permissions.accessibility" = "辅助功能";
+"permissions.accessibility_granted" = "已授权，可以控制窗口、监听全局快捷键并恢复输入焦点。";
+"permissions.accessibility_missing" = "未授权，窗口管理、全局快捷键和部分剪贴板回贴功能可能不可用。";
+"permissions.request_accessibility" = "获取辅助功能权限";
+"permissions.refresh" = "刷新状态";
 "general.cancel" = "取消";
 
 "accessibility.required_title" = "需要辅助功能权限";
@@ -179,6 +185,7 @@
 "tool.about" = "关于";
 
 "function.configuration" = "配置";
+"function.common.permissions" = "权限设置";
 "function.common.shortcuts" = "快捷键管理";
 "function.language" = "语言";
 "function.search.general" = "通用";

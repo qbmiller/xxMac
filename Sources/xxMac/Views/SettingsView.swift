@@ -529,6 +529,8 @@ struct ConfigurationView: View {
         switch function.type {
         case .commonConfig:
             CommonSettingsView()
+        case .commonPermissions:
+            PermissionsSettingsView()
         case .commonShortcuts:
             CommonShortcutSettingsView()
         case .commonLanguage:

@@ -17,10 +17,28 @@ class AccessibilityManager {
     
     private init() {}
     
+    func hasAccessibilityPermissions() -> Bool {
+        AXIsProcessTrusted()
+    }
+
     // Check if we have accessibility permissions
     func checkAccessibilityPermissions() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
+    }
+
+    @discardableResult
+    func requestAccessibilityPermissions() -> Bool {
+        let isTrusted = checkAccessibilityPermissions()
+        openAccessibilitySettings()
+        return isTrusted
+    }
+
+    func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 
     func ensureAccessibilityPermissions() -> Bool {
@@ -109,9 +127,8 @@ class AccessibilityManager {
             alert.addButton(withTitle: L10n.t("accessibility.open_settings"))
             alert.addButton(withTitle: L10n.t("general.cancel"))
 
-            if alert.runModal() == .alertFirstButtonReturn,
-               let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                NSWorkspace.shared.open(url)
+            if alert.runModal() == .alertFirstButtonReturn {
+                self.openAccessibilitySettings()
             }
         }
     }
