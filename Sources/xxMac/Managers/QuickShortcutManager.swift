@@ -368,6 +368,10 @@ final class QuickShortcutManager: ObservableObject {
         iconCache.cachedIconURL(for: item)
     }
 
+    func iconURL(for item: QuickShortcut) -> URL? {
+        iconCache.iconURL(for: item)
+    }
+
     private func commandArguments(for item: QuickShortcut, query: String) -> [String] {
         switch item.commandInputMode {
         case .noInput:

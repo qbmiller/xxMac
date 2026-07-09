@@ -183,6 +183,7 @@ class LauncherViewModel: ObservableObject {
                     title: item.title,
                     subtitle: L10n.t("quick_shortcut.input_required"),
                     iconName: item.actionType.iconName,
+                    iconFileURL: QuickShortcutManager.shared.iconURL(for: item),
                     type: .quickShortcut,
                     action: {}
                 )
@@ -197,6 +198,7 @@ class LauncherViewModel: ObservableObject {
                         title: match.item.title,
                         subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
                         iconName: match.item.actionType.iconName,
+                        iconFileURL: QuickShortcutManager.shared.iconURL(for: match.item),
                         type: .quickShortcut,
                         action: {
                             QuickShortcutManager.shared.execute(item: match.item, query: match.query)
