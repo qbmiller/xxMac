@@ -529,6 +529,8 @@ struct ConfigurationView: View {
         switch function.type {
         case .commonConfig:
             CommonSettingsView()
+        case .commonShortcuts:
+            CommonShortcutSettingsView()
         case .commonLanguage:
             LanguageSettingsView()
         case .searchPaths:
@@ -643,7 +645,7 @@ struct HotKeySettingsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            ForEach(WindowAction.allCases, id: \.self) { action in
+            ForEach(WindowAction.windowManagementCases, id: \.self) { action in
                 HStack {
                     Text(action.displayName)
                         .frame(width: 140, alignment: .trailing)
@@ -656,7 +658,7 @@ struct HotKeySettingsView: View {
                 }
                 .padding(.vertical, 8)
                 
-                if action != WindowAction.allCases.last {
+                if action != WindowAction.windowManagementCases.last {
                     Divider()
                 }
             }
@@ -680,6 +682,69 @@ struct HotKeySettingsView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
         )
+    }
+}
+
+struct CommonShortcutSettingsView: View {
+    @ObservedObject var hotKeyManager = HotKeyManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(L10n.t("common_shortcuts.desc"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            VStack(spacing: 0) {
+                ForEach(WindowAction.commonShortcutCases, id: \.self) { action in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(action.displayName)
+                            if action == .pasteFinderPath {
+                                Text(L10n.t("common_shortcuts.paste_finder_path_desc"))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
+                        Spacer()
+
+                        HotKeyRecorderView(action: action)
+                            .frame(maxWidth: 200)
+                    }
+                    .padding(.vertical, 10)
+
+                    if action != WindowAction.commonShortcutCases.last {
+                        Divider()
+                    }
+                }
+
+                Divider()
+                    .padding(.vertical, 20)
+
+                HStack {
+                    Button(L10n.t("hotkey.restore_defaults")) {
+                        WindowAction.commonShortcutCases.compactMap { action -> (WindowAction, HotKeyConfiguration)? in
+                            guard let configuration = hotKeyManager.defaultConfigurationForUserReset(action) else {
+                                return nil
+                            }
+                            return (action, configuration)
+                        }.forEach { action, configuration in
+                            hotKeyManager.updateConfiguration(for: action, key: configuration.key, modifiers: configuration.modifiers)
+                        }
+                    }
+                    Spacer()
+                }
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+
+            Spacer()
+        }
     }
 }
 

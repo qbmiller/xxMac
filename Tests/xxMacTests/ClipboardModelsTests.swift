@@ -28,4 +28,12 @@ final class ClipboardModelsTests: XCTestCase {
 
         XCTAssertEqual(item.searchableContent(), "project image note")
     }
+
+    func testClipboardRecordsWhitespaceOnlyText() {
+        XCTAssertTrue(ClipboardManager.shouldRecordText("   \n\t"))
+    }
+
+    func testClipboardSkipsOnlyEmptyText() {
+        XCTAssertFalse(ClipboardManager.shouldRecordText(""))
+    }
 }

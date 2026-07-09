@@ -51,23 +51,6 @@ When users ask you to perform tasks, check if any of the available skills below 
 <location>global</location>
 </skill>
 
-<skill>
-<name>to-issues</name>
-<description>Break a plan, spec, or PRD into independently-grabbable issues on the project issue tracker using tracer-bullet vertical slices.</description>
-<location>global</location>
-</skill>
-
-<skill>
-<name>to-prd</name>
-<description>Turn the current conversation into a PRD and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed.</description>
-<location>global</location>
-</skill>
-
-<skill>
-<name>using-superpowers</name>
-<description>Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY response including clarifying questions</description>
-<location>global</location>
-</skill>
 
 </available_skills>
 <!-- SKILLS_TABLE_END -->

@@ -20,7 +20,32 @@ enum WindowAction: String, CaseIterable, Codable {
     case nextScreen = "Next Screen"
     case previousScreen = "Previous Screen"
     case toggleLauncher = "Toggle Launcher"
+    case pasteFinderPath = "Paste Finder Path"
     case lockAI = "LockAI"
+
+    static let windowManagementCases: [WindowAction] = [
+        .left,
+        .right,
+        .top,
+        .bottom,
+        .topLeft,
+        .topRight,
+        .bottomLeft,
+        .bottomRight,
+        .center,
+        .toggleZoom,
+        .maximize,
+        .toggleFullscreen,
+        .increase,
+        .reduce,
+        .nextScreen,
+        .previousScreen
+    ]
+
+    static let commonShortcutCases: [WindowAction] = [
+        .toggleLauncher,
+        .pasteFinderPath
+    ]
 
     var displayName: String {
         switch self {
@@ -41,6 +66,7 @@ enum WindowAction: String, CaseIterable, Codable {
         case .nextScreen: return L10n.t("window_action.next_screen")
         case .previousScreen: return L10n.t("window_action.previous_screen")
         case .toggleLauncher: return L10n.t("window_action.toggle_launcher")
+        case .pasteFinderPath: return L10n.t("window_action.paste_finder_path")
         case .lockAI: return L10n.t("window_action.lock_ai")
         }
     }
@@ -68,6 +94,7 @@ class HotKeyManager: ObservableObject {
            let decoded = try? JSONDecoder().decode([WindowAction: HotKeyConfiguration].self, from: data) {
             configurations = decoded
             ensureDefaultConfiguration(for: .lockAI)
+            ensureDefaultConfiguration(for: .pasteFinderPath)
         } else {
             setupDefaultConfigurations()
         }
@@ -104,6 +131,7 @@ class HotKeyManager: ObservableObject {
             .nextScreen: HotKeyConfiguration(key: .n, modifiers: defaultModifiers),
             .previousScreen: HotKeyConfiguration(key: .p, modifiers: defaultModifiers),
             .toggleLauncher: HotKeyConfiguration(key: .space, modifiers: [.control, .option]),
+            .pasteFinderPath: HotKeyConfiguration(key: .v, modifiers: [.command, .shift]),
             .lockAI: HotKeyConfiguration(key: .l, modifiers: defaultModifiers)
         ]
         
@@ -119,11 +147,19 @@ class HotKeyManager: ObservableObject {
         let defaultModifiers: NSEvent.ModifierFlags = [.control, .option, .command]
 
         switch action {
+        case .toggleLauncher:
+            return HotKeyConfiguration(key: .space, modifiers: [.control, .option])
         case .lockAI:
             return HotKeyConfiguration(key: .l, modifiers: defaultModifiers)
+        case .pasteFinderPath:
+            return HotKeyConfiguration(key: .v, modifiers: [.command, .shift])
         default:
             return nil
         }
+    }
+
+    func defaultConfigurationForUserReset(_ action: WindowAction) -> HotKeyConfiguration? {
+        defaultConfiguration(for: action)
     }
 
     private func ensureDefaultConfiguration(for action: WindowAction) {
@@ -235,6 +271,10 @@ class HotKeyManager: ObservableObject {
                 }
                 NSApp.activate(ignoringOtherApps: true)
                 NotificationCenter.default.post(name: NSNotification.Name("ToggleLauncher"), object: nil)
+            }
+        case .pasteFinderPath:
+            DispatchQueue.main.async {
+                FilePathPasteManager.shared.pasteFinderPaths()
             }
         case .lockAI:
             DispatchQueue.main.async {

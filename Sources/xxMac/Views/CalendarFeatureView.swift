@@ -74,13 +74,18 @@ final class CalendarPreferencesStore: ObservableObject {
 
     private init() {
         let store = PreferencesStore.shared
-        showLunar = store.boolObject(forKey: CalendarPreferencesKey.showLunar) ?? true
-        showWeekNumbers = store.boolObject(forKey: CalendarPreferencesKey.showWeekNumbers) ?? true
-        firstWeekday = store.intObject(forKey: CalendarPreferencesKey.firstWeekday) ?? 2
+        showLunar = store.boolObject(forKey: CalendarPreferencesKey.showLunar)
+            ?? AppDefaultSettings.Calendar.showLunar
+        showWeekNumbers = store.boolObject(forKey: CalendarPreferencesKey.showWeekNumbers)
+            ?? AppDefaultSettings.Calendar.showWeekNumbers
+        firstWeekday = store.intObject(forKey: CalendarPreferencesKey.firstWeekday)
+            ?? AppDefaultSettings.Calendar.firstWeekday
         let rawStyle = store.string(forKey: CalendarPreferencesKey.menuBarIconStyle)
-        menuBarIconStyle = rawStyle.flatMap(CalendarMenuBarIconStyle.init(rawValue:)) ?? .weekdayDay
+        menuBarIconStyle = rawStyle.flatMap(CalendarMenuBarIconStyle.init(rawValue:))
+            ?? AppDefaultSettings.Calendar.menuBarIconStyle
         let rawDisplayMode = store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode)
-        menuBarDisplayMode = rawDisplayMode.flatMap(CalendarMenuBarDisplayMode.init(rawValue:)) ?? .appIcon
+        menuBarDisplayMode = rawDisplayMode.flatMap(CalendarMenuBarDisplayMode.init(rawValue:))
+            ?? AppDefaultSettings.Calendar.menuBarDisplayMode
     }
 }
 

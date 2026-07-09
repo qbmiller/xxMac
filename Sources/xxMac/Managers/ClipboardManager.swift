@@ -145,26 +145,27 @@ class ClipboardManager: ObservableObject {
     
     private func processPasteboardContent() {
         let pasteboard = NSPasteboard.general
-        
-        // 1. Check for text
-        if let str = pasteboard.string(forType: .string), !str.trimmingCharacters(in: .whitespaces).isEmpty {
+        let fileURLs = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL] ?? []
+        var imageToSave: NSImage?
+
+        if let firstURL = fileURLs.first {
+            guard settings.manageImages else { return }
+
+            let ext = firstURL.pathExtension.lowercased()
+            let imageExtensions = ["png", "jpg", "jpeg", "tiff", "gif", "bmp", "heic", "webp"]
+            if imageExtensions.contains(ext), let image = NSImage(contentsOf: firstURL) {
+                imageToSave = image
+            } else {
+                return
+            }
+        } else if let str = pasteboard.string(forType: .string), Self.shouldRecordText(str) {
             addItem(type: .text, content: str, size: str.utf8.count)
             return
-        }
-        
-        // 2. Check for images if enabled
-        guard settings.manageImages else { return }
-        
-        var imageToSave: NSImage?
-        
-        // Check for file URLs
-        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
-           let firstURL = urls.first {
-             let ext = firstURL.pathExtension.lowercased()
-             let imageExtensions = ["png", "jpg", "jpeg", "tiff", "gif", "bmp", "heic", "webp"]
-             if imageExtensions.contains(ext), let image = NSImage(contentsOf: firstURL) {
-                 imageToSave = image
-             }
+        } else {
+            guard settings.manageImages else { return }
         }
         
         // Check for direct image data
@@ -542,5 +543,9 @@ class ClipboardManager: ObservableObject {
         guard settings.imageOCREnabled else { return false }
         let maxBytes = max(1, settings.maxOCRImageSizeMB) * 1024 * 1024
         return byteSize <= maxBytes
+    }
+
+    static func shouldRecordText(_ text: String) -> Bool {
+        !text.isEmpty
     }
 }

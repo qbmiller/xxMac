@@ -24,6 +24,8 @@
 "common.global_hotkey" = "全局热键";
 "common.global_hotkey_desc" = "设置用于显示或隐藏主启动器窗口的热键。";
 "common.toggle_launcher" = "切换启动器";
+"common_shortcuts.desc" = "管理通用功能的全局快捷键。";
+"common_shortcuts.paste_finder_path_desc" = "复制 Finder 中的文件或文件夹后，按此快捷键在当前应用粘贴完整路径；普通粘贴不受影响。";
 "common.app_index" = "应用索引";
 "common.app_index_desc" = "应用列表会缓存并在下次启动时复用；安装新应用后可手动重建索引。";
 "common.index_apps" = "索引应用";
@@ -177,6 +179,7 @@
 "tool.about" = "关于";
 
 "function.configuration" = "配置";
+"function.common.shortcuts" = "快捷键管理";
 "function.language" = "语言";
 "function.search.general" = "通用";
 "function.search.paths" = "搜索路径";
@@ -234,6 +237,7 @@
 "window_action.next_screen" = "下一屏";
 "window_action.previous_screen" = "上一屏";
 "window_action.toggle_launcher" = "切换启动器";
+"window_action.paste_finder_path" = "粘贴 Finder 文件路径";
 "window_action.lock_ai" = "LockJob";
 
 "key.space" = "空格";

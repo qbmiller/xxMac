@@ -24,6 +24,8 @@
 "common.global_hotkey" = "Global Hotkey";
 "common.global_hotkey_desc" = "Set the hotkey to show or hide the main launcher window.";
 "common.toggle_launcher" = "Toggle Launcher";
+"common_shortcuts.desc" = "Manage global hotkeys for common actions.";
+"common_shortcuts.paste_finder_path_desc" = "After copying files or folders in Finder, use this shortcut to paste full paths into the current app; normal paste is unchanged.";
 "common.app_index" = "Application Index";
 "common.app_index_desc" = "The application list is cached and reused on next launch. Rebuild it manually after installing new apps.";
 "common.index_apps" = "Index Applications";
@@ -177,6 +179,7 @@
 "tool.about" = "About";
 
 "function.configuration" = "Configuration";
+"function.common.shortcuts" = "Shortcut Management";
 "function.language" = "Language";
 "function.search.general" = "General";
 "function.search.paths" = "Search Paths";
@@ -234,6 +237,7 @@
 "window_action.next_screen" = "Next Screen";
 "window_action.previous_screen" = "Previous Screen";
 "window_action.toggle_launcher" = "Toggle Launcher";
+"window_action.paste_finder_path" = "Paste Finder File Path";
 "window_action.lock_ai" = "LockJob";
 
 "key.space" = "Space";

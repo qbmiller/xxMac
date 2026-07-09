@@ -24,6 +24,8 @@
 "common.global_hotkey" = "全域快速鍵";
 "common.global_hotkey_desc" = "設定用於顯示或隱藏主啟動器視窗的快速鍵。";
 "common.toggle_launcher" = "切換啟動器";
+"common_shortcuts.desc" = "管理通用功能的全域快速鍵。";
+"common_shortcuts.paste_finder_path_desc" = "複製 Finder 中的檔案或資料夾後，按此快速鍵在目前 App 貼上完整路徑；一般貼上不受影響。";
 "common.app_index" = "應用索引";
 "common.app_index_desc" = "應用列表會快取並在下次啟動時複用；安裝新應用後可手動重建索引。";
 "common.index_apps" = "索引應用";
@@ -177,6 +179,7 @@
 "tool.about" = "關於";
 
 "function.configuration" = "設定";
+"function.common.shortcuts" = "快速鍵管理";
 "function.language" = "語言";
 "function.search.general" = "通用";
 "function.search.paths" = "搜尋路徑";
@@ -234,6 +237,7 @@
 "window_action.next_screen" = "下一螢幕";
 "window_action.previous_screen" = "上一螢幕";
 "window_action.toggle_launcher" = "切換啟動器";
+"window_action.paste_finder_path" = "貼上 Finder 檔案路徑";
 "window_action.lock_ai" = "LockJob";
 
 "key.space" = "空白鍵";

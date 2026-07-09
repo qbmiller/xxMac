@@ -64,34 +64,6 @@ struct CommonSettingsView: View {
                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                 )
 
-                // Global Hotkey Section
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.t("common.global_hotkey"))
-                        .font(.headline)
-                    Text(L10n.t("common.global_hotkey_desc"))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    HStack {
-                        Text(L10n.t("common.toggle_launcher"))
-                            .foregroundColor(.secondary)
-                        
-                        HotKeyRecorderView(action: .toggleLauncher)
-                            .frame(maxWidth: 200)
-                        
-                        Spacer()
-                    }
-                    .padding(.top, 4)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-
                 // App Index Section
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.t("common.app_index"))

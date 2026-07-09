@@ -33,6 +33,7 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 | `Control + Option + Command + F` | Toggle fullscreen |
 | `Control + Option + Command + =/-` | Enlarge or shrink the window |
 | `Control + Option + Command + N/P` | Move to the next/previous display |
+| `Command + Shift + V` | Paste files/folders copied in Finder as full paths |
 
 All of these hotkeys can be changed in the settings window.
 
@@ -93,10 +94,11 @@ If window control, global hotkeys, or clipboard paste-back stop working after re
 - The default configuration folder is `~/Library/Application Support/xxMac`, and it can be changed from General > Configuration. Changing it moves the current preferences, app index cache, clipboard SQLite database, and image cache to the new folder, then removes xxMac data from the old folder.
 - The top-right status bar entry is shown by default. If the icon disappears or you want to hide it, use General > Configuration > Show in top-right status bar. The same area includes status bar diagnostics and a Refresh/Recreate button to confirm whether the `NSStatusItem` exists, is visible, and is attached to the system status bar.
 - The configuration folder can be local or managed by a sync service such as iCloud Drive or Dropbox, as long as files stay available offline. Avoid system folders, the app bundle, and temporary removable drives.
-- Hotkey settings, app quick-launch settings, launcher appearance, overall scale, text size, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder.
+- Hotkey settings, app quick-launch settings, launcher appearance, overall scale, text size, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder. Calendar status bar display defaults to the calendar icon and can be changed to the App icon. First-run defaults are centralized in `Sources/xxMac/AppDefaultSettings.swift`, where comments can document each default switch.
 - xxMac creates `quick/` inside the configuration folder for complex quick shortcut scripts. Command scripts receive `XXMAC_HOME` for the configuration folder and `XXMAC_QUICK_HOME` for `quick/`, for example `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`.
 - App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index cache is stored as `app-search-index.json` in the configuration folder and can be rebuilt from General > Configuration with “Index Applications”. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
 - The clipboard database, original image cache, and thumbnail cache are stored as `clipboard.db`, `clipboard_images/`, and `clipboard_thumbnails/` inside the configuration folder.
+- Clipboard history records every non-empty text value that reaches the system clipboard. If a browser or password manager allows a password to be copied to the system clipboard, it will be recorded too. If the page or app does not actually write to the system clipboard, xxMac cannot capture it.
 - Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, thumbnail cache, or app index cache; use the configuration folder switch for a full migration.
 - General > Configuration includes a Quit Application button at the bottom and asks for confirmation before quitting.
 - The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.

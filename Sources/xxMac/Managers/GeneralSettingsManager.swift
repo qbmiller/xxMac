@@ -16,6 +16,7 @@ final class GeneralSettingsManager: ObservableObject {
     }
 
     private init() {
-        showMenuBarItem = PreferencesStore.shared.boolObject(forKey: GeneralPreferencesKey.showMenuBarItem) ?? true
+        showMenuBarItem = PreferencesStore.shared.boolObject(forKey: GeneralPreferencesKey.showMenuBarItem)
+            ?? AppDefaultSettings.General.showMenuBarItem
     }
 }
