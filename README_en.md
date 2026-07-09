@@ -12,13 +12,16 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 
 | Capability | Description | Similar / Alternative |
 | --- | --- | --- |
-| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Type arithmetic expressions directly in the search field to see live results, then press Return to copy the result. Supports custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
+| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Supports custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
+| Launcher Calculator | Type arithmetic expressions such as `4+8`, `(2+3)*4`, or `-3.5/2` directly in the launcher search field to see live results, then press Return to copy the result. | Alfred Calculator / Spotlight |
 | App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. | Thor |
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
+| Finder Path Paste | Copy files or folders in Finder, then press `Command + Shift + V` to paste their full paths into the frontmost app. Useful for terminals, editors, and chat windows. | Copy Path / Path Finder |
 | Chinese Calendar | Provides a top-right status bar entry, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable status bar icon styles. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
 | Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews; optional local OCR stores recognized image text as searchable metadata. | Clipboard manager |
-| Quick Shortcuts | Use launcher keywords to trigger web searches or command scripts. Command scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes; shortcuts can also be pinned into launcher results, useful for Google, Baidu, and similar search entries. | Alfred Web Search / Workflows |
+| Quick Shortcut Search | Trigger web searches from the launcher with custom keywords and URL templates. Shortcuts can also be pinned into launcher results for Google, Baidu, and similar search entries. | Alfred Web Search |
+| Quick Shortcut Scripts | Run local command scripts from launcher keywords. Scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes, and can live under the configuration folder's `quick/` directory. | Alfred Workflows |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
 
 ## Default Hotkeys
