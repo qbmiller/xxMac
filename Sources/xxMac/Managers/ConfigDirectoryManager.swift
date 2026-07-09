@@ -71,6 +71,10 @@ final class ConfigDirectoryManager: ObservableObject {
         currentDirectory.appendingPathComponent("quick", isDirectory: true)
     }
 
+    var quickShortcutIconsDirectoryURL: URL {
+        currentDirectory.appendingPathComponent("quick_icons", isDirectory: true)
+    }
+
     init(
         defaults: UserDefaults = .standard,
         fileManager: FileManager = .default,
@@ -183,6 +187,7 @@ final class ConfigDirectoryManager: ObservableObject {
         try fileManager.createDirectory(at: clipboardImagesDirectoryURL, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: clipboardThumbnailsDirectoryURL, withIntermediateDirectories: true)
         try fileManager.createDirectory(at: quickDirectoryURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: quickShortcutIconsDirectoryURL, withIntermediateDirectories: true)
 
         guard !fileManager.fileExists(atPath: manifestURL.path) else { return }
 
@@ -250,6 +255,17 @@ final class ConfigDirectoryManager: ObservableObject {
             try fileManager.copyItem(at: sourceQuickURL, to: targetQuickURL)
         } else {
             try fileManager.createDirectory(at: targetQuickURL, withIntermediateDirectories: true)
+        }
+
+        let sourceQuickIconsURL = sourceDirectory.appendingPathComponent("quick_icons", isDirectory: true)
+        let targetQuickIconsURL = targetDirectory.appendingPathComponent("quick_icons", isDirectory: true)
+        if fileManager.fileExists(atPath: sourceQuickIconsURL.path) {
+            if fileManager.fileExists(atPath: targetQuickIconsURL.path) {
+                try fileManager.removeItem(at: targetQuickIconsURL)
+            }
+            try fileManager.copyItem(at: sourceQuickIconsURL, to: targetQuickIconsURL)
+        } else {
+            try fileManager.createDirectory(at: targetQuickIconsURL, withIntermediateDirectories: true)
         }
 
         try fileManager.removeItem(at: sourceDirectory)

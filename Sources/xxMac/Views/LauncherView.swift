@@ -333,6 +333,7 @@ private struct ModifierKeyMonitor: NSViewRepresentable {
 struct SearchResultIcon: View {
     let item: SearchItem
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
+    @ObservedObject private var iconCache = QuickShortcutIconCacheManager.shared
 
     private var sizeScale: CGFloat {
         CGFloat(appearance.sizeScale)
@@ -348,6 +349,13 @@ struct SearchResultIcon: View {
                 Image(nsImage: image)
                     .resizable()
                     .scaledToFit()
+            } else if let image = cachedIcon {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(scaled(8))
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: scaled(12), style: .continuous))
             } else {
                 Image(systemName: item.iconName)
                     .resizable()
@@ -360,11 +368,17 @@ struct SearchResultIcon: View {
             }
         }
         .frame(width: scaled(50), height: scaled(50))
+        .id(iconCache.refreshToken)
     }
 
     private var appIcon: NSImage? {
         guard item.type == .app else { return nil }
         return NSWorkspace.shared.icon(forFile: item.subtitle)
+    }
+
+    private var cachedIcon: NSImage? {
+        guard let iconFileURL = item.iconFileURL else { return nil }
+        return NSImage(contentsOf: iconFileURL)
     }
 }
 

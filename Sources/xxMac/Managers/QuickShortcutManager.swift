@@ -11,6 +11,7 @@ final class QuickShortcutManager: ObservableObject {
 
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "QuickShortcut")
     private let storageKey = "QuickShortcutItems"
+    private let iconCache = QuickShortcutIconCacheManager.shared
 
     struct Match {
         let item: QuickShortcut
@@ -28,13 +29,15 @@ final class QuickShortcutManager: ObservableObject {
     }
 
     func addWebSearch() {
-        items.append(QuickShortcut(
+        let item = QuickShortcut(
             title: L10n.t("quick_shortcut.default_web_title"),
             keyword: "",
             actionType: .webSearch,
             payload: "https://www.google.com/search?q={query}",
             isEnabled: false
-        ))
+        )
+        items.append(item)
+        iconCache.ensureIconCached(for: item)
     }
 
     func addCommandScript() {
@@ -50,12 +53,19 @@ final class QuickShortcutManager: ObservableObject {
     }
 
     func removeItem(_ item: QuickShortcut) {
+        iconCache.removeIcon(for: item)
         items.removeAll { $0.id == item.id }
     }
 
     func updateItem(_ item: QuickShortcut) {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let oldItem = items[index]
+        if oldItem.actionType == .webSearch,
+           (item.actionType != .webSearch || iconCache.webSearchHost(for: oldItem) != iconCache.webSearchHost(for: item)) {
+            iconCache.removeIcon(for: oldItem)
+        }
         items[index] = item
+        iconCache.ensureIconCached(for: item)
     }
 
     func search(query: String) -> [SearchItem] {
@@ -71,6 +81,7 @@ final class QuickShortcutManager: ObservableObject {
                 title: item.title,
                 subtitle: subtitle(for: item),
                 iconName: item.actionType.iconName,
+                iconFileURL: iconCache.iconURL(for: item),
                 type: .quickShortcut,
                 action: { [weak self] in
                     self?.execute(item: item, query: invokedQuery)
@@ -91,6 +102,7 @@ final class QuickShortcutManager: ObservableObject {
                 title: fallbackTitle(for: item, query: trimmedQuery),
                 subtitle: subtitle(for: item),
                 iconName: item.actionType.iconName,
+                iconFileURL: iconCache.iconURL(for: item),
                 type: item.actionType == .commandScript ? .quickShortcutOutput : .quickShortcut,
                 action: { [weak self] in
                     switch item.actionType {
@@ -352,6 +364,10 @@ final class QuickShortcutManager: ObservableObject {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
+    func cachedIconURL(for item: QuickShortcut) -> URL? {
+        iconCache.cachedIconURL(for: item)
+    }
+
     private func commandArguments(for item: QuickShortcut, query: String) -> [String] {
         switch item.commandInputMode {
         case .noInput:
@@ -432,6 +448,7 @@ final class QuickShortcutManager: ObservableObject {
             return
         }
         items = decoded
+        iconCache.ensureIconsCached(for: decoded)
     }
 
     private func saveItems() {

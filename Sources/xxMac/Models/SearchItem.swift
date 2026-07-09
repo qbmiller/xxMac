@@ -31,6 +31,7 @@ struct SearchItem: Identifiable, Hashable {
     let title: String
     let subtitle: String
     let iconName: String
+    let iconFileURL: URL?
     let type: SearchResultType
     let clipboardPreview: ClipboardPreviewData?
     let snippetPreview: SnippetPreviewData?
@@ -41,6 +42,7 @@ struct SearchItem: Identifiable, Hashable {
         title: String,
         subtitle: String,
         iconName: String,
+        iconFileURL: URL? = nil,
         type: SearchResultType,
         clipboardPreview: ClipboardPreviewData? = nil,
         snippetPreview: SnippetPreviewData? = nil,
@@ -50,6 +52,7 @@ struct SearchItem: Identifiable, Hashable {
         self.title = title
         self.subtitle = subtitle
         self.iconName = iconName
+        self.iconFileURL = iconFileURL
         self.type = type
         self.clipboardPreview = clipboardPreview
         self.snippetPreview = snippetPreview

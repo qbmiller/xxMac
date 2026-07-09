@@ -130,12 +130,12 @@ struct QuickShortcutDetailView: View {
 private struct QuickShortcutRow: View {
     let item: QuickShortcut
     @ObservedObject private var manager = QuickShortcutManager.shared
+    @ObservedObject private var iconCache = QuickShortcutIconCacheManager.shared
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: item.actionType.iconName)
-                .foregroundColor(item.actionType == .webSearch ? .blue : .orange)
-                .frame(width: 22)
+            QuickShortcutRowIcon(item: item)
+                .id(iconCache.refreshToken)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title)
@@ -167,6 +167,30 @@ private struct QuickShortcutRow: View {
             return item.actionType.displayName
         }
         return "\(keyword) · \(item.actionType.displayName)"
+    }
+}
+
+private struct QuickShortcutRowIcon: View {
+    let item: QuickShortcut
+
+    var body: some View {
+        Group {
+            if let iconURL = QuickShortcutManager.shared.cachedIconURL(for: item),
+               let image = NSImage(contentsOf: iconURL) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            } else {
+                Image(systemName: item.actionType.iconName)
+                    .resizable()
+                    .scaledToFit()
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(item.actionType == .webSearch ? .blue : .orange)
+                    .padding(2)
+            }
+        }
+        .frame(width: 22, height: 22)
     }
 }
 

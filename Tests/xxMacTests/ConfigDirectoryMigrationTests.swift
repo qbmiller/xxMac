@@ -29,6 +29,8 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         try Data("image".utf8).write(to: imageURL)
         let thumbnailURL = manager.clipboardThumbnailsDirectoryURL.appendingPathComponent("a-thumb.png")
         try Data("thumbnail".utf8).write(to: thumbnailURL)
+        let quickIconURL = manager.quickShortcutIconsDirectoryURL.appendingPathComponent("shortcut.png")
+        try Data("quick-icon".utf8).write(to: quickIconURL)
         let originalDirectory = manager.currentDirectory
 
         try manager.changeDirectory(to: targetRoot)
@@ -49,6 +51,10 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         XCTAssertEqual(
             try String(contentsOf: manager.clipboardThumbnailsDirectoryURL.appendingPathComponent("a-thumb.png"), encoding: .utf8),
             "thumbnail"
+        )
+        XCTAssertEqual(
+            try String(contentsOf: manager.quickShortcutIconsDirectoryURL.appendingPathComponent("shortcut.png"), encoding: .utf8),
+            "quick-icon"
         )
         XCTAssertFalse(FileManager.default.fileExists(atPath: originalDirectory.path))
     }
