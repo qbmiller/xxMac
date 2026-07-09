@@ -251,6 +251,7 @@
 "general.unknown" = "Unknown";
 "general.done" = "Done";
 "general.copy" = "Copy";
+"calculator.copy_result" = "Press Return to copy result";
 
 "tool.snippets" = "Snippets";
 "function.snippets.library" = "Categories";

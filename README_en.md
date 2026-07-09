@@ -12,7 +12,7 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 
 | Capability | Description | Similar / Alternative |
 | --- | --- | --- |
-| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Supports custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
+| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Type arithmetic expressions directly in the search field to see live results, then press Return to copy the result. Supports custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
 | App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. | Thor |
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
 | Chinese Calendar | Provides a top-right status bar entry, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable status bar icon styles. | CalendarX |

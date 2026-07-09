@@ -8,6 +8,7 @@ enum SearchResultType {
     case snippet
     case quickShortcut
     case quickShortcutOutput
+    case calculator
     case bookmark
 }
 

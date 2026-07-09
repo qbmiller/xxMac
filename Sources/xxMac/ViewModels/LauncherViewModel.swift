@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Combine
 import OSLog
+import AppKit
 
 enum LauncherMode {
     case launcher
@@ -135,6 +136,24 @@ class LauncherViewModel: ObservableObject {
         }
 
         if handleQuickShortcut(query: trimmedQuery) {
+            selectedIndex = 0
+            return
+        }
+
+        if let calculatorResult = CalculatorExpressionEvaluator.evaluate(trimmedQuery) {
+            results = [
+                SearchItem(
+                    id: "calculator.\(calculatorResult.expression)",
+                    title: calculatorResult.value,
+                    subtitle: L10n.t("calculator.copy_result"),
+                    iconName: "function",
+                    type: .calculator,
+                    action: {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(calculatorResult.value, forType: .string)
+                    }
+                )
+            ]
             selectedIndex = 0
             return
         }

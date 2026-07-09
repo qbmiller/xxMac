@@ -251,6 +251,7 @@
 "general.unknown" = "未知";
 "general.done" = "完成";
 "general.copy" = "複製";
+"calculator.copy_result" = "Return 複製計算結果";
 
 "tool.snippets" = "Snippets";
 "function.snippets.library" = "分類";
