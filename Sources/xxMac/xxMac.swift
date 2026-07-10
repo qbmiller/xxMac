@@ -92,6 +92,14 @@ struct xxMacApp: App {
         Settings {
             SettingsView()
         }
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button(L10n.t("menu.settings")) {
+                    appDelegate.openSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }
 
@@ -699,10 +707,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
 
     private func configureSettingsWindow(_ window: NSWindow) {
-        window.styleMask.insert(.resizable)
-        window.minSize = NSSize(width: 1050, height: 600)
-        window.contentMinSize = NSSize(width: 1050, height: 600)
-        window.contentMaxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        SettingsWindowConfiguration.apply(to: window)
     }
 
     @objc func lockAI() {

@@ -6,21 +6,24 @@ struct AppLauncherSettingsView: View {
     @ObservedObject var manager = AppLauncherManager.shared
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(L10n.t("launcher_settings.desc"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
             // Shortcuts List
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
                 if manager.shortcuts.isEmpty {
                     Text(L10n.t("launcher_settings.empty"))
                         .foregroundColor(.secondary)
                         .padding(20)
                 } else {
-                    ForEach(manager.shortcuts) { shortcut in
-                        AppShortcutRow(shortcut: shortcut)
-                        Divider()
+                    Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 0) {
+                        ForEach(manager.shortcuts) { shortcut in
+                            AppShortcutRow(shortcut: shortcut)
+                            Divider()
+                                .gridCellColumns(4)
+                        }
                     }
                 }
             }
@@ -30,6 +33,7 @@ struct AppLauncherSettingsView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.gray.opacity(0.2), lineWidth: 1)
             )
+            .frame(maxWidth: .infinity, alignment: .leading)
             
             // Add Button
             HStack {
@@ -40,8 +44,9 @@ struct AppLauncherSettingsView: View {
                 
                 Spacer()
             }
-            .padding(.top, 8)
+            .padding(.top, 4)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     private func addApplication() {
@@ -88,7 +93,7 @@ struct AppShortcutRow: View {
     @State private var isHovering = false
     
     var body: some View {
-        HStack {
+        GridRow(alignment: .center) {
             // Icon
             Image(nsImage: NSWorkspace.shared.icon(forFile: shortcut.appPath))
                 .resizable()
@@ -97,9 +102,9 @@ struct AppShortcutRow: View {
             // Name
             Text(shortcut.appName)
                 .font(.headline)
-            
-            Spacer()
-            
+                .lineLimit(1)
+                .truncationMode(.tail)
+
             // Recorder
             AppShortcutRecorderView(shortcut: shortcut)
                 .frame(width: 140)
@@ -112,9 +117,11 @@ struct AppShortcutRow: View {
                     .foregroundColor(.gray)
             }
             .buttonStyle(PlainButtonStyle())
-            .padding(.leading, 8)
+            .frame(width: 20, height: 20)
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.trailing, 12)
+        .padding(.vertical, 3)
         .background(Color(NSColor.controlBackgroundColor))
         .onHover { hover in
             isHovering = hover

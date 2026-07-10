@@ -1,5 +1,18 @@
 import SwiftUI
 import HotKey
+import AppKit
+
+enum SettingsWindowConfiguration {
+    private static let minimumSize = NSSize(width: 1050, height: 600)
+
+    static func apply(to window: NSWindow) {
+        window.styleMask.insert(.resizable)
+        window.minSize = minimumSize
+        window.contentMinSize = minimumSize
+        window.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        window.contentMaxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    }
+}
 
 // MARK: - Main View
 
@@ -35,6 +48,7 @@ struct SettingsView: View {
         }
         .frame(minWidth: 1050, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .background(Color(NSColor.windowBackgroundColor))
+        .background(SettingsWindowConfigurator())
         .id(localization.language)
         .onAppear {
             setupWindowCloseMonitor()
@@ -569,6 +583,28 @@ struct ConfigurationView: View {
                     .foregroundColor(.secondary)
             }
             .frame(maxWidth: .infinity, minHeight: 300)
+        }
+    }
+}
+
+private struct SettingsWindowConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> WindowResolvingView {
+        WindowResolvingView()
+    }
+
+    func updateNSView(_ nsView: WindowResolvingView, context: Context) {
+        nsView.configureWindowIfAvailable()
+    }
+
+    final class WindowResolvingView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            configureWindowIfAvailable()
+        }
+
+        func configureWindowIfAvailable() {
+            guard let window else { return }
+            SettingsWindowConfiguration.apply(to: window)
         }
     }
 }
