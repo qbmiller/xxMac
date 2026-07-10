@@ -549,6 +549,8 @@ struct ConfigurationView: View {
             CommonShortcutSettingsView()
         case .commonLanguage:
             LanguageSettingsView()
+        case .searchGeneral:
+            SearchGeneralSettingsView()
         case .searchPaths:
             SearchPathsSettingsView()
         case .wmShortcuts:
@@ -610,6 +612,71 @@ private struct SettingsWindowConfigurator: NSViewRepresentable {
 }
 
 // MARK: - Subviews
+
+struct SearchGeneralSettingsView: View {
+    @ObservedObject private var historyManager = LauncherHistoryManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(L10n.t("search_general.desc"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.t("launcher_history.max_items"))
+                            .font(.headline)
+                        Text(L10n.t("launcher_history.max_items_desc"))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Stepper(
+                        value: $historyManager.maxItems,
+                        in: LauncherHistoryManager.maxItemsRange,
+                        step: 10
+                    ) {
+                        Text(L10n.f("launcher_history.max_items_format", historyManager.maxItems))
+                            .monospacedDigit()
+                    }
+                    .frame(width: 160)
+                }
+
+                Divider()
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.t("launcher_history.clear_title"))
+                            .font(.headline)
+                        Text(L10n.f("launcher_history.current_count_format", historyManager.records.count))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button(role: .destructive) {
+                        historyManager.clear()
+                    } label: {
+                        Label(L10n.t("launcher_history.clear_button"), systemImage: "trash")
+                    }
+                    .disabled(historyManager.records.isEmpty)
+                }
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+            )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
 
 struct SearchPathsSettingsView: View {
     @ObservedObject var appSearchManager = AppSearchManager.shared

@@ -1,141 +1,131 @@
 # xxMac
 
-简体中文 | [English](README_en.md)
+[简体中文](README_zh-CN.md) | English
 
-xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具，基于 `SwiftUI + AppKit` 构建，支持窗口管理、全局快捷键、启动器、中国日历、快捷键冲突定位、剪贴板历史与常用工作流。它把日常高频操作整合到一个轻量入口里，日常使用形态是：
+xxMac is a lightweight native macOS status bar productivity tool with an installer of about 2 MB. Built with `SwiftUI + AppKit`, it brings window management, global hotkeys, a launcher, Chinese calendar, shortcut conflict detection, clipboard history, and common productivity workflows into one compact entry point. Its everyday workflow is:
 
-1. 右上角状态栏入口（默认显示，可在“通用 > 配置”里关闭或重新开启）。
-2. 全局热键唤起的浮动启动器面板。
-3. 双击打开 App 时显示三栏结构的设置窗口，窗口支持拉伸并可拖拽调整栏目宽度。
+1. A persistent top-right status bar entry.
+2. A floating launcher panel opened by a global hotkey.
+3. A three-column settings window shown when opening the app directly, with a resizable window and draggable column widths.
 
-## 产品截图
+## Feature Overview
 
-<table>
-  <tr>
-    <td width="25%" align="center"><img src="docs/images/image.png" alt="xxMac 截图 1" width="100%"><br>1</td>
-    <td width="25%" align="center"><img src="docs/images/image2.png" alt="xxMac 截图 2" width="100%"><br>2</td>
-    <td width="25%" align="center"><img src="docs/images/image3.png" alt="xxMac 截图 3" width="100%"><br>3</td>
-    <td width="25%" align="center"><img src="docs/images/image4.png" alt="xxMac 截图 4" width="100%"><br>4</td>
-  </tr>
-</table>
-
-## 功能概览
-
-| 能力 | 说明 | 类似/替代 |
+| Capability | Description | Similar / Alternative |
 | --- | --- | --- |
-| 启动器 | 通过全局热键打开半透明浮层，搜索应用、执行窗口命令、选择剪贴板历史；支持自定义底色、透明度、内容大小和窗口宽高。 | Alfred / Spotlight |
-| 启动器计算器 | 在启动器搜索栏直接输入 `4+8`、`(2+3)*4`、`-3.5/2` 等四则运算表达式，实时显示计算结果，回车复制结果。 | Alfred Calculator / Spotlight |
-| 应用快捷启动 | 为指定 App 绑定独立热键，支持启动、激活、隐藏切换。 | Thor |
-| 窗口管理 | 快捷操作窗口左右半屏、上下半屏、四角、居中、最大化、缩放、跨屏移动等。需要在“系统设置 > 隐私与安全性 > 辅助功能”中授权；重新打包或移动 App 后，需要删除旧 App 授权并重新添加当前 App。 | ShiftIt |
-| Finder 路径粘贴 | 在 Finder 里复制文件或文件夹后，按 `Command + Shift + V` 可向前台应用粘贴完整路径，适合终端、编辑器、聊天窗口等场景。 | Copy Path / Path Finder |
-| 中国日历 | 提供右上角状态栏入口，支持中国农历、节假日、节气、周数和状态栏图标样式配置。 | CalendarX |
-| 快捷键捕捉 | 记录快捷键被哪个 App 接收，用于定位快捷键冲突。 | Shortcut Detective |
-| 剪贴板历史 [默认关闭]| 记录文本和图片剪贴板，使用 SQLite 持久化，支持检索、预览和回贴；大文本预览只显示前一部分但回贴保留完整内容；图片项会显示宽高和大小，超过阈值时生成缩略图用于预览；可选启用本地 OCR，把图片文字作为 metadata 写入数据库用于搜索。可通过自定义全局热键或菜单栏“剪贴板历史”打开，密码输入框等安全输入场景下会使用高层级浮层显示。 | 剪贴板管理器 |
-| Snippets | 类似 Alfred Snippets，支持分类、条目、关键词搜索；全局热键唤起搜索面板，左侧选择条目、右侧预览内容，回车后直接向前台应用输入片段内容，并同步复制到系统剪贴板。 | Alfred Snippets |
-| 快捷指令搜索 | 在启动器里用关键词触发网页搜索，例如输入自定义关键词后跟搜索词即可打开 Google、Baidu 或任意 URL 模板；也可勾选为始终显示在启动器候选中。 | Alfred Web Search |
-| 快捷指令脚本 | 在启动器里用关键词执行本地命令脚本，支持无参、`{query}` 单参数和 `argv` 多参数模式，可把复杂脚本放在配置目录的 `quick/` 下复用。 | Alfred Workflows |
-| LockJob | 一键遮住所有屏幕并阻止系统睡眠，Claude、Codex、构建、下载和 SSH 会话继续运行；显示时间和自定义状态文字，支持 Touch ID 或本机密码解锁。 | 锁屏遮罩 |
-| 多语言 | 已有简体中文、繁体中文、英文资源结构。 | - |
+| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Supports recent action history, keyboard paging, custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
+| Launcher Calculator | Type arithmetic expressions such as `4+8`, `(2+3)*4`, or `-3.5/2` directly in the launcher search field to see live results, then press Return to copy the result. | Alfred Calculator / Spotlight |
+| App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. | Thor |
+| Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
+| Finder Path Paste | Copy files or folders in Finder, then press `Command + Shift + V` to paste their full paths into the frontmost app. Useful for terminals, editors, and chat windows. | Copy Path / Path Finder |
+| Chinese Calendar | Provides a top-right status bar entry, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable status bar icon styles. | CalendarX |
+| Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
+| Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, and paste-back. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews; optional local OCR stores recognized image text as searchable metadata. | Clipboard manager |
+| Snippets | Provides Alfred-style snippet categories, entries, and keyword search. Open the search panel with a global hotkey, select an entry on the left, preview it on the right, then press Return to type it into the frontmost app and copy it to the system clipboard. | Alfred Snippets |
+| Quick Shortcut Search | Trigger web searches from the launcher with custom keywords and URL templates. Shortcuts can also be pinned into launcher results for Google, Baidu, and similar search entries. | Alfred Web Search |
+| Quick Shortcut Scripts | Run local command scripts from launcher keywords. Scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes, and can live under the configuration folder's `quick/` directory. | Alfred Workflows |
+| LockJob | Cover all displays and prevent system sleep while Claude, Codex, builds, downloads, and SSH sessions continue running. Shows the time and custom status text, and supports Touch ID or local password unlock. | Screen cover |
+| Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
 
-## 默认快捷键
+## Default Hotkeys
 
-| 快捷键 | 动作 |
+| Hotkey | Action |
 | --- | --- |
-| `Control + Option + Space` | 打开或关闭启动器 |
-| `Control + Option + Command + ←/→/↑/↓` | 当前窗口左右/上下半屏 |
-| `Control + Option + Command + 1/2/3/4` | 当前窗口移动到四角 |
-| `Control + Option + Command + C` | 当前窗口居中 |
-| `Control + Option + Command + M` | 当前窗口最大化 |
-| `Control + Option + Command + F` | 切换全屏 |
-| `Control + Option + Command + =/-` | 放大或缩小窗口 |
-| `Control + Option + Command + N/P` | 移动到下一块/上一块屏幕 |
-| `Control + Option + Command + L` | LockJob：遮住屏幕并保持运行 |
-| `Control + Option + Command + X` | 打开 Snippets 搜索 |
-| `Command + Shift + V` | 将 Finder 中复制的文件/文件夹粘贴为完整路径 |
+| `Control + Option + Space` | Open or close the launcher |
+| `Control + Option + Command + ←/→/↑/↓` | Move the current window to the left/right/top/bottom half |
+| `Control + Option + Command + 1/2/3/4` | Move the current window to one of the four corners |
+| `Control + Option + Command + C` | Center the current window |
+| `Control + Option + Command + M` | Maximize the current window |
+| `Control + Option + Command + F` | Toggle fullscreen |
+| `Control + Option + Command + =/-` | Enlarge or shrink the window |
+| `Control + Option + Command + N/P` | Move to the next/previous display |
+| `Control + Option + Command + L` | LockJob: cover the displays and keep work running |
+| `Control + Option + Command + X` | Open Snippets search |
+| `Command + Shift + V` | Paste files/folders copied in Finder as full paths |
 
-这些快捷键都可以在设置窗口里调整。
+All of these hotkeys can be changed in the settings window.
 
-启动器搜索到应用后，直接按 `Return` 打开应用；输入 `4+8`、`(2+3)*4` 等四则运算表达式时会显示计算结果，按 `Return` 复制结果；按住 `Command` 时选中行会显示 `Reveal in Finder`，此时按 `Return` 会在 Finder 中定位该应用文件。
+After searching for an app, use `Up`/`Down` or `Page Up`/`Page Down` to select a result, then press `Return` to open it. Arithmetic expressions such as `4+8` and `(2+3)*4` show a live result that can be copied with `Return`. Holding `Command` changes the selected app action to `Reveal in Finder`. The launcher records recently executed apps, window commands, quick shortcuts, and calculator results, keeping up to 100 entries by default; this can be adjusted or cleared under Search > General. With an empty query, pinned quick shortcuts remain visible, and pressing a direction key switches the result list to recent action history. Clipboard history and Snippets are never added to launcher action history.
 
-## 快速开始
+## Quick Start
 
-前置要求：
+Requirements:
 
-1. macOS 13 或更新版本。
-2. Xcode Command Line Tools 或 Xcode。
-3. Swift 5.9 兼容工具链。
+1. macOS 13 or later.
+2. Xcode Command Line Tools or Xcode.
+3. A Swift 5.9-compatible toolchain.
 
-开发运行：
+Run in development:
 
 ```bash
 swift build
 swift run xxMac
 ```
 
-打包为 `.app`：
+Bundle as an `.app`:
 
 ```bash
 bash bundle_app.sh
 open xxMac.app
 ```
 
-发布为 `.dmg`：
+Build a `.dmg` release:
 
 ```bash
 bash publish_dmg.sh
 ```
 
-发布脚本会先打印 `Sources/xxMac/Info.plist` 中记录的当前版本号，并提示输入本次发布版本。版本会写回 `CFBundleShortVersionString` 和 `CFBundleVersion`，最近更新时间会写回 `XXLastUpdated`，生成的 DMG 默认命名为 `xxMac-版本号.dmg`。
+The release script first prints the current version recorded in `Sources/xxMac/Info.plist`, then prompts for the release version. The version is written back to `CFBundleShortVersionString` and `CFBundleVersion`, the latest update date is written to `XXLastUpdated`, and the generated DMG is named `xxMac-version.dmg` by default.
 
-`bundle_app.sh` 和 `publish_dmg.sh` 默认使用固定签名身份 `qbmiller-dev`，不允许退回 ad-hoc 签名。这样可以让 macOS 辅助功能权限尽量绑定到稳定的 App 身份，减少重新打包后需要删除旧授权并重新添加的情况。需要临时换证书时，可以通过 `SIGNING_IDENTITY` 环境变量覆盖。
+`bundle_app.sh` and `publish_dmg.sh` use the fixed signing identity `qbmiller-dev` by default and do not fall back to ad-hoc signing. This helps macOS associate Accessibility permission with a stable app identity and reduces the need to remove and re-add authorization after rebuilding. Set the `SIGNING_IDENTITY` environment variable to temporarily use another certificate.
 
-如果没有开发者账号，App 拷贝到 `/Applications` 后可能会被 macOS 标记为隔离来源，导致打不开。可以先清理隔离属性再启动：
+If you do not have a developer account, macOS may mark the app as quarantined after it is copied to `/Applications`, preventing it from opening. Clear the quarantine attribute before launching:
 
 ```bash
 xattr -cr /Applications/xxMac.app
 open /Applications/xxMac.app
 ```
 
-如果要使用开发者证书签名：
+To sign with a developer certificate:
 
 ```bash
 SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 ```
 
-## 系统权限
+## System Permissions
 
-首次运行后，需要在“系统设置 > 隐私与安全性”里授予权限：
+After the first launch, grant permissions in System Settings > Privacy & Security:
 
-1. 辅助功能权限：窗口管理、全局热键、模拟粘贴依赖它。
-2. 自动化权限：应用激活、重开窗口和剪贴板回贴链路可能用到。
+1. Accessibility: required for window management, global hotkeys, and simulated paste.
+2. Automation: may be used by app activation, reopening windows, and clipboard paste-back flows.
 
-可在 xxMac 的“通用 > 权限设置”中查看辅助功能授权状态，并点击“获取辅助功能权限”打开 macOS 对应授权入口。
+You can check Accessibility authorization under xxMac > General > Permission Settings and use Get Accessibility Permission to open the corresponding macOS settings page.
 
-如果窗口控制、全局热键或剪贴板回贴在重新打包后失效，优先检查系统“辅助功能”列表里授权的是否是当前路径下的 `xxMac.app`，并确认发布包使用同一个 `SIGNING_IDENTITY` 签名。macOS 的辅助功能授权会受 App 路径和签名状态影响，重新打包或移动 App 后可能需要删除旧授权并重新添加。
+If window control, global hotkeys, or clipboard paste-back stop working after repackaging, first check whether the app authorized in the system Accessibility list is the `xxMac.app` at the current path. macOS Accessibility authorization is affected by the app path and signing state, so repackaging or moving the app may require removing the old authorization and adding it again.
 
-## 配置与数据
+## Configuration and Data
 
-- 默认配置目录是 `~/Library/Application Support/xxMac`，可在“通用 > 配置”里修改。修改后会把当前配置、应用索引缓存、剪贴板 SQLite 数据库和图片缓存迁移到新目录，并删除旧目录中的 xxMac 数据。
-- 右上角状态栏入口默认显示；如果图标异常消失，或希望隐藏状态栏入口，可在“通用 > 配置”里切换“显示在右上角状态栏”。该区域提供状态栏诊断信息和“刷新/重建”按钮，用于确认 `NSStatusItem` 是否已创建、可见并挂载到系统状态栏。
-- 配置目录可以是本地目录，也可以是 iCloud Drive、Dropbox 等同步服务下保持本地可用的目录；不建议选择系统目录、App 包内目录或临时移动磁盘路径。
-- 热键配置、应用快捷启动配置、启动器窗口宽高、整体大小、文字大小与外观、语言偏好、快捷指令、Snippets 和日历偏好保存在配置目录的 `preferences.json`。日历偏好包含状态栏显示方式，默认使用日历图标，也可切换为 App 图标。首次启动默认值集中在 `Sources/xxMac/AppDefaultSettings.swift`，该文件可用注释说明默认开关。
-- 配置目录下会自动创建 `quick/`，用于放置复杂快捷指令脚本。命令脚本执行时会注入 `XXMAC_HOME`（配置目录）和 `XXMAC_QUICK_HOME`（`quick/` 目录），例如 `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`。网页搜索快捷指令会把站点图标缓存到 `quick_icons/`，用于设置列表和启动器候选展示；删除快捷指令或修改为其他站点时会清理对应图标缓存。
-- 应用搜索默认扫描 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；应用索引缓存保存在配置目录的 `app-search-index.json`。把新 App 拖入这些搜索目录后会自动追加到现有索引，不会重建整个索引；也可在“通用 > 配置”里手动点击“索引应用”重建。中文应用名会同时写入原文、全拼和拼音首字母索引；英文应用名也会写入单词首字母索引。
-- 剪贴板数据库、图片原图缓存与图片缩略图缓存位于配置目录的 `clipboard.db`、`clipboard_images/` 和 `clipboard_thumbnails/`。
-- 剪贴板历史会记录系统剪贴板中出现的所有非空文本；如果浏览器或密码管理器允许把密码复制到系统剪贴板，也会被记录。若网页或应用没有真正写入系统剪贴板，则 xxMac 无法采集。
-- “导出配置”只导出可配置设置，不导出剪贴板历史记录、SQLite 数据库、图片缓存、缩略图缓存、快捷指令站点图标缓存或应用索引缓存；完整迁移请使用配置目录切换。
-- “通用 > 配置”底部提供退出应用按钮，退出前会二次确认。
-- 剪贴板历史最多保留条数和图片缓存总量可在“剪贴板通用”中配置，默认分别为 1000 条和 500 MB。
-- 图片超过“生成缩略图”阈值时才会创建缩略图，默认阈值为 5 MB，可在“剪贴板通用”中调整。
-- 图片 OCR 默认关闭；启用后使用 macOS Vision 在本机识别图片文字，不上传图片。OCR 文本存入 `clipboard.db` 作为图片 metadata，用于剪贴板搜索；“导出配置”不导出 OCR 历史 metadata。
-- 设置窗口第一列是工具分类，第二列是功能项，第三列是具体配置。
+- The default configuration folder is `~/Library/Application Support/xxMac`, and it can be changed from General > Configuration. Changing it moves the current preferences, app index cache, clipboard SQLite database, and image cache to the new folder, then removes xxMac data from the old folder.
+- The top-right status bar entry is shown by default. If the icon disappears or you want to hide it, use General > Configuration > Show in top-right status bar. The same area includes status bar diagnostics and a Refresh/Recreate button to confirm whether the `NSStatusItem` exists, is visible, and is attached to the system status bar.
+- The configuration folder can be local or managed by a sync service such as iCloud Drive or Dropbox, as long as files stay available offline. Avoid system folders, the app bundle, and temporary removable drives.
+- Hotkey settings, app quick-launch settings, launcher appearance, overall scale, text size, launcher action history, language preference, quick shortcuts, Snippets, and calendar preferences are stored in `preferences.json` inside the configuration folder. Launcher action history stores only metadata for apps, window commands, quick shortcuts, and calculator results; it excludes clipboard history and Snippets. It keeps up to 100 entries by default and can be configured under Search > General. Calendar status bar display defaults to the calendar icon and can be changed to the App icon. First-run defaults are centralized in `Sources/xxMac/AppDefaultSettings.swift`, where comments can document each default switch.
+- xxMac creates `quick/` inside the configuration folder for complex quick shortcut scripts. Command scripts receive `XXMAC_HOME` for the configuration folder and `XXMAC_QUICK_HOME` for `quick/`, for example `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`. Web-search shortcut favicons are cached in `quick_icons/` for the settings list and launcher results; deleting a shortcut or changing its website removes the corresponding cached icon.
+- App search scans `/Applications`, `/System/Applications`, and `/System/Library/CoreServices` by default. Custom search paths can also be added in settings; the app index cache is stored as `app-search-index.json` in the configuration folder. New apps added to these search folders are appended to the existing index without rebuilding it; Index Applications under General > Configuration performs a manual rebuild. Chinese app names are indexed by original text, full pinyin, and pinyin initials; English app names are also indexed by word initials.
+- The clipboard database, original image cache, and thumbnail cache are stored as `clipboard.db`, `clipboard_images/`, and `clipboard_thumbnails/` inside the configuration folder.
+- Clipboard history records every non-empty text value that reaches the system clipboard. If a browser or password manager allows a password to be copied to the system clipboard, it will be recorded too. If the page or app does not actually write to the system clipboard, xxMac cannot capture it.
+- Export Configuration only exports configurable settings. It does not export clipboard history, the SQLite database, image cache, thumbnail cache, quick-shortcut favicon cache, or app index cache; use the configuration folder switch for a full migration.
+- General > Configuration includes a Quit Application button at the bottom and asks for confirmation before quitting.
+- The maximum clipboard history count and image cache limit can be configured in Clipboard General. Defaults are 1000 items and 500 MB.
+- Image thumbnails are generated only when an image exceeds the configured threshold. The default threshold is 5 MB and can be changed in Clipboard General.
+- Image OCR is disabled by default. When enabled, xxMac uses macOS Vision locally on this Mac and does not upload images. Recognized text is stored in `clipboard.db` as image metadata for clipboard search; Export Configuration does not export OCR history metadata.
+- In the settings window, the first column is tool categories, the second column is feature items, and the third column contains detailed configuration.
 
-## 目录结构
+## Directory Structure
 
 ```text
 xxMac/
 ├── Package.swift
 ├── README.md
+├── README_zh-CN.md
 ├── PACKAGING_GUIDE.md
 ├── bundle_app.sh
 ├── publish_dmg.sh
@@ -150,11 +140,10 @@ xxMac/
 │   ├── ViewModels/
 │   └── Views/
 └── docs/
-    ├── images/
     └── ARCHITECTURE.md
 ```
 
-## 常用命令
+## Common Commands
 
 ```bash
 swift build
@@ -167,8 +156,7 @@ log stream --style compact --predicate 'process == "xxMac"'
 codesign -v xxMac.app
 ```
 
-## 文档
+## Documentation
 
-- `docs/ARCHITECTURE.md`：项目架构、模块职责、运行流程、数据配置和后续任务地图。
-- `docs/secure-input-overlay.md`：密码输入框等安全输入场景下剪贴板历史和 Snippets 浮层唤起方案。
-- `PACKAGING_GUIDE.md`：打包、签名、权限、日志和快捷键排障。
+- `docs/ARCHITECTURE.md`: Project architecture, module responsibilities, runtime flow, data configuration, and future task map.
+- `PACKAGING_GUIDE.md`: Packaging, signing, permissions, logging, and hotkey troubleshooting.

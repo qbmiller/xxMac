@@ -155,6 +155,7 @@ final class PreferencesStore {
         "HotKeyConfigurations",
         "AppLauncherShortcuts",
         "QuickShortcutItems",
+        "LauncherHistoryRecords",
         "ClipboardSettings",
         "SnippetSettings",
         "SnippetCollections",
@@ -169,7 +170,8 @@ final class PreferencesStore {
     ]
 
     private static let intKeys = [
-        "CalendarFirstWeekday"
+        "CalendarFirstWeekday",
+        "LauncherHistoryMaxItems"
     ]
 
     private static let doubleKeys = [

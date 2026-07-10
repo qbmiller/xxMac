@@ -20,6 +20,7 @@ class LauncherViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var quickShortcutRunID: UUID?
+    private var isBrowsingEmptyHistory = false
     
     init() {
         $query
@@ -55,7 +56,7 @@ class LauncherViewModel: ObservableObject {
         QuickShortcutManager.shared.$items
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                guard let self = self, self.mode == .launcher, !self.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                guard let self = self, self.mode == .launcher else { return }
                 self.performLauncherSearch(query: self.query)
             }
             .store(in: &cancellables)
@@ -66,6 +67,17 @@ class LauncherViewModel: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self, self.mode == .launcher, !self.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
                 self.performLauncherSearch(query: self.query)
+            }
+            .store(in: &cancellables)
+
+        LauncherHistoryManager.shared.$records
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self = self,
+                      self.mode == .launcher,
+                      self.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      self.isBrowsingEmptyHistory else { return }
+                self.performLauncherSearch(query: "")
             }
             .store(in: &cancellables)
     }
@@ -112,6 +124,7 @@ class LauncherViewModel: ObservableObject {
         selectedIndex = 0
         searchID = UUID()
         quickShortcutRunID = nil
+        isBrowsingEmptyHistory = false
     }
     
     func performSearch(query: String? = nil) {
@@ -130,10 +143,16 @@ class LauncherViewModel: ObservableObject {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedQuery.isEmpty else {
-            results = []
+            results = isBrowsingEmptyHistory
+                ? LauncherHistoryManager.shared.search(query: "")
+                : QuickShortcutManager.shared.fallbackSearchItems(query: "") { [weak self] item, query in
+                    self?.runQuickShortcutCommand(item: item, query: query)
+                }
             selectedIndex = 0
             return
         }
+
+        isBrowsingEmptyHistory = false
 
         if handleQuickShortcut(query: trimmedQuery) {
             selectedIndex = 0
@@ -219,6 +238,14 @@ class LauncherViewModel: ObservableObject {
                         iconName: match.item.actionType.iconName,
                         iconFileURL: QuickShortcutManager.shared.iconURL(for: match.item),
                         type: .quickShortcut,
+                        launcherHistorySnapshot: LauncherHistorySnapshot(
+                            kind: .quickShortcut,
+                            sourceID: match.item.id.uuidString,
+                            title: match.item.title,
+                            subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
+                            iconName: match.item.actionType.iconName,
+                            query: match.query
+                        ),
                         action: {
                             QuickShortcutManager.shared.execute(item: match.item, query: match.query)
                         }
@@ -235,6 +262,7 @@ class LauncherViewModel: ObservableObject {
     private func runQuickShortcutCommand(item: QuickShortcut, query: String) {
         let runID = UUID()
         let sourceInput = self.query.trimmingCharacters(in: .whitespacesAndNewlines)
+        recordQuickShortcutHistory(item: item, query: query)
         quickShortcutRunID = runID
         results = [
             SearchItem(
@@ -292,13 +320,25 @@ class LauncherViewModel: ObservableObject {
     }
     
     func selectNext() {
+        if enterEmptyHistoryBrowsingIfNeeded() { return }
         if results.isEmpty { return }
         selectedIndex = (selectedIndex + 1) % results.count
     }
     
     func selectPrevious() {
+        if enterEmptyHistoryBrowsingIfNeeded() { return }
         if results.isEmpty { return }
         selectedIndex = (selectedIndex - 1 + results.count) % results.count
+    }
+
+    func selectNextPage() {
+        if enterEmptyHistoryBrowsingIfNeeded() { return }
+        selectPage(offset: 5)
+    }
+
+    func selectPreviousPage() {
+        if enterEmptyHistoryBrowsingIfNeeded() { return }
+        selectPage(offset: -5)
     }
     
     func executeSelection(revealInFinder: Bool = false) {
@@ -307,12 +347,55 @@ class LauncherViewModel: ObservableObject {
         if revealInFinder, item.type == .app {
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.subtitle)])
         } else {
+            if mode == .launcher {
+                LauncherHistoryManager.shared.record(item: item, query: query)
+            }
             item.action()
         }
         // Clipboard and snippet modes own their close/focus/input sequencing inside their managers.
         if mode != .clipboard && mode != .snippets && item.type != .quickShortcutOutput {
             NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
         }
+    }
+
+    private func selectPage(offset: Int) {
+        guard !results.isEmpty else { return }
+        selectedIndex = min(max(selectedIndex + offset, 0), results.count - 1)
+    }
+
+    private func enterEmptyHistoryBrowsingIfNeeded() -> Bool {
+        guard mode == .launcher,
+              query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !isBrowsingEmptyHistory else {
+            return false
+        }
+
+        let historyResults = LauncherHistoryManager.shared.search(query: "")
+        guard !historyResults.isEmpty else { return false }
+        isBrowsingEmptyHistory = true
+        results = historyResults
+        selectedIndex = 0
+        return true
+    }
+
+    private func recordQuickShortcutHistory(item: QuickShortcut, query: String) {
+        let subtitle = QuickShortcutManager.shared.subtitle(for: item)
+        let searchItem = SearchItem(
+            title: item.title,
+            subtitle: subtitle,
+            iconName: item.actionType.iconName,
+            type: .quickShortcut,
+            launcherHistorySnapshot: LauncherHistorySnapshot(
+                kind: .quickShortcut,
+                sourceID: item.id.uuidString,
+                title: item.title,
+                subtitle: subtitle,
+                iconName: item.actionType.iconName,
+                query: query
+            ),
+            action: {}
+        )
+        LauncherHistoryManager.shared.record(item: searchItem, query: query)
     }
 
 }

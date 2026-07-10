@@ -6,17 +6,10 @@ struct LauncherView: View {
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @FocusState private var isSearchFocused: Bool
     @State private var isCommandPressed = false
 
     private func focusSearch() {
-        isSearchFocused = true
-        DispatchQueue.main.async {
-            isSearchFocused = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            isSearchFocused = true
-        }
+        NotificationCenter.default.post(name: NSNotification.Name("LauncherSearchFieldFocusRequested"), object: nil)
     }
 
     private var selectedClipboardItem: SearchItem? {
@@ -54,7 +47,7 @@ struct LauncherView: View {
     }
 
     private var shouldShowLauncherResults: Bool {
-        ((viewModel.mode == .launcher && launcherHasQuery) || viewModel.mode == .snippets) && !viewModel.results.isEmpty
+        (viewModel.mode == .launcher || viewModel.mode == .snippets) && !viewModel.results.isEmpty
     }
 
     private var searchIconName: String {
@@ -95,18 +88,31 @@ struct LauncherView: View {
                     .foregroundColor(.white.opacity(0.72))
                     .frame(width: scaled(42), height: scaled(42))
                 
-                TextField(searchPlaceholder, text: $viewModel.query)
-                    .font(.system(size: scaledText(36), weight: .light))
-                    .textFieldStyle(PlainTextFieldStyle())
-                    .id(viewModel.searchID) // Force recreation when session resets
-                    .focused($isSearchFocused)
-                    .foregroundColor(.white)
-                    .onAppear {
-                        focusSearch()
-                    }
-                    .onSubmit {
+                LauncherSearchField(
+                    placeholder: searchPlaceholder,
+                    text: $viewModel.query,
+                    searchID: viewModel.searchID,
+                    fontSize: scaledText(36),
+                    onSubmit: {
                         viewModel.executeSelection()
+                    },
+                    onCancel: {
+                        NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
+                    },
+                    onMoveDown: {
+                        viewModel.selectNext()
+                    },
+                    onMoveUp: {
+                        viewModel.selectPrevious()
+                    },
+                    onPageDown: {
+                        viewModel.selectNextPage()
+                    },
+                    onPageUp: {
+                        viewModel.selectPreviousPage()
                     }
+                )
+                .frame(height: scaled(48))
             }
             .padding(.horizontal, scaled(28))
             .padding(.vertical, scaled(22))
@@ -231,6 +237,128 @@ struct LauncherView: View {
             isCommandPressed = false
         }
         .background(ModifierKeyMonitor(isCommandPressed: $isCommandPressed))
+    }
+}
+
+private struct LauncherSearchField: NSViewRepresentable {
+    let placeholder: String
+    @Binding var text: String
+    let searchID: UUID
+    let fontSize: CGFloat
+    let onSubmit: () -> Void
+    let onCancel: () -> Void
+    let onMoveDown: () -> Void
+    let onMoveUp: () -> Void
+    let onPageDown: () -> Void
+    let onPageUp: () -> Void
+
+    func makeNSView(context: Context) -> NSTextField {
+        let textField = NSTextField()
+        textField.delegate = context.coordinator
+        textField.isBordered = false
+        textField.isBezeled = false
+        textField.drawsBackground = false
+        textField.focusRingType = .none
+        textField.textColor = .white
+        textField.maximumNumberOfLines = 1
+        textField.lineBreakMode = .byTruncatingTail
+        textField.cell?.usesSingleLineMode = true
+        textField.cell?.wraps = false
+        textField.cell?.isScrollable = true
+        textField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        context.coordinator.focusObserver = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("LauncherSearchFieldFocusRequested"),
+            object: nil,
+            queue: .main
+        ) { [weak textField] _ in
+            Self.focus(textField)
+        }
+        DispatchQueue.main.async {
+            Self.focus(textField)
+        }
+        return textField
+    }
+
+    func updateNSView(_ textField: NSTextField, context: Context) {
+        context.coordinator.parent = self
+        if textField.stringValue != text {
+            textField.stringValue = text
+        }
+        textField.font = NSFont.systemFont(ofSize: fontSize, weight: .light)
+        textField.placeholderAttributedString = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: NSColor.white.withAlphaComponent(0.42),
+                .font: NSFont.systemFont(ofSize: fontSize, weight: .light)
+            ]
+        )
+
+        if context.coordinator.lastSearchID != searchID {
+            context.coordinator.lastSearchID = searchID
+            DispatchQueue.main.async {
+                Self.focus(textField)
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    private static func focus(_ textField: NSTextField?) {
+        guard let textField, let window = textField.window else { return }
+        window.makeFirstResponder(textField)
+    }
+
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: LauncherSearchField
+        var lastSearchID: UUID?
+        var focusObserver: Any?
+
+        init(parent: LauncherSearchField) {
+            self.parent = parent
+            self.lastSearchID = parent.searchID
+        }
+
+        deinit {
+            if let focusObserver {
+                NotificationCenter.default.removeObserver(focusObserver)
+            }
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let textField = notification.object as? NSTextField else { return }
+            parent.text = textField.stringValue
+        }
+
+        func control(
+            _ control: NSControl,
+            textView: NSTextView,
+            doCommandBy commandSelector: Selector
+        ) -> Bool {
+            switch commandSelector {
+            case #selector(NSResponder.moveDown(_:)):
+                parent.onMoveDown()
+                return true
+            case #selector(NSResponder.moveUp(_:)):
+                parent.onMoveUp()
+                return true
+            case #selector(NSResponder.pageDown(_:)):
+                parent.onPageDown()
+                return true
+            case #selector(NSResponder.pageUp(_:)):
+                parent.onPageUp()
+                return true
+            case #selector(NSResponder.insertNewline(_:)):
+                parent.onSubmit()
+                return true
+            case #selector(NSResponder.cancelOperation(_:)):
+                parent.onCancel()
+                return true
+            default:
+                return false
+            }
+        }
     }
 }
 

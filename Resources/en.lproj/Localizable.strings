@@ -154,6 +154,15 @@
 
 "launcher.search_placeholder" = "Search apps, commands...";
 "launcher.search_clipboard_placeholder" = "Search clipboard history...";
+"search_general.desc" = "Configure launcher search and recent action history.";
+"launcher_history.subtitle_format" = "Recent action • %@";
+"launcher_history.subtitle_with_query_format" = "Recent action • %@ • %@";
+"launcher_history.max_items" = "Recent Action History";
+"launcher_history.max_items_desc" = "Records apps, window commands, quick shortcuts, and calculator results. Clipboard and Snippets are not recorded. Press an arrow key on an empty query to switch to recent history.";
+"launcher_history.max_items_format" = "%d items";
+"launcher_history.clear_title" = "Clear Recent Actions";
+"launcher_history.current_count_format" = "%d records saved";
+"launcher_history.clear_button" = "Clear History";
 "launcher_appearance.desc" = "Adjust the translucent background for the Control + Option + Space launcher panel.";
 "launcher_appearance.background" = "Background";
 "launcher_appearance.size" = "Scale";

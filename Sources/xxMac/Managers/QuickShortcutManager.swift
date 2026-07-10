@@ -83,6 +83,14 @@ final class QuickShortcutManager: ObservableObject {
                 iconName: item.actionType.iconName,
                 iconFileURL: iconCache.iconURL(for: item),
                 type: .quickShortcut,
+                launcherHistorySnapshot: LauncherHistorySnapshot(
+                    kind: .quickShortcut,
+                    sourceID: item.id.uuidString,
+                    title: item.title,
+                    subtitle: subtitle(for: item),
+                    iconName: item.actionType.iconName,
+                    query: invokedQuery
+                ),
                 action: { [weak self] in
                     self?.execute(item: item, query: invokedQuery)
                 }
@@ -92,11 +100,11 @@ final class QuickShortcutManager: ObservableObject {
 
     func fallbackSearchItems(query: String, commandRunner: @escaping (QuickShortcut, String) -> Void) -> [SearchItem] {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else { return [] }
 
         return items.compactMap { item in
             guard item.isEnabled, item.showInFallback else { return nil }
             let executionQuery = item.commandInputMode.requiresInput ? trimmedQuery : ""
+            let historyQuery = item.actionType == .webSearch ? trimmedQuery : executionQuery
             return SearchItem(
                 id: "quick_shortcut.fallback.\(item.id.uuidString)",
                 title: fallbackTitle(for: item, query: trimmedQuery),
@@ -104,6 +112,14 @@ final class QuickShortcutManager: ObservableObject {
                 iconName: item.actionType.iconName,
                 iconFileURL: iconCache.iconURL(for: item),
                 type: item.actionType == .commandScript ? .quickShortcutOutput : .quickShortcut,
+                launcherHistorySnapshot: LauncherHistorySnapshot(
+                    kind: .quickShortcut,
+                    sourceID: item.id.uuidString,
+                    title: item.title,
+                    subtitle: subtitle(for: item),
+                    iconName: item.actionType.iconName,
+                    query: historyQuery
+                ),
                 action: { [weak self] in
                     switch item.actionType {
                     case .webSearch:
@@ -168,6 +184,10 @@ final class QuickShortcutManager: ObservableObject {
     }
 
     private func fallbackTitle(for item: QuickShortcut, query: String) -> String {
+        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return item.title
+        }
+
         switch item.actionType {
         case .webSearch:
             return L10n.f("quick_shortcut.fallback_web_title_format", item.title, query)
@@ -188,6 +208,15 @@ final class QuickShortcutManager: ObservableObject {
                 self?.copyToPasteboard(output)
             }
         }
+    }
+
+    func execute(id: String, query: String) {
+        guard let uuid = UUID(uuidString: id),
+              let item = items.first(where: { $0.id == uuid }),
+              item.isEnabled else {
+            return
+        }
+        execute(item: item, query: query)
     }
 
     private func openWebSearch(template: String, query: String) {

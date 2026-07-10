@@ -10,6 +10,23 @@ enum SearchResultType {
     case quickShortcutOutput
     case calculator
     case bookmark
+    case launcherHistory
+}
+
+enum LauncherHistoryKind: String, Codable, Hashable {
+    case app
+    case windowAction
+    case quickShortcut
+    case calculator
+}
+
+struct LauncherHistorySnapshot: Codable, Hashable {
+    let kind: LauncherHistoryKind
+    let sourceID: String
+    let title: String
+    let subtitle: String
+    let iconName: String
+    let query: String
 }
 
 enum ClipboardPreviewData: Hashable {
@@ -36,6 +53,7 @@ struct SearchItem: Identifiable, Hashable {
     let type: SearchResultType
     let clipboardPreview: ClipboardPreviewData?
     let snippetPreview: SnippetPreviewData?
+    let launcherHistorySnapshot: LauncherHistorySnapshot?
     let action: () -> Void
     
     init(
@@ -47,6 +65,7 @@ struct SearchItem: Identifiable, Hashable {
         type: SearchResultType,
         clipboardPreview: ClipboardPreviewData? = nil,
         snippetPreview: SnippetPreviewData? = nil,
+        launcherHistorySnapshot: LauncherHistorySnapshot? = nil,
         action: @escaping () -> Void
     ) {
         self.id = id ?? "\(type)_\(title)"
@@ -57,6 +76,7 @@ struct SearchItem: Identifiable, Hashable {
         self.type = type
         self.clipboardPreview = clipboardPreview
         self.snippetPreview = snippetPreview
+        self.launcherHistorySnapshot = launcherHistorySnapshot
         self.action = action
     }
     

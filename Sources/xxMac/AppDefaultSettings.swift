@@ -24,4 +24,9 @@ enum AppDefaultSettings {
         static let menuBarDisplayMode = CalendarMenuBarDisplayMode.calendar
         static let menuBarIconStyle = CalendarMenuBarIconStyle.weekdayDay
     }
+
+    enum LauncherHistory {
+        /// Recent launcher actions kept for searchable history replay.
+        static let maxItems = 100
+    }
 }

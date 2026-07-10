@@ -154,6 +154,15 @@
 
 "launcher.search_placeholder" = "搜索应用、命令...";
 "launcher.search_clipboard_placeholder" = "搜索剪贴板历史...";
+"search_general.desc" = "配置启动器搜索和最近操作历史。";
+"launcher_history.subtitle_format" = "最近操作 • %@";
+"launcher_history.subtitle_with_query_format" = "最近操作 • %@ • %@";
+"launcher_history.max_items" = "最近操作历史";
+"launcher_history.max_items_desc" = "记录应用、窗口命令、快捷指令和计算器结果；不记录剪贴板和 Snippets。空查询时按方向键可切换到最近历史。";
+"launcher_history.max_items_format" = "%d 条";
+"launcher_history.clear_title" = "清空最近操作";
+"launcher_history.current_count_format" = "当前记录 %d 条";
+"launcher_history.clear_button" = "清空历史";
 "launcher_appearance.desc" = "调整 Control + Option + Space 唤起面板的半透明底色。";
 "launcher_appearance.background" = "底色";
 "launcher_appearance.size" = "整体大小";

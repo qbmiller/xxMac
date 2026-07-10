@@ -227,6 +227,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         _ = ClipboardManager.shared
         // Initialize SnippetManager
         _ = SnippetManager.shared
+        // Initialize Launcher history settings and persisted recent actions.
+        _ = LauncherHistoryManager.shared
         // Initialize LockAIManager
         _ = LockAIManager.shared
         
@@ -606,7 +608,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
                 contentHeight += dividerHeight + indexingHeight
             }
 
-            if hasQuery && !launcherViewModel.results.isEmpty {
+            if !launcherViewModel.results.isEmpty {
                 let resultHeight = min(Double(launcherViewModel.results.count) * resultRowHeight, appearance.launcherHeight)
                 contentHeight += dividerHeight + resultHeight
             }
@@ -633,6 +635,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             return true
         case 126: // Arrow Up
             launcherViewModel.selectPrevious()
+            return true
+        case 121: // Page Down
+            launcherViewModel.selectNextPage()
+            return true
+        case 116: // Page Up
+            launcherViewModel.selectPreviousPage()
             return true
         case 36: // Enter
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
