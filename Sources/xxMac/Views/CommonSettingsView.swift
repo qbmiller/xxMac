@@ -250,6 +250,7 @@ struct CommonSettingsView: View {
             "imageSize: \(snapshot.imageSize)",
             "imageIsTemplate: \(snapshot.imageIsTemplate.map(String.init(describing:)) ?? "nil")",
             "imageVisiblePixelRatio: \(snapshot.imageVisiblePixelRatio)",
+            "clockZone: \(snapshot.positionRelativeToClockZone)",
             "lastEvent: \(snapshot.lastEvent)",
             "updatedAt: \(Self.menuBarDiagnosticDateFormatter.string(from: snapshot.updatedAt))"
         ].joined(separator: "\n")

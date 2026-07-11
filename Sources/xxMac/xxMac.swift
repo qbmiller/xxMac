@@ -53,6 +53,8 @@ struct MenuBarStatusSnapshot {
     let imageVisiblePixelRatio: String
     let lastEvent: String
     let updatedAt: Date
+    /// 按钮是否落在系统时钟区域（屏幕最右侧 ~60px），如果为 true 说明可能被时钟遮挡。
+    let positionRelativeToClockZone: String
 
     static let initial = MenuBarStatusSnapshot(
         shouldShow: true,
@@ -69,7 +71,8 @@ struct MenuBarStatusSnapshot {
         imageIsTemplate: nil,
         imageVisiblePixelRatio: "nil",
         lastEvent: "initial",
-        updatedAt: Date()
+        updatedAt: Date(),
+        positionRelativeToClockZone: "nil"
     )
 }
 
@@ -161,6 +164,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private let openFallbackCooldown: TimeInterval = 3
     private let launcherRestingLevel: NSWindow.Level = .floating
     private let launcherPresentationLevel: NSWindow.Level = .statusBar
+    private var menuBarClockZoneRecoveryAttempt = 0
+    private let menuBarClockZoneRecoveryCooldown: TimeInterval = 30
 
     private var launcherCollectionBehavior: NSWindow.CollectionBehavior {
         [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
@@ -381,6 +386,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         let imageSize = button?.image.map { NSStringFromSize($0.size) } ?? "nil"
         let imageIsTemplate = button?.image?.isTemplate
         let imageVisiblePixelRatio = Self.visiblePixelRatioDescription(for: button?.image)
+        let clockZoneStatus = Self.evaluateClockZoneOverlap(for: button)
 
         MenuBarStatusDiagnostics.shared.update(
             MenuBarStatusSnapshot(
@@ -398,9 +404,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
                 imageIsTemplate: imageIsTemplate,
                 imageVisiblePixelRatio: imageVisiblePixelRatio,
                 lastEvent: event,
-                updatedAt: Date()
+                updatedAt: Date(),
+                positionRelativeToClockZone: clockZoneStatus
             )
         )
+    }
+
+    /// - Returns: 描述按钮与系统时钟区域位置关系的字符串。
+    ///   - `overlappingClock`：按钮至少部分与时钟区重叠。
+    ///   - `leftOfClock`：按钮在时钟区左侧。
+    ///   - `rightOfClock`：按钮在时钟区右侧（少见，可能是多显示器）。
+    ///   - `noButton` / `noScreen` / `unknown`：无法判断。
+    private static func evaluateClockZoneOverlap(for button: NSStatusBarButton?) -> String {
+        guard let button else { return "noButton" }
+        let frame = button.window?.frame ?? button.frame
+        guard !frame.isEmpty, !frame.isNull, !frame.isInfinite else {
+            return "unknown"
+        }
+        let screen = button.window?.screen ?? NSScreen.main
+        guard let screen else { return "noScreen" }
+        let clockZoneMaxX = screen.frame.maxX
+        let clockZoneMinX = clockZoneMaxX - 60
+        if frame.maxX >= clockZoneMinX && frame.minX <= clockZoneMaxX {
+            return "overlappingClock"
+        }
+        if frame.maxX < clockZoneMinX {
+            return "leftOfClock"
+        }
+        return "rightOfClock"
     }
 
     private static func visiblePixelRatioDescription(for image: NSImage?) -> String {
@@ -451,6 +482,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             calendarMenuBarController?.refreshStatusItem()
             updateMenuBarDiagnostics(event: "reaffirm-existing:\(trigger)")
             Self.menuBarLogger.notice("status item reaffirmed existing trigger=\(trigger, privacy: .public)")
+
+            if trigger == "launch" || trigger == "appActive" {
+                scheduleClockZoneOverlapRecoveryIfNeeded(trigger: trigger)
+            }
             return
         }
 
@@ -458,6 +493,51 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         ensureMenuBarItem()
         updateMenuBarDiagnostics(event: "reaffirm-recreate:\(trigger)")
         Self.menuBarLogger.notice("status item reaffirmed by recreating hidden item trigger=\(trigger, privacy: .public)")
+    }
+
+    /// 在启动或应用激活时，延迟检测时钟区重叠，如果重叠则尝试重建恢复。
+    @MainActor
+    private func scheduleClockZoneOverlapRecoveryIfNeeded(trigger: String) {
+        let recoveryAttempt = menuBarClockZoneRecoveryAttempt
+        let cooldown = menuBarClockZoneRecoveryCooldown
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self,
+                  recoveryAttempt == self.menuBarClockZoneRecoveryAttempt,
+                  self.statusItem != nil,
+                  Date().timeIntervalSince(MenuBarStatusDiagnostics.shared.snapshot.updatedAt) < cooldown else {
+                return
+            }
+            let clockStatus = Self.evaluateClockZoneOverlap(for: self.statusItem?.button)
+            if clockStatus == "overlappingClock" {
+                Self.menuBarLogger.notice("clock zone overlap detected (attempt=\(self.menuBarClockZoneRecoveryAttempt)), triggering recovery from trigger=\(trigger, privacy: .public)")
+                self.performClockZoneRecovery(trigger: trigger)
+            } else {
+                Self.menuBarLogger.notice("clock zone check passed: \(clockStatus, privacy: .public)")
+            }
+        }
+    }
+
+    /// 销毁当前状态项，清除私有偏好，延迟重建以尝试让 WindowServer 重新布局。
+    @MainActor
+    private func performClockZoneRecovery(trigger: String) {
+        guard menuBarClockZoneRecoveryAttempt < 2 else {
+            Self.menuBarLogger.notice("clock zone recovery skipped: max attempts reached (attempt=\(self.menuBarClockZoneRecoveryAttempt))")
+            return
+        }
+        menuBarClockZoneRecoveryAttempt += 1
+
+        destroyMenuBarItemForRecreation()
+
+        // 清除 NSStatusItem Preferred Position 私有偏好，避免 WindowServer 复用旧位置。
+        UserDefaults.standard.removeObject(forKey: "NSStatusItem Preferred Position \(MenuBarStatusItemIdentity.autosaveName)")
+        UserDefaults.standard.synchronize()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self else { return }
+            self.ensureMenuBarItem()
+            self.updateMenuBarDiagnostics(event: "recovery-\(trigger)")
+            Self.menuBarLogger.notice("clock zone recovery completed attempt=\(self.menuBarClockZoneRecoveryAttempt)")
+        }
     }
 
     @MainActor
