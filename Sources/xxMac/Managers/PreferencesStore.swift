@@ -143,7 +143,10 @@ final class PreferencesStore {
         "LauncherAppearanceBackgroundHex",
         "CalendarMenuBarIconStyle",
         "CalendarMenuBarDisplayMode",
-        "LockAIStatusText"
+        "LockAIStatusText",
+        "BrowserSearchBrowser",
+        "BrowserSearchBookmarkKeyword",
+        "BrowserSearchHistoryKeyword"
     ]
 
     private static let stringArrayKeys = [
@@ -166,7 +169,8 @@ final class PreferencesStore {
         "GeneralShowMenuBarItem",
         "ShortcutDetectiveEnabled",
         "CalendarShowLunar",
-        "CalendarShowWeekNumbers"
+        "CalendarShowWeekNumbers",
+        "BrowserSearchEnabled"
     ]
 
     private static let intKeys = [

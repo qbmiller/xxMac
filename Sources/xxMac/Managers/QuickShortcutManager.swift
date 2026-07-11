@@ -4,14 +4,19 @@ import OSLog
 
 final class QuickShortcutManager: ObservableObject {
     static let shared = QuickShortcutManager()
+    @Published private(set) var keywordConflict: ShortcutConflict?
 
     @Published var items: [QuickShortcut] = [] {
-        didSet { saveItems() }
+        didSet {
+            saveItems()
+            refreshKeywordRegistrations()
+        }
     }
 
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "QuickShortcut")
     private let storageKey = "QuickShortcutItems"
     private let iconCache = QuickShortcutIconCacheManager.shared
+    private var registeredKeywordIDs = Set<UUID>()
 
     struct Match {
         let item: QuickShortcut
@@ -57,8 +62,18 @@ final class QuickShortcutManager: ObservableObject {
         items.removeAll { $0.id == item.id }
     }
 
-    func updateItem(_ item: QuickShortcut) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+    @discardableResult
+    func updateItem(_ item: QuickShortcut) -> ShortcutConflict? {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return nil }
+        if item.isEnabled,
+           let conflict = ShortcutRegistryStore.shared.conflict(
+               for: .quickShortcut(item.id),
+               trigger: .launcherKeyword(item.keyword)
+           ) {
+            keywordConflict = conflict
+            return conflict
+        }
+        keywordConflict = nil
         let oldItem = items[index]
         if oldItem.actionType == .webSearch,
            (item.actionType != .webSearch || iconCache.webSearchHost(for: oldItem) != iconCache.webSearchHost(for: item)) {
@@ -66,6 +81,7 @@ final class QuickShortcutManager: ObservableObject {
         }
         items[index] = item
         iconCache.ensureIconCached(for: item)
+        return nil
     }
 
     func search(query: String) -> [SearchItem] {
@@ -487,5 +503,22 @@ final class QuickShortcutManager: ObservableObject {
     private func saveItems() {
         guard let data = try? JSONEncoder().encode(items) else { return }
         PreferencesStore.shared.set(data, forKey: storageKey)
+    }
+
+    private func refreshKeywordRegistrations() {
+        registeredKeywordIDs.forEach {
+            ShortcutRegistryStore.shared.unregister(action: .quickShortcut($0))
+        }
+        registeredKeywordIDs.removeAll()
+
+        for item in items where item.isEnabled {
+            let keyword = ShortcutRegistry.normalizedKeyword(item.keyword)
+            guard !keyword.isEmpty else { continue }
+            guard ShortcutRegistryStore.shared.register(
+                action: .quickShortcut(item.id),
+                trigger: .launcherKeyword(keyword)
+            ) == nil else { continue }
+            registeredKeywordIDs.insert(item.id)
+        }
     }
 }

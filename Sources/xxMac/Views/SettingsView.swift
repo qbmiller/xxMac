@@ -551,6 +551,8 @@ struct ConfigurationView: View {
             LanguageSettingsView()
         case .searchGeneral:
             SearchGeneralSettingsView()
+        case .browserSearch:
+            BrowserSearchSettingsView()
         case .searchPaths:
             SearchPathsSettingsView()
         case .wmShortcuts:
@@ -1156,6 +1158,7 @@ struct HotKeyRecorderView: View {
     @State private var isRecording = false
     @State private var monitor: Any?
     @State private var pauseToken: UUID?
+    @State private var hasConflict = false
     
     var body: some View {
         HStack(spacing: 0) {
@@ -1208,6 +1211,7 @@ struct HotKeyRecorderView: View {
                 stopRecording()
             }
         }
+        .help(hasConflict ? L10n.t("shortcut.internal_conflict") : "")
     }
     
     func startRecording() {
@@ -1228,7 +1232,11 @@ struct HotKeyRecorderView: View {
                 }
 
                 if let key = Key(carbonKeyCode: UInt32(event.keyCode)) {
-                    hotKeyManager.updateConfiguration(for: action, key: key, modifiers: event.modifierFlags)
+                    hasConflict = hotKeyManager.updateConfiguration(
+                        for: action,
+                        key: key,
+                        modifiers: event.modifierFlags
+                    ) != nil
                     stopRecording()
                     return nil
                 }

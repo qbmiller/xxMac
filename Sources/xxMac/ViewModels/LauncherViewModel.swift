@@ -20,6 +20,7 @@ class LauncherViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var quickShortcutRunID: UUID?
+    private var browserSearchRunID: UUID?
     private var isBrowsingEmptyHistory = false
     
     init() {
@@ -57,6 +58,14 @@ class LauncherViewModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self = self, self.mode == .launcher else { return }
+                self.performLauncherSearch(query: self.query)
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: BrowserSearchManager.settingsDidChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self, self.mode == .launcher else { return }
                 self.performLauncherSearch(query: self.query)
             }
             .store(in: &cancellables)
@@ -124,6 +133,7 @@ class LauncherViewModel: ObservableObject {
         selectedIndex = 0
         searchID = UUID()
         quickShortcutRunID = nil
+        browserSearchRunID = nil
         isBrowsingEmptyHistory = false
     }
     
@@ -155,6 +165,11 @@ class LauncherViewModel: ObservableObject {
         isBrowsingEmptyHistory = false
 
         if handleQuickShortcut(query: trimmedQuery) {
+            selectedIndex = 0
+            return
+        }
+
+        if handleBrowserSearch(query: trimmedQuery) {
             selectedIndex = 0
             return
         }
@@ -257,6 +272,70 @@ class LauncherViewModel: ObservableObject {
                 return true
             }
         }
+    }
+
+    private func handleBrowserSearch(query: String) -> Bool {
+        guard let request = BrowserSearchManager.shared.activationRequest(for: query) else {
+            browserSearchRunID = nil
+            return false
+        }
+
+        let runID = UUID()
+        browserSearchRunID = runID
+        results = [
+            SearchItem(
+                id: "browser_search.loading",
+                title: L10n.t("browser_search.searching"),
+                subtitle: BrowserSearchManager.shared.preferences.browser.displayName,
+                iconName: "hourglass",
+                type: request.mode == .bookmarks ? .bookmark : .browserHistory,
+                action: {}
+            )
+        ]
+
+        BrowserSearchManager.shared.search(request: request) { [weak self] result in
+            guard let self,
+                  self.mode == .launcher,
+                  self.browserSearchRunID == runID,
+                  BrowserSearchManager.shared.activationRequest(for: self.query) == request else { return }
+            switch result {
+            case .success(let records):
+                self.results = records.map { record in
+                    SearchItem(
+                        id: "browser.\(request.mode).\(record.url.absoluteString)",
+                        title: record.title,
+                        subtitle: "\(BrowserSearchManager.shared.preferences.browser.displayName) · \(record.url.host ?? record.url.absoluteString)",
+                        iconName: request.mode == .bookmarks ? "bookmark" : "clock.arrow.circlepath",
+                        type: request.mode == .bookmarks ? .bookmark : .browserHistory,
+                        action: { BrowserSearchManager.shared.open(record.url) }
+                    )
+                }
+                if self.results.isEmpty {
+                    self.results = [self.browserStatusItem(
+                        title: L10n.t("browser_search.no_results"),
+                        mode: request.mode
+                    )]
+                }
+            case .failure:
+                self.results = [self.browserStatusItem(
+                    title: L10n.t("browser_search.unavailable"),
+                    mode: request.mode
+                )]
+            }
+            self.selectedIndex = 0
+        }
+        return true
+    }
+
+    private func browserStatusItem(title: String, mode: BrowserSearchMode) -> SearchItem {
+        SearchItem(
+            id: "browser_search.status",
+            title: title,
+            subtitle: BrowserSearchManager.shared.preferences.browser.displayName,
+            iconName: "exclamationmark.circle",
+            type: mode == .bookmarks ? .bookmark : .browserHistory,
+            action: {}
+        )
     }
 
     private func runQuickShortcutCommand(item: QuickShortcut, query: String) {

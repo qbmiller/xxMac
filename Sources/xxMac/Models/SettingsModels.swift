@@ -170,6 +170,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
 
     // Search
     case searchGeneral = "function.search.general"
+    case browserSearch = "function.search.browser"
     case searchPaths = "function.search.paths"
     case searchExcluded = "function.search.excluded"
     
@@ -217,6 +218,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
         case .commonLanguage: return "globe"
         case .launcherAppearance: return "paintpalette"
         case .searchPaths: return "folder"
+        case .browserSearch: return "safari"
         case .wmShortcuts: return "keyboard"
         case .shortcutDetectiveGeneral: return "eye"
         case .clipboardHistory: return "clock"
@@ -258,6 +260,7 @@ struct ToolOption: Identifiable, Hashable {
         ]),
         ToolOption(type: .search, functions: [
             ToolFunction(type: .searchGeneral),
+            ToolFunction(type: .browserSearch),
             ToolFunction(type: .searchPaths),
             ToolFunction(type: .searchExcluded)
         ]),

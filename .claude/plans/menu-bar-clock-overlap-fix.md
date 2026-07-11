@@ -1,5 +1,7 @@
 # 菜单栏状态项时钟区重叠问题的代码修复方案
 
+> 状态：已废弃（2026-07-11）。启动日志证明自动销毁并重建状态项会在 ControlCenter 场景重连期间造成辅助场景断开；保留只读 `clockZone` 诊断，不执行本文第 2 节自动恢复方案。
+
 ## 问题回顾
 
 根据 troubleshooting doc，在某些 macOS 会话（特别是双显示器 M3 Pro）中，WindowServer 将 xxMac 的 `NSStatusItem` 布局到系统时钟区域（屏幕最右侧 ~50px），导致图标被覆盖不可见。

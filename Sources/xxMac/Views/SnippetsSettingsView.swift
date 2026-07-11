@@ -386,7 +386,7 @@ private struct SnippetHotKeyRecorder: View {
             }
             if let key = Key(carbonKeyCode: UInt32(event.keyCode)) {
                 let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
-                manager.settings.hotKey = HotKeyConfiguration(key: key, modifiers: modifiers)
+                _ = manager.setHotKey(HotKeyConfiguration(key: key, modifiers: modifiers))
                 stopRecording()
                 return nil
             }

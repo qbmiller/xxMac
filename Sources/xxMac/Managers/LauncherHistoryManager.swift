@@ -126,7 +126,7 @@ final class LauncherHistoryManager: ObservableObject {
                 iconName: item.iconName,
                 query: trimmedQuery
             )
-        case .launcherHistory, .clipboard, .snippet, .quickShortcutOutput, .bookmark:
+        case .launcherHistory, .clipboard, .snippet, .quickShortcutOutput, .bookmark, .browserHistory:
             return nil
         }
     }

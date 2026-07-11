@@ -29,4 +29,10 @@ enum AppDefaultSettings {
         /// Recent launcher actions kept for searchable history replay.
         static let maxItems = 100
     }
+
+    enum BrowserSearch {
+        static let isEnabled = true
+        static let bookmarkKeyword = "bm"
+        static let historyKeyword = "bh"
+    }
 }

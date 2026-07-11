@@ -134,6 +134,7 @@ struct AppShortcutRecorderView: View {
     @ObservedObject var manager = AppLauncherManager.shared
     @State private var isRecording = false
     @State private var monitor: Any?
+    @State private var hasConflict = false
     
     var body: some View {
         Button(action: {
@@ -170,6 +171,7 @@ struct AppShortcutRecorderView: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .help(hasConflict ? L10n.t("shortcut.internal_conflict") : "")
     }
     
     func startRecording() {
@@ -184,19 +186,11 @@ struct AppShortcutRecorderView: View {
                 if let key = Key(carbonKeyCode: UInt32(event.keyCode)) {
                     // Update shortcut
                     // We need to update the shortcut in the manager
-                    let newShortcut = AppShortcut(
+                    hasConflict = manager.updateShortcut(
                         id: shortcut.id,
-                        appName: shortcut.appName,
-                        appPath: shortcut.appPath,
                         key: key,
-                        modifiers: event.modifierFlags,
-                        isEnabled: true
-                    )
-                    
-                    // Find index and update
-                    if let index = manager.shortcuts.firstIndex(where: { $0.id == shortcut.id }) {
-                        manager.shortcuts[index] = newShortcut
-                    }
+                        modifiers: event.modifierFlags
+                    ) != nil
                     
                     stopRecording()
                     return nil

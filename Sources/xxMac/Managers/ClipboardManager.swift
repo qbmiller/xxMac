@@ -410,11 +410,29 @@ class ClipboardManager: ObservableObject {
     
     private func updateHotKey() {
         hotKey = nil
+        ShortcutRegistryStore.shared.unregister(action: .clipboard)
         if let config = settings.hotKey {
+            guard ShortcutRegistryStore.shared.register(
+                action: .clipboard,
+                trigger: .keyboard(config)
+            ) == nil else { return }
             hotKey = CarbonHotKeyRegistration(configuration: config, name: "clipboard") { [weak self] in
                 self?.showClipboardHistory()
             }
         }
+    }
+
+    @discardableResult
+    func setHotKey(_ configuration: HotKeyConfiguration?) -> ShortcutConflict? {
+        if let configuration,
+           let conflict = ShortcutRegistryStore.shared.conflict(
+               for: .clipboard,
+               trigger: .keyboard(configuration)
+           ) {
+            return conflict
+        }
+        settings.hotKey = configuration
+        return nil
     }
 
     func captureCurrentFrontmostApp() {

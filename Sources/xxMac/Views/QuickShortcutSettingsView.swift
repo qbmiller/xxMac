@@ -197,6 +197,7 @@ private struct QuickShortcutRowIcon: View {
 private struct QuickShortcutEditor: View {
     @Binding var item: QuickShortcut
     @State private var commandPreviewOutput: String = ""
+    @ObservedObject private var manager = QuickShortcutManager.shared
     let onDelete: () -> Void
 
     var body: some View {
@@ -236,6 +237,11 @@ private struct QuickShortcutEditor: View {
                         .foregroundColor(.secondary)
                     TextField(L10n.t("quick_shortcut.keyword"), text: $item.keyword)
                         .textFieldStyle(.roundedBorder)
+                    if manager.keywordConflict != nil {
+                        Label(L10n.t("shortcut.keyword_conflict"), systemImage: "exclamationmark.circle")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {

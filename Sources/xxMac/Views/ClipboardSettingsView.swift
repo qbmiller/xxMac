@@ -231,7 +231,7 @@ struct ClipboardHotKeyRecorder: View {
                 let modifiers = event.modifierFlags.intersection([.command, .control, .option, .shift])
                 
                 // Save configuration
-                clipboardManager.settings.hotKey = HotKeyConfiguration(key: key, modifiers: modifiers)
+                _ = clipboardManager.setHotKey(HotKeyConfiguration(key: key, modifiers: modifiers))
                 
                 stopRecording()
                 return nil // Consume event

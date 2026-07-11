@@ -26,15 +26,11 @@ v1.1.3 起，诊断面板新增 `clockZone` 字段，自动检测状态项是否
 
 如果看到 `overlappingClock`，说明遇到了本文档描述的问题。
 
-### 自动恢复机制
+### 不自动恢复
 
-v1.1.3 起，xxMac 启动和应用激活时会检测时钟区重叠。如果检测到 `overlappingClock`，会自动尝试：
+`clockZone` 只用于诊断，不会自动销毁、清除偏好或重建状态项。
 
-1. 销毁当前状态项
-2. 清除 `NSStatusItem Preferred Position` 私有偏好
-3. 短暂延迟后重新创建状态项，让 WindowServer 重新布局
-
-最多尝试 2 次，间隔 30 秒。如果自动恢复后仍不可见，请按照下文手动排查。
+2026-07-11 的启动日志证明，在 ControlCenter 状态项场景仍处于重连期间执行自动重建，会导致 `No scene exists for identity`、`Unhandled disconnected auxiliary scene` 和 `No matching scene to invalidate`。因此禁止基于该启发式坐标自动操作 `NSStatusItem` 生命周期。
 
 ## 已记录事故
 

@@ -10,6 +10,7 @@ enum SearchResultType {
     case quickShortcutOutput
     case calculator
     case bookmark
+    case browserHistory
     case launcherHistory
 }
 

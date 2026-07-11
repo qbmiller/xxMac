@@ -13,6 +13,7 @@ class AppLauncherManager: ObservableObject {
     }
     
     private var hotKeys: [UUID: HotKey] = [:]
+    private var registeredShortcutIDs = Set<UUID>()
     private let userDefaultsKey = "AppLauncherShortcuts"
     private var lastOpenFallbackAtByBundleID: [String: Date] = [:]
     private let openFallbackCooldown: TimeInterval = 3
@@ -57,7 +58,8 @@ class AppLauncherManager: ObservableObject {
         shortcuts.removeAll { $0.id == id }
     }
     
-    func toggleShortcut(id: UUID) {
+    @discardableResult
+    func toggleShortcut(id: UUID) -> ShortcutConflict? {
         if let index = shortcuts.firstIndex(where: { $0.id == id }) {
             let shortcut = shortcuts[index]
             // We need to create a new struct with toggled enabled state since struct is immutable
@@ -69,23 +71,63 @@ class AppLauncherManager: ObservableObject {
                 modifiers: shortcut.modifiers,
                 isEnabled: !shortcut.isEnabled
             )
+            if newShortcut.isEnabled, let conflict = conflict(for: newShortcut) {
+                return conflict
+            }
             shortcuts[index] = newShortcut
         }
+        return nil
     }
     
     private func refreshHotKeys() {
         // Clear existing hotkeys
         hotKeys.values.forEach { $0.keyDownHandler = nil }
         hotKeys.removeAll()
+        registeredShortcutIDs.forEach {
+            ShortcutRegistryStore.shared.unregister(action: .appLauncher($0))
+        }
+        registeredShortcutIDs.removeAll()
         
         // Register new hotkeys
         for shortcut in shortcuts where shortcut.isEnabled {
+            let configuration = HotKeyConfiguration(key: shortcut.key, modifiers: shortcut.modifiers)
+            guard ShortcutRegistryStore.shared.register(
+                action: .appLauncher(shortcut.id),
+                trigger: .keyboard(configuration)
+            ) == nil else {
+                continue
+            }
             let hotKey = HotKey(key: shortcut.key, modifiers: shortcut.modifiers)
             hotKey.keyDownHandler = { [weak self] in
                 self?.launchOrActivateApp(path: shortcut.appPath)
             }
             hotKeys[shortcut.id] = hotKey
+            registeredShortcutIDs.insert(shortcut.id)
         }
+    }
+
+    func conflict(for shortcut: AppShortcut) -> ShortcutConflict? {
+        ShortcutRegistryStore.shared.conflict(
+            for: .appLauncher(shortcut.id),
+            trigger: .keyboard(HotKeyConfiguration(key: shortcut.key, modifiers: shortcut.modifiers))
+        )
+    }
+
+    @discardableResult
+    func updateShortcut(id: UUID, key: Key, modifiers: NSEvent.ModifierFlags) -> ShortcutConflict? {
+        guard let index = shortcuts.firstIndex(where: { $0.id == id }) else { return nil }
+        let current = shortcuts[index]
+        let updated = AppShortcut(
+            id: current.id,
+            appName: current.appName,
+            appPath: current.appPath,
+            key: key,
+            modifiers: modifiers,
+            isEnabled: true
+        )
+        if let conflict = conflict(for: updated) { return conflict }
+        shortcuts[index] = updated
+        return nil
     }
     
     private func launchOrActivateApp(path: String) {

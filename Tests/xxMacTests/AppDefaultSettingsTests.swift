@@ -11,4 +11,10 @@ final class AppDefaultSettingsTests: XCTestCase {
     func testLauncherHistoryKeepsOneHundredItemsByDefault() {
         XCTAssertEqual(AppDefaultSettings.LauncherHistory.maxItems, 100)
     }
+
+    func testBrowserSearchDefaults() {
+        XCTAssertTrue(AppDefaultSettings.BrowserSearch.isEnabled)
+        XCTAssertEqual(AppDefaultSettings.BrowserSearch.bookmarkKeyword, "bm")
+        XCTAssertEqual(AppDefaultSettings.BrowserSearch.historyKeyword, "bh")
+    }
 }

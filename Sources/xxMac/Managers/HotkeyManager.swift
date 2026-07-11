@@ -175,8 +175,16 @@ class HotKeyManager: ObservableObject {
     
     func refreshHotKeys() {
         hotKeys.removeAll()
-        
-        for (action, config) in configurations {
+
+        WindowAction.allCases.forEach { ShortcutRegistryStore.shared.unregister(action: .window($0)) }
+        for action in WindowAction.allCases {
+            guard let config = configurations[action] else { continue }
+            guard ShortcutRegistryStore.shared.register(
+                action: .window(action),
+                trigger: .keyboard(config)
+            ) == nil else {
+                continue
+            }
             guard let hotKey = CarbonHotKeyRegistration(configuration: config, name: "window.\(action.rawValue)", handler: { [weak self] in
                 self?.performAction(action)
             }) else {
@@ -208,15 +216,25 @@ class HotKeyManager: ObservableObject {
         NSLog("[HotKeyManager] hotkeys paused=%@ activePauseTokens=%d", shouldPause.description, pauseTokens.count)
     }
     
-    func updateConfiguration(for action: WindowAction, key: Key, modifiers: NSEvent.ModifierFlags) {
-        configurations[action] = HotKeyConfiguration(key: key, modifiers: modifiers)
+    @discardableResult
+    func updateConfiguration(for action: WindowAction, key: Key, modifiers: NSEvent.ModifierFlags) -> ShortcutConflict? {
+        let configuration = HotKeyConfiguration(key: key, modifiers: modifiers)
+        if let conflict = ShortcutRegistryStore.shared.conflict(
+            for: .window(action),
+            trigger: .keyboard(configuration)
+        ) {
+            return conflict
+        }
+        configurations[action] = configuration
         unmarkCleared(action)
         saveConfigurations()
         refreshHotKeys()
+        return nil
     }
     
     func removeConfiguration(for action: WindowAction) {
         configurations.removeValue(forKey: action)
+        ShortcutRegistryStore.shared.unregister(action: .window(action))
         markCleared(action)
         saveConfigurations()
         refreshHotKeys()
