@@ -25,6 +25,7 @@ class AppSearchManager: ObservableObject {
     private var isLoadingSearchPaths = false
     private var appDirectoryMonitors: [AppDirectoryMonitor] = []
     private var appendWorkItem: DispatchWorkItem?
+    private let spotlightApplicationFinder = SpotlightApplicationFinder()
 
     private struct AppEntry {
         let id: String
@@ -219,20 +220,27 @@ class AppSearchManager: ObservableObject {
         let generation = scanGeneration
         isIndexing = true
 
+        spotlightApplicationFinder.findApplicationPaths(in: pathsToScan) { [weak self] result in
+            guard let self, generation == self.scanGeneration else { return }
+            switch result {
+            case .success(let paths) where !paths.isEmpty:
+                self.buildIndex(from: paths, roots: pathsToScan, generation: generation, source: "spotlight")
+            case .success:
+                Self.logger.debug("spotlight roots='\(pathsToScan.joined(separator: ","), privacy: .public)' returned no applications; using directory scan")
+                self.scanApplicationDirectories(pathsToScan, generation: generation)
+            case .failure(let error):
+                Self.logger.debug("spotlight roots='\(pathsToScan.joined(separator: ","), privacy: .public)' failed='\(error.localizedDescription, privacy: .public)'; using directory scan")
+                self.scanApplicationDirectories(pathsToScan, generation: generation)
+            }
+        }
+    }
+
+    private func buildIndex(from paths: [String], roots: [String], generation: Int, source: String) {
         DispatchQueue.global(qos: .userInitiated).async {
             let fileManager = FileManager.default
             var foundByPath: [String: AppEntry] = [:]
-
-            for rootPath in pathsToScan {
-                guard let subpaths = try? fileManager.subpathsOfDirectory(atPath: rootPath) else {
-                    Self.logger.debug("scan skip root='\(rootPath, privacy: .public)' reason='unreadable'")
-                    continue
-                }
-
-                for subpath in subpaths where subpath.hasSuffix(".app") && !subpath.contains(".app/") {
-                    let fullPath = (rootPath as NSString).appendingPathComponent(subpath)
-                    foundByPath[fullPath] = self.makeEntry(fromPath: fullPath, fileManager: fileManager)
-                }
+            for path in paths {
+                foundByPath[path] = self.makeEntry(fromPath: path, fileManager: fileManager)
             }
 
             let sortedEntries = foundByPath.values.sorted {
@@ -245,8 +253,29 @@ class AppSearchManager: ObservableObject {
                 self.apps = sortedEntries.map(self.makeSearchItem)
                 self.saveCachedIndex(sortedEntries)
                 self.isIndexing = false
-                Self.logger.debug("scan roots='\(pathsToScan.joined(separator: ","), privacy: .public)' indexed=\(sortedEntries.count)")
+                Self.logger.debug("\(source, privacy: .public) roots='\(roots.joined(separator: ","), privacy: .public)' indexed=\(sortedEntries.count)")
             }
+        }
+    }
+
+    private func scanApplicationDirectories(_ pathsToScan: [String], generation: Int) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let fileManager = FileManager.default
+            var paths: [String] = []
+
+            for rootPath in pathsToScan {
+                guard let subpaths = try? fileManager.subpathsOfDirectory(atPath: rootPath) else {
+                    Self.logger.debug("scan skip root='\(rootPath, privacy: .public)' reason='unreadable'")
+                    continue
+                }
+
+                paths.append(contentsOf: subpaths.compactMap { subpath in
+                    guard subpath.hasSuffix(".app"), !subpath.contains(".app/") else { return nil }
+                    return (rootPath as NSString).appendingPathComponent(subpath)
+                })
+            }
+
+            self.buildIndex(from: paths, roots: pathsToScan, generation: generation, source: "directory scan")
         }
     }
 
