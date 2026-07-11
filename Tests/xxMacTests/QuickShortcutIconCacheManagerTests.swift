@@ -43,6 +43,15 @@ final class QuickShortcutIconCacheManagerTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: otherIconURL.path))
     }
 
+    func testFaviconURLsFallBackToDomainIconService() {
+        let cache = QuickShortcutIconCacheManager()
+
+        XCTAssertEqual(cache.faviconURLs(for: "www.npmjs.com").map(\.absoluteString), [
+            "https://www.npmjs.com/favicon.ico",
+            "https://icons.duckduckgo.com/ip3/www.npmjs.com.ico"
+        ])
+    }
+
     private func makeTemporaryDirectory() -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

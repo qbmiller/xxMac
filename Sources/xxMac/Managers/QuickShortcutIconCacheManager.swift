@@ -104,7 +104,30 @@ final class QuickShortcutIconCacheManager: ObservableObject {
     }
 
     private func downloadIcon(for host: String, itemID: UUID, generation: Int, destinationURL: URL) {
-        guard let url = URL(string: "https://\(host)/favicon.ico") else {
+        downloadIcon(
+            from: faviconURLs(for: host),
+            host: host,
+            itemID: itemID,
+            generation: generation,
+            destinationURL: destinationURL
+        )
+    }
+
+    func faviconURLs(for host: String) -> [URL] {
+        [
+            URL(string: "https://\(host)/favicon.ico"),
+            URL(string: "https://icons.duckduckgo.com/ip3/\(host).ico")
+        ].compactMap { $0 }
+    }
+
+    private func downloadIcon(
+        from urls: [URL],
+        host: String,
+        itemID: UUID,
+        generation: Int,
+        destinationURL: URL
+    ) {
+        guard let url = urls.first else {
             markDownloadFinished(destinationURL)
             return
         }
@@ -115,10 +138,10 @@ final class QuickShortcutIconCacheManager: ObservableObject {
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self else { return }
-            defer { self.markDownloadFinished(destinationURL) }
 
             if let error {
                 Self.logger.debug("Failed to download favicon for \(host, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                self.downloadIcon(from: Array(urls.dropFirst()), host: host, itemID: itemID, generation: generation, destinationURL: destinationURL)
                 return
             }
 
@@ -126,9 +149,13 @@ final class QuickShortcutIconCacheManager: ObservableObject {
                   (200..<300).contains(httpResponse.statusCode),
                   let data,
                   let imageData = self.pngData(from: data) else {
+                self.downloadIcon(from: Array(urls.dropFirst()), host: host, itemID: itemID, generation: generation, destinationURL: destinationURL)
                 return
             }
-            guard self.isCurrent(itemID: itemID, generation: generation) else { return }
+            guard self.isCurrent(itemID: itemID, generation: generation) else {
+                self.markDownloadFinished(destinationURL)
+                return
+            }
 
             do {
                 try self.fileManager.createDirectory(
@@ -140,6 +167,7 @@ final class QuickShortcutIconCacheManager: ObservableObject {
             } catch {
                 Self.logger.debug("Failed to cache favicon for \(host, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
+            self.markDownloadFinished(destinationURL)
         }.resume()
     }
 
