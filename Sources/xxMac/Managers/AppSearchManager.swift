@@ -370,7 +370,14 @@ class AppSearchManager: ObservableObject {
                 iconName: "app.fill",
                 type: .app,
                 action: {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: entry.path))
+                    let url = URL(fileURLWithPath: entry.path)
+                    let configuration = NSWorkspace.OpenConfiguration()
+                    configuration.activates = true
+                    NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in
+                        if let error {
+                            Self.logger.error("open app path='\(entry.path, privacy: .public)' failed='\(error.localizedDescription, privacy: .public)'")
+                        }
+                    }
                 }
             )
         }

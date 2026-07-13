@@ -14,10 +14,18 @@ final class CarbonHotKeyRegistration {
         let handler: () -> Void
     }
 
+    private struct PendingModifierRelease {
+        let token: UUID
+        let modifiers: CGEventFlags
+        let name: String
+        let handler: () -> Void
+    }
+
     private static var nextID: UInt32 = 1
     private static var handlers: [UInt32: () -> Void] = [:]
     private static var tapRegistrations: [UInt32: TapRegistration] = [:]
     private static var lastHandledAt: [UInt32: Date] = [:]
+    private static var pendingModifierReleases: [UInt32: PendingModifierRelease] = [:]
     private static var eventHandler: EventHandlerRef?
     private static var eventTap: CFMachPort?
     private static var eventTapRunLoopSource: CFRunLoopSource?
@@ -85,6 +93,7 @@ final class CarbonHotKeyRegistration {
         Self.handlers.removeValue(forKey: id)
         Self.tapRegistrations.removeValue(forKey: id)
         Self.lastHandledAt.removeValue(forKey: id)
+        Self.pendingModifierReleases.removeValue(forKey: id)
         if let eventHotKey {
             UnregisterEventHotKey(eventHotKey)
         }
@@ -192,6 +201,11 @@ final class CarbonHotKeyRegistration {
             return Unmanaged.passUnretained(event)
         }
 
+        if type == .flagsChanged {
+            dispatchPendingHandlersIfModifiersReleased()
+            return Unmanaged.passUnretained(event)
+        }
+
         guard type == .keyDown else {
             return Unmanaged.passUnretained(event)
         }
@@ -217,41 +231,77 @@ final class CarbonHotKeyRegistration {
         let registrationName = name ?? tapRegistrations[id]?.name ?? "unknown"
         logger.notice("fired name=\(registrationName, privacy: .public) source=\(source, privacy: .public) id=\(id)")
         if source == "carbon", let registration = tapRegistrations[id] {
-            runAfterModifierRelease(
+            scheduleAfterModifierRelease(
+                id: id,
                 modifiers: registration.modifiers,
                 name: registrationName,
                 handler: handler
             )
         } else {
-            DispatchQueue.main.async(execute: handler)
+            executeOnMain(handler)
         }
     }
 
-    private static func runAfterModifierRelease(
+    private static func scheduleAfterModifierRelease(
+        id: UInt32,
         modifiers: CGEventFlags,
         name: String,
-        attemptsRemaining: Int = 12,
         handler: @escaping () -> Void
     ) {
         let trackedModifiers = modifiers.intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
-        let activeModifiers = CGEventSource.flagsState(.combinedSessionState)
-            .intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
-
-        guard !trackedModifiers.isEmpty,
-              !activeModifiers.intersection(trackedModifiers).isEmpty,
-              attemptsRemaining > 0 else {
+        guard !trackedModifiers.isEmpty, areAnyModifiersActive(trackedModifiers) else {
             logger.notice("dispatching name=\(name, privacy: .public) after modifier release")
-            DispatchQueue.main.async(execute: handler)
+            executeOnMain(handler)
             return
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            runAfterModifierRelease(
-                modifiers: modifiers,
-                name: name,
-                attemptsRemaining: attemptsRemaining - 1,
-                handler: handler
-            )
+        let pending = PendingModifierRelease(
+            token: UUID(),
+            modifiers: trackedModifiers,
+            name: name,
+            handler: handler
+        )
+        pendingModifierReleases[id] = pending
+        pollPendingModifierRelease(id: id, token: pending.token, attemptsRemaining: 60)
+    }
+
+    private static func pollPendingModifierRelease(id: UInt32, token: UUID, attemptsRemaining: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+            guard let pending = pendingModifierReleases[id], pending.token == token else { return }
+
+            if !areAnyModifiersActive(pending.modifiers) || attemptsRemaining <= 0 {
+                dispatchPendingHandler(id: id, pending: pending)
+                return
+            }
+
+            pollPendingModifierRelease(id: id, token: token, attemptsRemaining: attemptsRemaining - 1)
+        }
+    }
+
+    private static func dispatchPendingHandlersIfModifiersReleased() {
+        for (id, pending) in pendingModifierReleases where !areAnyModifiersActive(pending.modifiers) {
+            dispatchPendingHandler(id: id, pending: pending)
+        }
+    }
+
+    private static func dispatchPendingHandler(id: UInt32, pending: PendingModifierRelease) {
+        guard pendingModifierReleases[id]?.token == pending.token else { return }
+        pendingModifierReleases.removeValue(forKey: id)
+        logger.notice("dispatching name=\(pending.name, privacy: .public) after modifier release")
+        executeOnMain(pending.handler)
+    }
+
+    private static func areAnyModifiersActive(_ modifiers: CGEventFlags) -> Bool {
+        let activeModifiers = CGEventSource.flagsState(.combinedSessionState)
+            .intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
+        return !activeModifiers.intersection(modifiers).isEmpty
+    }
+
+    private static func executeOnMain(_ handler: @escaping () -> Void) {
+        if Thread.isMainThread {
+            handler()
+        } else {
+            DispatchQueue.main.async(execute: handler)
         }
     }
 

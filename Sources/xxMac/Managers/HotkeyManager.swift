@@ -283,12 +283,17 @@ class HotKeyManager: ObservableObject {
         case .nextScreen: am.nextScreen()
         case .previousScreen: am.previousScreen()
         case .toggleLauncher:
-            DispatchQueue.main.async {
+            let showLauncher = {
                 if NSApp.isHidden {
                     NSApp.unhide(nil)
                 }
                 NSApp.activate(ignoringOtherApps: true)
                 NotificationCenter.default.post(name: NSNotification.Name("ToggleLauncher"), object: nil)
+            }
+            if Thread.isMainThread {
+                showLauncher()
+            } else {
+                DispatchQueue.main.async(execute: showLauncher)
             }
         case .pasteFinderPath:
             DispatchQueue.main.async {

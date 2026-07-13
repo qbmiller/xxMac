@@ -12,7 +12,7 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 
 | Capability | Description | Similar / Alternative |
 | --- | --- | --- |
-| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. Supports recent action history, keyboard paging, custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
+| Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. The panel reacts immediately after hotkey modifiers are released so rapid first-character input is preserved, and closes as soon as an app launch is submitted without waiting for the target app to finish starting. Supports recent action history, keyboard paging, custom background color, opacity, content size, and window width/height. | Alfred / Spotlight |
 | Launcher Calculator | Type arithmetic expressions such as `4+8`, `(2+3)*4`, or `-3.5/2` directly in the launcher search field to see live results, then press Return to copy the result. | Alfred Calculator / Spotlight |
 | App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. | Thor |
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |

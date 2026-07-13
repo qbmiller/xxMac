@@ -423,17 +423,19 @@ class LauncherViewModel: ObservableObject {
     func executeSelection(revealInFinder: Bool = false) {
         guard results.indices.contains(selectedIndex) else { return }
         let item = results[selectedIndex]
-        if revealInFinder, item.type == .app {
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.subtitle)])
-        } else {
-            if mode == .launcher {
-                LauncherHistoryManager.shared.record(item: item, query: query)
-            }
-            item.action()
+        if mode == .launcher, !revealInFinder {
+            LauncherHistoryManager.shared.record(item: item, query: query)
         }
+
         // Clipboard and snippet modes own their close/focus/input sequencing inside their managers.
         if mode != .clipboard && mode != .snippets && item.type != .quickShortcutOutput {
             NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
+        }
+
+        if revealInFinder, item.type == .app {
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.subtitle)])
+        } else {
+            item.action()
         }
     }
 

@@ -386,6 +386,11 @@ struct SearchResultRow: View {
     
     var body: some View {
         HStack(spacing: scaled(18)) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: scaled(9), height: scaled(9))
+                .opacity(isSelected ? 1 : 0)
+
             SearchResultIcon(item: item)
             
             VStack(alignment: .leading, spacing: 2) {

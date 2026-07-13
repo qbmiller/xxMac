@@ -1122,6 +1122,10 @@ private struct LauncherAppearancePreview: View {
             .background(Color.white.opacity(0.08))
 
             HStack(spacing: scaled(12)) {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: scaled(7), height: scaled(7))
+
                 Image(systemName: "app.fill")
                     .font(.system(size: scaled(22), weight: .medium))
                     .foregroundColor(.white.opacity(0.85))
