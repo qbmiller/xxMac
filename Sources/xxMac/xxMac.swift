@@ -222,6 +222,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         _ = ConfigDirectoryManager.shared
         _ = PreferencesStore.shared
         _ = GeneralSettingsManager.shared
+        _ = UpdateManager.shared
         // Initialize HotKeyManager
         _ = HotKeyManager.shared
         // Initialize AppLauncherManager
@@ -260,6 +261,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         
         // 2. Setup Launcher Window
         createLauncherPanel()
+        UpdateManager.shared.start()
         
         // 3. Setup Global Hotkey
         // Keyboard navigation monitor
@@ -1120,6 +1122,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         reaffirmMenuBarItemIfNeeded(trigger: "appActive")
         if pendingLauncherRestore {
             restoreLauncherWindow()
+        }
+        Task {
+            await UpdateManager.shared.checkIfNeeded()
         }
     }
 }

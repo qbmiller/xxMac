@@ -101,10 +101,16 @@
 "about.last_updated_label" = "最近更新";
 "about.checking" = "檢查中...";
 "about.check_updates" = "檢查更新";
+"about.auto_update" = "自動檢查";
+"about.update_frequency.off" = "關閉";
+"about.update_frequency.daily" = "每天";
+"about.update_frequency.weekly" = "每週";
+"about.update_frequency.monthly" = "每月";
 "about.up_to_date_format" = "目前版本 %@ 已是最新。";
 "about.update_available_format" = "發現新版本 %@。請開啟上方 GitHub Release 頁面下載。";
 "about.update_check_failed" = "檢查更新失敗，請稍後再試。";
 "about.copyright" = "© 2026 Miller. 保留所有權利。";
+"launcher.update_available_format" = "發現新版本 %@，開啟 GitHub Releases。";
 
 "launcher_settings.desc" = "為應用設定快速鍵以快速啟動或切換。";
 "launcher_settings.empty" = "尚無快速鍵設定。點擊「+」新增應用。";

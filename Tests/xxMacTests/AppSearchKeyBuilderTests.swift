@@ -33,14 +33,14 @@ final class AppSearchKeyBuilderTests: XCTestCase {
 
         XCTAssertTrue(keys.normalized.contains("yin le"))
         XCTAssertTrue(keys.compact.contains("yl"))
-        XCTAssertTrue(keys.normalized.contains("yin yue"))
+        XCTAssertTrue(keys.normalized.contains("yinyue"))
         XCTAssertTrue(keys.compact.contains("yy"))
     }
 
     func testPhrasePinyinAliasIsSearchable() {
-        let keys = AppSearchKeyBuilder.keys(for: ["音乐"])
+        let keys = AppSearchKeyBuilder.keys(for: ["汽水音乐"])
 
-        XCTAssertTrue(keys.normalized.contains("yin yue"))
+        XCTAssertTrue(keys.normalized.contains("yinyue"))
         XCTAssertTrue(keys.compact.contains("yinyue"))
         XCTAssertTrue(keys.compact.contains("yy"))
     }

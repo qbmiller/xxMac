@@ -320,9 +320,9 @@ private struct SnippetCollectionSidebarRow: View {
 // MARK: - About View
 
 struct AboutSettingsView: View {
-    @State private var isCheckingForUpdates = false
+    @ObservedObject private var updateManager = UpdateManager.shared
     @State private var updateMessage: String?
-    private let releaseURL = URL(string: "https://github.com/qbmiller/xxMac/releases")!
+    private let releaseURL = UpdateManager.releasesURL
     
     var body: some View {
         VStack(spacing: 24) {
@@ -367,17 +367,28 @@ struct AboutSettingsView: View {
                     .foregroundColor(.secondary)
                     .textSelection(.enabled)
 
-                Button(action: checkForUpdates) {
-                    HStack {
-                        if isCheckingForUpdates {
-                            ProgressView()
-                                .controlSize(.small)
+                HStack(spacing: 12) {
+                    Button(action: checkForUpdates) {
+                        HStack {
+                            if updateManager.isChecking {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                            Text(updateManager.isChecking ? L10n.t("about.checking") : L10n.t("about.check_updates"))
                         }
-                        Text(isCheckingForUpdates ? L10n.t("about.checking") : L10n.t("about.check_updates"))
                     }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(updateManager.isChecking)
+
+                    Picker(L10n.t("about.auto_update"), selection: $updateManager.frequency) {
+                        ForEach(UpdateCheckFrequency.allCases) { frequency in
+                            Text(L10n.t(frequency.localizationKey)).tag(frequency)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .frame(width: 250)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(isCheckingForUpdates)
 
                 if let message = updateMessage {
                     Text(message)
@@ -408,87 +419,18 @@ struct AboutSettingsView: View {
 
     @MainActor
     private func loadLatestRelease() async {
-        isCheckingForUpdates = true
         updateMessage = nil
 
         do {
-            let release = try await GitHubRelease.latest()
-            if isNewerVersion(release.version, than: currentVersion) {
-                updateMessage = L10n.f("about.update_available_format", release.version)
-            } else {
+            switch try await updateManager.checkForUpdates() {
+            case .upToDate:
                 updateMessage = L10n.f("about.up_to_date_format", currentVersion)
+            case .updateAvailable(let version):
+                updateMessage = L10n.f("about.update_available_format", version)
             }
         } catch {
             updateMessage = L10n.t("about.update_check_failed")
         }
-
-        isCheckingForUpdates = false
-    }
-
-    private func isNewerVersion(_ remoteVersion: String, than localVersion: String) -> Bool {
-        let remoteParts = versionParts(remoteVersion)
-        let localParts = versionParts(localVersion)
-        let count = max(remoteParts.count, localParts.count)
-
-        for index in 0..<count {
-            let remotePart = index < remoteParts.count ? remoteParts[index] : 0
-            let localPart = index < localParts.count ? localParts[index] : 0
-            if remotePart != localPart {
-                return remotePart > localPart
-            }
-        }
-
-        return false
-    }
-
-    private func versionParts(_ version: String) -> [Int] {
-        version
-            .trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
-            .split(separator: ".")
-            .map { Int($0) ?? 0 }
-    }
-}
-
-private struct GitHubRelease {
-    let tagName: String
-
-    var version: String {
-        tagName.trimmingCharacters(in: CharacterSet(charactersIn: "vV"))
-    }
-
-    static func latest() async throws -> GitHubRelease {
-        let url = URL(string: "https://github.com/qbmiller/xxMac/releases/latest")!
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
-        request.httpMethod = "HEAD"
-
-        let delegate = LatestReleaseRedirectDelegate()
-        let (_, response) = try await URLSession.shared.data(for: request, delegate: delegate)
-        let tagURL = delegate.redirectURL ?? response.url
-        guard let tagName = tagURL?.lastPathComponent,
-              tagURL?.path.contains("/releases/tag/") == true else {
-            throw URLError(.badURL)
-        }
-
-        return GitHubRelease(tagName: tagName)
-    }
-}
-
-private final class LatestReleaseRedirectDelegate: NSObject, URLSessionTaskDelegate {
-    private(set) var redirectURL: URL?
-
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest
-    ) async -> URLRequest? {
-        guard 300..<400 ~= response.statusCode,
-              let url = request.url else {
-            return request
-        }
-
-        redirectURL = url
-        return nil
     }
 }
 

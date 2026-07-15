@@ -35,4 +35,9 @@ enum AppDefaultSettings {
         static let bookmarkKeyword = "bm"
         static let historyKeyword = "bh"
     }
+
+    enum Updates {
+        /// Automatic update checks run weekly unless the user chooses another interval.
+        static let frequency = UpdateCheckFrequency.weekly
+    }
 }

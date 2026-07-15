@@ -115,9 +115,11 @@ struct AppSearchKeyBuilder {
     }
 
     private static func insertPhrasePinyinAliases(for value: String, into normalized: inout Set<String>, _ compact: inout Set<String>) {
-        for alias in pinyinAliases.phrases[value] ?? [] {
-            insert(alias, into: &normalized, &compact)
-            insertInitials(from: alias, into: &normalized, &compact)
+        for (phrase, aliases) in pinyinAliases.phrases where value.contains(phrase) {
+            for alias in aliases {
+                insert(alias, into: &normalized, &compact)
+                insertInitials(from: alias, into: &normalized, &compact)
+            }
         }
     }
 

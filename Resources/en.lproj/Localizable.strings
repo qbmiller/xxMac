@@ -101,10 +101,16 @@
 "about.last_updated_label" = "Last Updated";
 "about.checking" = "Checking...";
 "about.check_updates" = "Check for Updates";
+"about.auto_update" = "Automatic checks";
+"about.update_frequency.off" = "Off";
+"about.update_frequency.daily" = "Daily";
+"about.update_frequency.weekly" = "Weekly";
+"about.update_frequency.monthly" = "Monthly";
 "about.up_to_date_format" = "Version %@ is up to date.";
 "about.update_available_format" = "Version %@ is available. Open the GitHub Release page above to download it.";
 "about.update_check_failed" = "Unable to check for updates. Please try again later.";
 "about.copyright" = "© 2026 Miller. All rights reserved.";
+"launcher.update_available_format" = "Version %@ is available. Open GitHub Releases.";
 
 "launcher_settings.desc" = "Assign shortcuts to launch or switch to applications quickly.";
 "launcher_settings.empty" = "No shortcuts configured. Click '+' to add an application.";

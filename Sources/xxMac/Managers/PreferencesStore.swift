@@ -146,7 +146,9 @@ final class PreferencesStore {
         "LockAIStatusText",
         "BrowserSearchBrowser",
         "BrowserSearchBookmarkKeyword",
-        "BrowserSearchHistoryKeyword"
+        "BrowserSearchHistoryKeyword",
+        "UpdateCheckFrequency",
+        "UpdateAvailableVersion"
     ]
 
     private static let stringArrayKeys = [
@@ -183,6 +185,7 @@ final class PreferencesStore {
         "LauncherAppearanceSizeScale",
         "LauncherAppearanceTextScale",
         "LauncherAppearanceWidth",
-        "LauncherAppearanceHeight"
+        "LauncherAppearanceHeight",
+        "UpdateLastSuccessfulCheck"
     ]
 }

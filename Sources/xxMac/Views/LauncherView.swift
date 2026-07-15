@@ -5,6 +5,7 @@ struct LauncherView: View {
     @ObservedObject private var appSearchManager = AppSearchManager.shared
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
+    @ObservedObject private var updateManager = UpdateManager.shared
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var isCommandPressed = false
 
@@ -120,6 +121,20 @@ struct LauncherView: View {
                     }
                 )
                 .frame(height: scaled(48))
+
+                if let availableVersion = updateManager.availableVersion {
+                    Button {
+                        NSWorkspace.shared.open(UpdateManager.releasesURL)
+                    } label: {
+                        Image(systemName: "arrow.down.circle.fill")
+                            .font(.system(size: scaled(24), weight: .semibold))
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: scaled(32), height: scaled(32))
+                    .help(L10n.f("launcher.update_available_format", availableVersion))
+                    .accessibilityLabel(L10n.f("launcher.update_available_format", availableVersion))
+                }
             }
             .padding(.horizontal, scaled(28))
             .padding(.vertical, scaled(22))
