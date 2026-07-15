@@ -247,6 +247,18 @@ struct LauncherView: View {
     }
 }
 
+enum LauncherSearchFieldFocus {
+    static func focus(_ textField: NSTextField?) {
+        guard let textField, let window = textField.window else { return }
+
+        if let editor = textField.currentEditor(), window.firstResponder === editor {
+            return
+        }
+
+        window.makeFirstResponder(textField)
+    }
+}
+
 private struct LauncherSearchField: NSViewRepresentable {
     let placeholder: String
     @Binding var text: String
@@ -278,10 +290,10 @@ private struct LauncherSearchField: NSViewRepresentable {
             object: nil,
             queue: .main
         ) { [weak textField] _ in
-            Self.focus(textField)
+            LauncherSearchFieldFocus.focus(textField)
         }
         DispatchQueue.main.async {
-            Self.focus(textField)
+            LauncherSearchFieldFocus.focus(textField)
         }
         return textField
     }
@@ -303,18 +315,13 @@ private struct LauncherSearchField: NSViewRepresentable {
         if context.coordinator.lastSearchID != searchID {
             context.coordinator.lastSearchID = searchID
             DispatchQueue.main.async {
-                Self.focus(textField)
+                LauncherSearchFieldFocus.focus(textField)
             }
         }
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
-    }
-
-    private static func focus(_ textField: NSTextField?) {
-        guard let textField, let window = textField.window else { return }
-        window.makeFirstResponder(textField)
     }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
