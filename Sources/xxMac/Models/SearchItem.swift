@@ -55,6 +55,7 @@ struct SearchItem: Identifiable, Hashable {
     let clipboardPreview: ClipboardPreviewData?
     let snippetPreview: SnippetPreviewData?
     let launcherHistorySnapshot: LauncherHistorySnapshot?
+    let launcherInputText: String?
     let action: () -> Void
     
     init(
@@ -67,6 +68,7 @@ struct SearchItem: Identifiable, Hashable {
         clipboardPreview: ClipboardPreviewData? = nil,
         snippetPreview: SnippetPreviewData? = nil,
         launcherHistorySnapshot: LauncherHistorySnapshot? = nil,
+        launcherInputText: String? = nil,
         action: @escaping () -> Void
     ) {
         self.id = id ?? "\(type)_\(title)"
@@ -78,6 +80,7 @@ struct SearchItem: Identifiable, Hashable {
         self.clipboardPreview = clipboardPreview
         self.snippetPreview = snippetPreview
         self.launcherHistorySnapshot = launcherHistorySnapshot
+        self.launcherInputText = launcherInputText
         self.action = action
     }
     

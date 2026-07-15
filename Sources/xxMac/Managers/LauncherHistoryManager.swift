@@ -146,10 +146,23 @@ final class LauncherHistoryManager: ObservableObject {
                 iconName: record.iconName,
                 query: record.query
             ),
+            launcherInputText: launcherInputText(for: record),
             action: { [weak self] in
                 self?.replay(record)
             }
         )
+    }
+
+    private func launcherInputText(for record: LauncherHistoryRecord) -> String {
+        guard record.kind == .quickShortcut else { return record.query }
+
+        let keyword = QuickShortcutManager.shared.items
+            .first { $0.id.uuidString == record.sourceID }?
+            .keyword
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return [keyword, record.query]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     private func historySubtitle(for record: LauncherHistoryRecord) -> String {

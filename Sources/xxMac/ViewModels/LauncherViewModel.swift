@@ -10,6 +10,31 @@ enum LauncherMode {
     case snippets
 }
 
+final class LauncherCommandDebouncer {
+    private let delay: TimeInterval
+    private var pendingWorkItem: DispatchWorkItem?
+
+    init(delay: TimeInterval = 0.4) {
+        self.delay = delay
+    }
+
+    func schedule(_ action: @escaping () -> Void) {
+        cancel()
+        let workItem = DispatchWorkItem(block: action)
+        pendingWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+    }
+
+    func cancel() {
+        pendingWorkItem?.cancel()
+        pendingWorkItem = nil
+    }
+
+    deinit {
+        cancel()
+    }
+}
+
 class LauncherViewModel: ObservableObject {
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherSearch")
     @Published var query: String = ""
@@ -19,9 +44,21 @@ class LauncherViewModel: ObservableObject {
     @Published var searchID = UUID()
     
     private var cancellables = Set<AnyCancellable>()
+    private let quickShortcutCommandDebouncer = LauncherCommandDebouncer()
     private var quickShortcutRunID: UUID?
     private var browserSearchRunID: UUID?
     private var isBrowsingEmptyHistory = false
+
+    var searchFieldText: String {
+        guard mode == .launcher,
+              query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              results.indices.contains(selectedIndex),
+              results[selectedIndex].type == .launcherHistory,
+              let launcherInputText = results[selectedIndex].launcherInputText else {
+            return query
+        }
+        return launcherInputText
+    }
     
     init() {
         $query
@@ -132,7 +169,7 @@ class LauncherViewModel: ObservableObject {
         results = []
         selectedIndex = 0
         searchID = UUID()
-        quickShortcutRunID = nil
+        cancelPendingQuickShortcutCommand()
         browserSearchRunID = nil
         isBrowsingEmptyHistory = false
     }
@@ -148,11 +185,16 @@ class LauncherViewModel: ObservableObject {
             performSnippetSearch(query: searchText)
         }
     }
+
+    func updateSearchFieldText(_ text: String) {
+        query = text
+    }
     
     private func performLauncherSearch(query: String) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedQuery.isEmpty else {
+            cancelPendingQuickShortcutCommand()
             results = isBrowsingEmptyHistory
                 ? LauncherHistoryManager.shared.search(query: "")
                 : QuickShortcutManager.shared.fallbackSearchItems(query: "") { [weak self] item, query in
@@ -226,10 +268,10 @@ class LauncherViewModel: ObservableObject {
     private func handleQuickShortcut(query: String) -> Bool {
         switch QuickShortcutManager.shared.activationState(query: query) {
         case .none:
-            quickShortcutRunID = nil
+            cancelPendingQuickShortcutCommand()
             return false
         case .waitingForInput(let item):
-            quickShortcutRunID = nil
+            cancelPendingQuickShortcutCommand()
             results = [
                 SearchItem(
                     id: "quick_shortcut.waiting.\(item.id.uuidString)",
@@ -245,6 +287,7 @@ class LauncherViewModel: ObservableObject {
         case .ready(let match):
             switch match.item.actionType {
             case .webSearch:
+                cancelPendingQuickShortcutCommand()
                 results = [
                     SearchItem(
                         id: "quick_shortcut.\(match.item.id.uuidString)",
@@ -341,7 +384,6 @@ class LauncherViewModel: ObservableObject {
     private func runQuickShortcutCommand(item: QuickShortcut, query: String) {
         let runID = UUID()
         let sourceInput = self.query.trimmingCharacters(in: .whitespacesAndNewlines)
-        recordQuickShortcutHistory(item: item, query: query)
         quickShortcutRunID = runID
         results = [
             SearchItem(
@@ -354,16 +396,29 @@ class LauncherViewModel: ObservableObject {
             )
         ]
 
-        QuickShortcutManager.shared.runCommandScript(item: item, query: query) { [weak self] output in
-            guard let self = self,
+        quickShortcutCommandDebouncer.schedule { [weak self] in
+            guard let self,
                   self.mode == .launcher,
                   self.quickShortcutRunID == runID,
-                  self.query.trimmingCharacters(in: .whitespacesAndNewlines) == sourceInput else {
-                return
+                  self.query.trimmingCharacters(in: .whitespacesAndNewlines) == sourceInput else { return }
+
+            self.recordQuickShortcutHistory(item: item, query: query)
+            QuickShortcutManager.shared.runCommandScript(item: item, query: query) { [weak self] output in
+                guard let self,
+                      self.mode == .launcher,
+                      self.quickShortcutRunID == runID,
+                      self.query.trimmingCharacters(in: .whitespacesAndNewlines) == sourceInput else {
+                    return
+                }
+                self.results = self.outputResults(for: item, output: output)
+                self.selectedIndex = 0
             }
-            self.results = self.outputResults(for: item, output: output)
-            self.selectedIndex = 0
         }
+    }
+
+    private func cancelPendingQuickShortcutCommand() {
+        quickShortcutCommandDebouncer.cancel()
+        quickShortcutRunID = nil
     }
 
     private func outputResults(for item: QuickShortcut, output: String) -> [SearchItem] {

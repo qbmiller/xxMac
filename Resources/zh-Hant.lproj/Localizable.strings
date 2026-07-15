@@ -158,7 +158,7 @@
 "launcher_history.subtitle_format" = "最近操作 • %@";
 "launcher_history.subtitle_with_query_format" = "最近操作 • %@ • %@";
 "launcher_history.max_items" = "最近操作歷史";
-"launcher_history.max_items_desc" = "記錄應用、視窗命令、快捷指令和計算器結果；不記錄剪貼簿和 Snippets。空查詢時按方向鍵可切換到最近歷史。";
+"launcher_history.max_items_desc" = "記錄應用、視窗命令、快捷指令和計算器結果；不記錄剪貼簿和 Snippets。空查詢時按方向鍵可切換到最近歷史，所選操作會顯示在輸入框中。";
 "launcher_history.max_items_format" = "%d 條";
 "launcher_history.clear_title" = "清空最近操作";
 "launcher_history.current_count_format" = "目前記錄 %d 條";

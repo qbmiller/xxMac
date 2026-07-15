@@ -158,7 +158,7 @@
 "launcher_history.subtitle_format" = "Recent action • %@";
 "launcher_history.subtitle_with_query_format" = "Recent action • %@ • %@";
 "launcher_history.max_items" = "Recent Action History";
-"launcher_history.max_items_desc" = "Records apps, window commands, quick shortcuts, and calculator results. Clipboard and Snippets are not recorded. Press an arrow key on an empty query to switch to recent history.";
+"launcher_history.max_items_desc" = "Records apps, window commands, quick shortcuts, and calculator results. Clipboard and Snippets are not recorded. Press an arrow key on an empty query to switch to recent history and show the selected action in the search field.";
 "launcher_history.max_items_format" = "%d items";
 "launcher_history.clear_title" = "Clear Recent Actions";
 "launcher_history.current_count_format" = "%d records saved";

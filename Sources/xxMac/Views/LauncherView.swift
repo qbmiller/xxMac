@@ -42,6 +42,13 @@ struct LauncherView: View {
         !viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var searchFieldText: Binding<String> {
+        Binding(
+            get: { viewModel.searchFieldText },
+            set: { viewModel.updateSearchFieldText($0) }
+        )
+    }
+
     private var shouldShowLauncherIndexing: Bool {
         viewModel.mode == .launcher && launcherHasQuery && appSearchManager.isIndexing
     }
@@ -90,7 +97,7 @@ struct LauncherView: View {
                 
                 LauncherSearchField(
                     placeholder: searchPlaceholder,
-                    text: $viewModel.query,
+                    text: searchFieldText,
                     searchID: viewModel.searchID,
                     fontSize: scaledText(36),
                     onSubmit: {
