@@ -133,7 +133,7 @@
 "clipboard.max_image_storage" = "Image Cache Limit";
 "clipboard.thumbnail_threshold" = "Generate Thumbnails Above";
 "clipboard.ocr_enable" = "Enable Local OCR";
-"clipboard.ocr_enable_desc" = "Uses system Vision on this Mac to recognize image text for clipboard search. Images are not uploaded.";
+"clipboard.ocr_enable_desc" = "Uses system Vision on this Mac to recognize text without uploading images. Once enabled, search for text in an image directly from the clipboard to find it.";
 "clipboard.ocr_max_image_size" = "Max OCR Image Size";
 "clipboard.ocr_status_pending" = "OCR pending";
 "clipboard.ocr_status_ready" = "OCR text";

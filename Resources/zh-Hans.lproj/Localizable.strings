@@ -133,7 +133,7 @@
 "clipboard.max_image_storage" = "图片缓存总量";
 "clipboard.thumbnail_threshold" = "超过此大小生成缩略图";
 "clipboard.ocr_enable" = "启用本地 OCR";
-"clipboard.ocr_enable_desc" = "使用系统 Vision 在本机识别图片文字，用于剪贴板搜索，不上传图片";
+"clipboard.ocr_enable_desc" = "使用系统 Vision 在本机识别图片文字，不上传图片。开启后，在剪贴板中直接搜索图片里的文字即可找到图片。";
 "clipboard.ocr_max_image_size" = "OCR 最大图片大小";
 "clipboard.ocr_status_pending" = "OCR 处理中";
 "clipboard.ocr_status_ready" = "已识别文字";

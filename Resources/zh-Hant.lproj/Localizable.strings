@@ -133,7 +133,7 @@
 "clipboard.max_image_storage" = "圖片快取總量";
 "clipboard.thumbnail_threshold" = "超過此大小產生縮圖";
 "clipboard.ocr_enable" = "啟用本機 OCR";
-"clipboard.ocr_enable_desc" = "使用系統 Vision 在本機辨識圖片文字，用於剪貼簿搜尋，不上傳圖片";
+"clipboard.ocr_enable_desc" = "使用系統 Vision 在本機辨識圖片文字，不上傳圖片。開啟後，在剪貼簿中直接搜尋圖片裡的文字即可找到圖片。";
 "clipboard.ocr_max_image_size" = "OCR 最大圖片大小";
 "clipboard.ocr_status_pending" = "OCR 處理中";
 "clipboard.ocr_status_ready" = "已辨識文字";
