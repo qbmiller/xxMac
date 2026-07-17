@@ -37,6 +37,23 @@ final class ClipboardModelsTests: XCTestCase {
         XCTAssertFalse(ClipboardManager.shouldRecordText(""))
     }
 
+    func testClipboardLocalOCRIsEnabledByDefault() {
+        XCTAssertTrue(ClipboardSettings().imageOCREnabled)
+    }
+
+    func testClipboardSettingsWithoutOCRFieldEnablesLocalOCR() throws {
+        let settings = try JSONDecoder().decode(ClipboardSettings.self, from: Data("{}".utf8))
+
+        XCTAssertTrue(settings.imageOCREnabled)
+    }
+
+    func testClipboardSettingsPreservesExplicitlyDisabledLocalOCR() throws {
+        let json = #"{"imageOCREnabled":false}"#
+        let settings = try JSONDecoder().decode(ClipboardSettings.self, from: Data(json.utf8))
+
+        XCTAssertFalse(settings.imageOCREnabled)
+    }
+
     func testFinderFilePathUsesFullPath() {
         let urls = [URL(fileURLWithPath: "/Users/test/Documents/report.txt")]
 

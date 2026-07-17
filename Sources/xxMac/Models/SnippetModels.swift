@@ -3,7 +3,7 @@ import HotKey
 import AppKit
 
 struct SnippetSettings: Codable {
-    var hotKey: HotKeyConfiguration? = HotKeyConfiguration(key: .x, modifiers: [.control, .option, .command])
+    var hotKey: HotKeyConfiguration? = AppDefaultSettings.Snippets.hotKey
 }
 
 struct SnippetCollection: Codable, Identifiable, Hashable {

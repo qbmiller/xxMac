@@ -17,7 +17,7 @@ class AppSearchManager: ObservableObject {
         }
     }
 
-    private let requiredSystemPaths = ["/Applications", "/System/Applications", "/System/Library/CoreServices"]
+    private let requiredSystemPaths = AppDefaultSettings.General.appSearchPaths
     private let userDefaultsKey = "AppSearchPaths"
     private let cacheDefaultsKey = "AppSearchIndexCacheV2"
     private var appEntries: [AppEntry] = []

@@ -71,10 +71,10 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
         keyword: String,
         actionType: QuickShortcutActionType,
         payload: String,
-        shellPath: String = "/bin/zsh",
-        commandInputMode: QuickShortcutCommandInputMode = .queryPlaceholder,
+        shellPath: String = AppDefaultSettings.QuickShortcuts.shellPath,
+        commandInputMode: QuickShortcutCommandInputMode = AppDefaultSettings.QuickShortcuts.commandInputMode,
         previewQuery: String = "",
-        showInFallback: Bool = false,
+        showInFallback: Bool = AppDefaultSettings.QuickShortcuts.showInFallback,
         isEnabled: Bool = true
     ) {
         self.id = id
@@ -109,10 +109,10 @@ struct QuickShortcut: Codable, Identifiable, Hashable {
         keyword = try container.decode(String.self, forKey: .keyword)
         actionType = try container.decode(QuickShortcutActionType.self, forKey: .actionType)
         payload = try container.decode(String.self, forKey: .payload)
-        shellPath = try container.decodeIfPresent(String.self, forKey: .shellPath) ?? "/bin/zsh"
-        commandInputMode = try container.decodeIfPresent(QuickShortcutCommandInputMode.self, forKey: .commandInputMode) ?? .queryPlaceholder
+        shellPath = try container.decodeIfPresent(String.self, forKey: .shellPath) ?? AppDefaultSettings.QuickShortcuts.shellPath
+        commandInputMode = try container.decodeIfPresent(QuickShortcutCommandInputMode.self, forKey: .commandInputMode) ?? AppDefaultSettings.QuickShortcuts.commandInputMode
         previewQuery = try container.decodeIfPresent(String.self, forKey: .previewQuery) ?? ""
-        showInFallback = try container.decodeIfPresent(Bool.self, forKey: .showInFallback) ?? false
+        showInFallback = try container.decodeIfPresent(Bool.self, forKey: .showInFallback) ?? AppDefaultSettings.QuickShortcuts.showInFallback
         isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
     }
 }

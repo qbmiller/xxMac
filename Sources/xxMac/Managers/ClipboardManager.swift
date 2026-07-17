@@ -7,17 +7,17 @@ import OSLog
 // MARK: - Clipboard Manager
 
 struct ClipboardSettings: Codable {
-    var clipboardMonitoringEnabled: Bool = false
-    var manageImages: Bool = true
-    var imageCacheDurationDays: Int = 7
-    var textCacheDurationDays: Int = 30
-    var maxImageSizeMB: Int = 100
-    var maxHistoryItems: Int = 1000
-    var maxImageStorageSizeMB: Int = 500
-    var thumbnailGenerationThresholdMB: Int = 5
-    var imageOCREnabled: Bool = false
-    var maxOCRImageSizeMB: Int = 20
-    var imageOCRLanguages: [String] = ["zh-Hans", "en-US"]
+    var clipboardMonitoringEnabled = AppDefaultSettings.Clipboard.monitoringEnabled
+    var manageImages = AppDefaultSettings.Clipboard.manageImages
+    var imageCacheDurationDays = AppDefaultSettings.Clipboard.imageCacheDurationDays
+    var textCacheDurationDays = AppDefaultSettings.Clipboard.textCacheDurationDays
+    var maxImageSizeMB = AppDefaultSettings.Clipboard.maxImageSizeMB
+    var maxHistoryItems = AppDefaultSettings.Clipboard.maxHistoryItems
+    var maxImageStorageSizeMB = AppDefaultSettings.Clipboard.maxImageStorageSizeMB
+    var thumbnailGenerationThresholdMB = AppDefaultSettings.Clipboard.thumbnailGenerationThresholdMB
+    var imageOCREnabled = AppDefaultSettings.Clipboard.imageOCREnabled
+    var maxOCRImageSizeMB = AppDefaultSettings.Clipboard.maxOCRImageSizeMB
+    var imageOCRLanguages = AppDefaultSettings.Clipboard.imageOCRLanguages
     var hotKey: HotKeyConfiguration?
 
     enum CodingKeys: String, CodingKey {
@@ -39,17 +39,17 @@ struct ClipboardSettings: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        clipboardMonitoringEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardMonitoringEnabled) ?? false
-        manageImages = try container.decodeIfPresent(Bool.self, forKey: .manageImages) ?? true
-        imageCacheDurationDays = try container.decodeIfPresent(Int.self, forKey: .imageCacheDurationDays) ?? 7
-        textCacheDurationDays = try container.decodeIfPresent(Int.self, forKey: .textCacheDurationDays) ?? 30
-        maxImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageSizeMB) ?? 100
-        maxHistoryItems = try container.decodeIfPresent(Int.self, forKey: .maxHistoryItems) ?? 1000
-        maxImageStorageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageStorageSizeMB) ?? 500
-        thumbnailGenerationThresholdMB = try container.decodeIfPresent(Int.self, forKey: .thumbnailGenerationThresholdMB) ?? 5
-        imageOCREnabled = try container.decodeIfPresent(Bool.self, forKey: .imageOCREnabled) ?? false
-        maxOCRImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxOCRImageSizeMB) ?? 20
-        imageOCRLanguages = try container.decodeIfPresent([String].self, forKey: .imageOCRLanguages) ?? ["zh-Hans", "en-US"]
+        clipboardMonitoringEnabled = try container.decodeIfPresent(Bool.self, forKey: .clipboardMonitoringEnabled) ?? AppDefaultSettings.Clipboard.monitoringEnabled
+        manageImages = try container.decodeIfPresent(Bool.self, forKey: .manageImages) ?? AppDefaultSettings.Clipboard.manageImages
+        imageCacheDurationDays = try container.decodeIfPresent(Int.self, forKey: .imageCacheDurationDays) ?? AppDefaultSettings.Clipboard.imageCacheDurationDays
+        textCacheDurationDays = try container.decodeIfPresent(Int.self, forKey: .textCacheDurationDays) ?? AppDefaultSettings.Clipboard.textCacheDurationDays
+        maxImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageSizeMB) ?? AppDefaultSettings.Clipboard.maxImageSizeMB
+        maxHistoryItems = try container.decodeIfPresent(Int.self, forKey: .maxHistoryItems) ?? AppDefaultSettings.Clipboard.maxHistoryItems
+        maxImageStorageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxImageStorageSizeMB) ?? AppDefaultSettings.Clipboard.maxImageStorageSizeMB
+        thumbnailGenerationThresholdMB = try container.decodeIfPresent(Int.self, forKey: .thumbnailGenerationThresholdMB) ?? AppDefaultSettings.Clipboard.thumbnailGenerationThresholdMB
+        imageOCREnabled = try container.decodeIfPresent(Bool.self, forKey: .imageOCREnabled) ?? AppDefaultSettings.Clipboard.imageOCREnabled
+        maxOCRImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxOCRImageSizeMB) ?? AppDefaultSettings.Clipboard.maxOCRImageSizeMB
+        imageOCRLanguages = try container.decodeIfPresent([String].self, forKey: .imageOCRLanguages) ?? AppDefaultSettings.Clipboard.imageOCRLanguages
         hotKey = try container.decodeIfPresent(HotKeyConfiguration.self, forKey: .hotKey)
     }
 }

@@ -111,51 +111,12 @@ class HotKeyManager: ObservableObject {
     }
     
     func setupDefaultConfigurations() {
-        let defaultModifiers: NSEvent.ModifierFlags = [.control, .option, .command]
-        
-        configurations = [
-            .left: HotKeyConfiguration(key: .leftArrow, modifiers: defaultModifiers),
-            .right: HotKeyConfiguration(key: .rightArrow, modifiers: defaultModifiers),
-            .top: HotKeyConfiguration(key: .upArrow, modifiers: defaultModifiers),
-            .bottom: HotKeyConfiguration(key: .downArrow, modifiers: defaultModifiers),
-            .topLeft: HotKeyConfiguration(key: .keypad1, modifiers: defaultModifiers), // ShiftIt uses 1, 2, 3, 4 for corners usually or similar
-            .topRight: HotKeyConfiguration(key: .keypad2, modifiers: defaultModifiers),
-            .bottomLeft: HotKeyConfiguration(key: .keypad3, modifiers: defaultModifiers),
-            .bottomRight: HotKeyConfiguration(key: .keypad4, modifiers: defaultModifiers),
-            .center: HotKeyConfiguration(key: .c, modifiers: defaultModifiers),
-            .toggleZoom: HotKeyConfiguration(key: .z, modifiers: defaultModifiers),
-            .maximize: HotKeyConfiguration(key: .m, modifiers: defaultModifiers),
-            .toggleFullscreen: HotKeyConfiguration(key: .f, modifiers: defaultModifiers),
-            .increase: HotKeyConfiguration(key: .equal, modifiers: defaultModifiers),
-            .reduce: HotKeyConfiguration(key: .minus, modifiers: defaultModifiers),
-            .nextScreen: HotKeyConfiguration(key: .n, modifiers: defaultModifiers),
-            .previousScreen: HotKeyConfiguration(key: .p, modifiers: defaultModifiers),
-            .toggleLauncher: HotKeyConfiguration(key: .space, modifiers: [.control, .option]),
-            .pasteFinderPath: HotKeyConfiguration(key: .v, modifiers: [.command, .shift]),
-            .lockAI: HotKeyConfiguration(key: .l, modifiers: defaultModifiers)
-        ]
-        
-        // Adjust for non-keypad numbers if needed, but ShiftIt screenshot shows ^⌥⌘1 etc.
-        configurations[.topLeft] = HotKeyConfiguration(key: .one, modifiers: defaultModifiers)
-        configurations[.topRight] = HotKeyConfiguration(key: .two, modifiers: defaultModifiers)
-        configurations[.bottomLeft] = HotKeyConfiguration(key: .three, modifiers: defaultModifiers)
-        configurations[.bottomRight] = HotKeyConfiguration(key: .four, modifiers: defaultModifiers)
+        configurations = AppDefaultSettings.HotKeys.configurations
         PreferencesStore.shared.removeObject(forKey: Self.clearedActionsKey)
     }
 
     private func defaultConfiguration(for action: WindowAction) -> HotKeyConfiguration? {
-        let defaultModifiers: NSEvent.ModifierFlags = [.control, .option, .command]
-
-        switch action {
-        case .toggleLauncher:
-            return HotKeyConfiguration(key: .space, modifiers: [.control, .option])
-        case .lockAI:
-            return HotKeyConfiguration(key: .l, modifiers: defaultModifiers)
-        case .pasteFinderPath:
-            return HotKeyConfiguration(key: .v, modifiers: [.command, .shift])
-        default:
-            return nil
-        }
+        AppDefaultSettings.HotKeys.configurations[action]
     }
 
     func defaultConfigurationForUserReset(_ action: WindowAction) -> HotKeyConfiguration? {

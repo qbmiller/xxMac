@@ -46,8 +46,8 @@ final class ShortcutDetectiveManager: ObservableObject {
         if let stored = PreferencesStore.shared.boolObject(forKey: enabledKey) {
             isEnabled = stored
         } else {
-            isEnabled = false
-            PreferencesStore.shared.set(false, forKey: enabledKey)
+            isEnabled = AppDefaultSettings.General.shortcutDetectiveEnabled
+            PreferencesStore.shared.set(AppDefaultSettings.General.shortcutDetectiveEnabled, forKey: enabledKey)
         }
         if isEnabled {
             startMonitoring()

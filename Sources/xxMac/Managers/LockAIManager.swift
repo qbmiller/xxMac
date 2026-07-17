@@ -20,7 +20,7 @@ final class LockAIManager: ObservableObject {
     private var eventTapRunLoopSource: CFRunLoopSource?
 
     private init() {
-        statusText = PreferencesStore.shared.string(forKey: Self.statusTextKey) ?? "AI Working"
+        statusText = PreferencesStore.shared.string(forKey: Self.statusTextKey) ?? AppDefaultSettings.LockAI.statusText
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersDidChange),

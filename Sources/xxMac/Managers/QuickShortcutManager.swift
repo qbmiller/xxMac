@@ -38,8 +38,8 @@ final class QuickShortcutManager: ObservableObject {
             title: L10n.t("quick_shortcut.default_web_title"),
             keyword: "",
             actionType: .webSearch,
-            payload: "https://www.google.com/search?q={query}",
-            isEnabled: false
+            payload: AppDefaultSettings.QuickShortcuts.webSearchPayload,
+            isEnabled: AppDefaultSettings.QuickShortcuts.newItemEnabled
         )
         items.append(item)
         iconCache.ensureIconCached(for: item)
@@ -50,10 +50,10 @@ final class QuickShortcutManager: ObservableObject {
             title: L10n.t("quick_shortcut.default_command_title"),
             keyword: "",
             actionType: .commandScript,
-            payload: Self.defaultTimestampScript,
-            shellPath: "/bin/zsh",
-            previewQuery: "2026-06-27 21:21:38",
-            isEnabled: false
+            payload: AppDefaultSettings.QuickShortcuts.commandPayload,
+            shellPath: AppDefaultSettings.QuickShortcuts.shellPath,
+            previewQuery: AppDefaultSettings.QuickShortcuts.commandPreviewQuery,
+            isEnabled: AppDefaultSettings.QuickShortcuts.newItemEnabled
         ))
     }
 
@@ -302,13 +302,13 @@ final class QuickShortcutManager: ObservableObject {
     private func interpreter(for script: String, fallbackShellPath: String) -> (executable: String, arguments: [String]) {
         guard let firstLine = script.split(whereSeparator: \.isNewline).first.map(String.init),
               firstLine.hasPrefix("#!") else {
-            return (fallbackShellPath.isEmpty ? "/bin/zsh" : fallbackShellPath, [])
+            return (fallbackShellPath.isEmpty ? AppDefaultSettings.QuickShortcuts.shellPath : fallbackShellPath, [])
         }
 
         let shebang = firstLine.dropFirst(2).trimmingCharacters(in: .whitespacesAndNewlines)
         let parts = shebang.split(separator: " ").map(String.init)
         guard let executable = parts.first, !executable.isEmpty else {
-            return (fallbackShellPath.isEmpty ? "/bin/zsh" : fallbackShellPath, [])
+            return (fallbackShellPath.isEmpty ? AppDefaultSettings.QuickShortcuts.shellPath : fallbackShellPath, [])
         }
         return (executable, Array(parts.dropFirst()))
     }
@@ -485,10 +485,6 @@ final class QuickShortcutManager: ObservableObject {
         let allowed = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&=?+#"))
         return query.addingPercentEncoding(withAllowedCharacters: allowed) ?? query
     }
-
-    private static let defaultTimestampScript = #"""
-
-"""#
 
     private func loadItems() {
         guard let data = PreferencesStore.shared.data(forKey: storageKey),

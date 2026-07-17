@@ -9,8 +9,8 @@ class ClipboardStorageManager {
     private var thumbnailsDir: URL
     private var storageDir: URL
     
-    private var maxItemsCount = 1000
-    private var maxImageStorageSizeMB = 500
+    private var maxItemsCount = AppDefaultSettings.Clipboard.maxHistoryItems
+    private var maxImageStorageSizeMB = AppDefaultSettings.Clipboard.maxImageStorageSizeMB
     
     var storageDirectory: URL { storageDir }
     var imagesDirectory: URL { imagesDir }

@@ -40,8 +40,8 @@ final class LocalizationManager: ObservableObject {
            let language = AppLanguage(rawValue: rawValue) {
             self.language = language
         } else {
-            self.language = .english
-            PreferencesStore.shared.set(AppLanguage.english.rawValue, forKey: UserDefaultsKeys.appLanguage)
+            self.language = AppDefaultSettings.General.appLanguage
+            PreferencesStore.shared.set(AppDefaultSettings.General.appLanguage.rawValue, forKey: UserDefaultsKeys.appLanguage)
         }
     }
 

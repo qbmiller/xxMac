@@ -54,12 +54,12 @@ final class LauncherAppearanceManager: ObservableObject {
 
     private init() {
         let store = PreferencesStore.shared
-        backgroundHex = store.string(forKey: backgroundKey) ?? "#5C9AAF"
-        opacity = store.doubleObject(forKey: opacityKey) ?? 0.78
-        sizeScale = Self.clampedSizeScale(store.doubleObject(forKey: sizeScaleKey) ?? 0.82)
-        textScale = Self.clampedTextScale(store.doubleObject(forKey: textScaleKey) ?? 1.0)
-        launcherWidth = store.doubleObject(forKey: launcherWidthKey) ?? 760
-        launcherHeight = store.doubleObject(forKey: launcherHeightKey) ?? 328
+        backgroundHex = store.string(forKey: backgroundKey) ?? AppDefaultSettings.LauncherAppearance.backgroundHex
+        opacity = store.doubleObject(forKey: opacityKey) ?? AppDefaultSettings.LauncherAppearance.opacity
+        sizeScale = Self.clampedSizeScale(store.doubleObject(forKey: sizeScaleKey) ?? AppDefaultSettings.LauncherAppearance.sizeScale)
+        textScale = Self.clampedTextScale(store.doubleObject(forKey: textScaleKey) ?? AppDefaultSettings.LauncherAppearance.textScale)
+        launcherWidth = store.doubleObject(forKey: launcherWidthKey) ?? AppDefaultSettings.LauncherAppearance.width
+        launcherHeight = store.doubleObject(forKey: launcherHeightKey) ?? AppDefaultSettings.LauncherAppearance.height
     }
 
     var backgroundColor: Color {
@@ -75,12 +75,12 @@ final class LauncherAppearanceManager: ObservableObject {
     }
 
     func reset() {
-        backgroundHex = "#5C9AAF"
-        opacity = 0.78
-        sizeScale = 0.82
-        textScale = 1.0
-        launcherWidth = 760
-        launcherHeight = 328
+        backgroundHex = AppDefaultSettings.LauncherAppearance.backgroundHex
+        opacity = AppDefaultSettings.LauncherAppearance.opacity
+        sizeScale = AppDefaultSettings.LauncherAppearance.sizeScale
+        textScale = AppDefaultSettings.LauncherAppearance.textScale
+        launcherWidth = AppDefaultSettings.LauncherAppearance.width
+        launcherHeight = AppDefaultSettings.LauncherAppearance.height
     }
 
     private func save() {

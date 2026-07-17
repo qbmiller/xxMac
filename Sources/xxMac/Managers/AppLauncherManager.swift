@@ -29,14 +29,14 @@ class AppLauncherManager: ObservableObject {
         }
         
         // Ensure Finder is present
-        let finderPath = "/System/Library/CoreServices/Finder.app"
+        let finderPath = AppDefaultSettings.AppLauncher.finderPath
         if !shortcuts.contains(where: { $0.appPath == finderPath }) {
             let finderShortcut = AppShortcut(
                 appName: "Finder",
                 appPath: finderPath,
-                key: .f1, // Default placeholder
+                key: AppDefaultSettings.AppLauncher.finderKey,
                 modifiers: [],
-                isEnabled: false
+                isEnabled: AppDefaultSettings.AppLauncher.finderEnabled
             )
             shortcuts.insert(finderShortcut, at: 0) // Add to top
         }
