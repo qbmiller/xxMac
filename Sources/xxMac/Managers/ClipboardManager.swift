@@ -151,16 +151,10 @@ class ClipboardManager: ObservableObject {
         ) as? [URL] ?? []
         var imageToSave: NSImage?
 
-        if let firstURL = fileURLs.first {
-            guard settings.manageImages else { return }
-
-            let ext = firstURL.pathExtension.lowercased()
-            let imageExtensions = ["png", "jpg", "jpeg", "tiff", "gif", "bmp", "heic", "webp"]
-            if imageExtensions.contains(ext), let image = NSImage(contentsOf: firstURL) {
-                imageToSave = image
-            } else {
-                return
-            }
+        if !fileURLs.isEmpty {
+            let nameText = FilePathPasteManager.nameText(for: fileURLs)
+            addItem(type: .text, content: nameText, size: nameText.utf8.count)
+            return
         } else if let str = pasteboard.string(forType: .string), Self.shouldRecordText(str) {
             addItem(type: .text, content: str, size: str.utf8.count)
             return
@@ -219,6 +213,11 @@ class ClipboardManager: ObservableObject {
             self?.storage.saveItem(type: type, content: content, size: size)
             self?.refreshHistory()
         }
+    }
+
+    func recordText(_ text: String) {
+        guard settings.clipboardMonitoringEnabled, Self.shouldRecordText(text) else { return }
+        addItem(type: .text, content: text, size: text.utf8.count)
     }
     
     func refreshHistory() {

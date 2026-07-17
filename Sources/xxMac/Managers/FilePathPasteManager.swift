@@ -16,11 +16,21 @@ final class FilePathPasteManager {
             return
         }
 
-        let pathText = urls
+        let pathText = Self.pathText(for: urls)
+        ClipboardManager.shared.recordText(pathText)
+        typeTextAfterModifierRelease(pathText)
+    }
+
+    static func pathText(for urls: [URL]) -> String {
+        urls
             .map { shellEscapedPath($0.path) }
             .joined(separator: " ")
+    }
 
-        typeTextAfterModifierRelease(pathText)
+    static func nameText(for urls: [URL]) -> String {
+        urls
+            .map { shellEscapedPath($0.lastPathComponent) }
+            .joined(separator: " ")
     }
 
     private func readFileURLs(from pasteboard: NSPasteboard) -> [URL]? {
@@ -64,7 +74,7 @@ final class FilePathPasteManager {
         return nil
     }
 
-    private func shellEscapedPath(_ path: String) -> String {
+    private static func shellEscapedPath(_ path: String) -> String {
         if path.rangeOfCharacter(from: CharacterSet.whitespacesAndNewlines.union(.init(charactersIn: "'\"\\$`!*?[]{}()&;|<>"))) == nil {
             return path
         }

@@ -36,4 +36,43 @@ final class ClipboardModelsTests: XCTestCase {
     func testClipboardSkipsOnlyEmptyText() {
         XCTAssertFalse(ClipboardManager.shouldRecordText(""))
     }
+
+    func testFinderFilePathUsesFullPath() {
+        let urls = [URL(fileURLWithPath: "/Users/test/Documents/report.txt")]
+
+        XCTAssertEqual(FilePathPasteManager.pathText(for: urls), "/Users/test/Documents/report.txt")
+    }
+
+    func testFinderCopyUsesOnlyFileName() {
+        let urls = [URL(fileURLWithPath: "/Users/test/Documents/report.txt")]
+
+        XCTAssertEqual(FilePathPasteManager.nameText(for: urls), "report.txt")
+    }
+
+    func testFinderFilePathShellEscapesSpaces() {
+        let urls = [URL(fileURLWithPath: "/Users/test/My Folder/report.txt")]
+
+        XCTAssertEqual(FilePathPasteManager.pathText(for: urls), "'/Users/test/My Folder/report.txt'")
+    }
+
+    func testMultipleFinderPathsAreRecordedTogether() {
+        let urls = [
+            URL(fileURLWithPath: "/Users/test/one.txt"),
+            URL(fileURLWithPath: "/Users/test/Folder Two")
+        ]
+
+        XCTAssertEqual(
+            FilePathPasteManager.pathText(for: urls),
+            "/Users/test/one.txt '/Users/test/Folder Two'"
+        )
+    }
+
+    func testMultipleFinderNamesAreRecordedTogether() {
+        let urls = [
+            URL(fileURLWithPath: "/Users/test/one.txt"),
+            URL(fileURLWithPath: "/Users/test/Folder Two")
+        ]
+
+        XCTAssertEqual(FilePathPasteManager.nameText(for: urls), "one.txt 'Folder Two'")
+    }
 }
