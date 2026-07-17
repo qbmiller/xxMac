@@ -37,6 +37,7 @@ final class LauncherCommandDebouncer {
 
 class LauncherViewModel: ObservableObject {
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherSearch")
+    private static let clipboardImageFilterQueries: Set<String> = ["image", "img"]
     @Published var query: String = ""
     @Published var results: [SearchItem] = []
     @Published var selectedIndex: Int = 0
@@ -58,6 +59,12 @@ class LauncherViewModel: ObservableObject {
             return query
         }
         return launcherInputText
+    }
+
+    var isClipboardImageFilterActive: Bool {
+        guard mode == .clipboard else { return false }
+        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return Self.clipboardImageFilterQueries.contains(normalizedQuery)
     }
     
     init() {
@@ -188,6 +195,11 @@ class LauncherViewModel: ObservableObject {
 
     func updateSearchFieldText(_ text: String) {
         query = text
+    }
+
+    func setClipboardImageFilterEnabled(_ isEnabled: Bool) {
+        guard mode == .clipboard else { return }
+        query = isEnabled ? "img" : ""
     }
     
     private func performLauncherSearch(query: String) {

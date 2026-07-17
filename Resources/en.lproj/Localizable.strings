@@ -127,6 +127,7 @@
 "clipboard.cache_duration" = "Cache Duration";
 "clipboard.clear_history" = "Clear History";
 "clipboard.save_images" = "Save Images";
+"clipboard.image_search_hint" = "Type img or /image to filter images automatically";
 "clipboard.max_image_size" = "Max Image Size";
 "clipboard.max_history_items" = "Max History Items";
 "clipboard.max_image_storage" = "Image Cache Limit";
@@ -157,6 +158,7 @@
 "clipboard.item.text_format" = "Text • %@";
 "clipboard.item.image_title" = "Image";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
+"clipboard.filter_images" = "Show Images";
 
 "launcher.search_placeholder" = "Search apps, commands...";
 "launcher.search_clipboard_placeholder" = "Search clipboard history...";

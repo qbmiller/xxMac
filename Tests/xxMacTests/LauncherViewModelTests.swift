@@ -3,6 +3,61 @@ import AppKit
 @testable import xxMac
 
 final class LauncherViewModelTests: XCTestCase {
+    func testClipboardImageFilterRecognizesOnlyImageAndImg() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .clipboard
+
+        for query in ["image", "img", " IMAGE ", " Img "] {
+            viewModel.query = query
+            XCTAssertTrue(viewModel.isClipboardImageFilterActive, "Expected \(query) to activate image filter")
+        }
+
+        for query in ["", "images", "photo", "图片", "other"] {
+            viewModel.query = query
+            XCTAssertFalse(viewModel.isClipboardImageFilterActive, "Expected \(query) not to activate image filter")
+        }
+    }
+
+    func testClipboardImageFilterIsInactiveOutsideClipboardMode() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .launcher
+        viewModel.query = "img"
+
+        XCTAssertFalse(viewModel.isClipboardImageFilterActive)
+    }
+
+    func testEnablingClipboardImageFilterWritesImgQuery() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .clipboard
+        viewModel.query = "image"
+
+        viewModel.setClipboardImageFilterEnabled(true)
+
+        XCTAssertEqual(viewModel.query, "img")
+        XCTAssertTrue(viewModel.isClipboardImageFilterActive)
+    }
+
+    func testDisablingClipboardImageFilterClearsQuery() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .clipboard
+        viewModel.query = "img"
+
+        viewModel.setClipboardImageFilterEnabled(false)
+
+        XCTAssertEqual(viewModel.query, "")
+        XCTAssertFalse(viewModel.isClipboardImageFilterActive)
+    }
+
+    func testChangingClipboardImageFilterOutsideClipboardModeDoesNothing() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .launcher
+        viewModel.query = "existing"
+
+        viewModel.setClipboardImageFilterEnabled(true)
+
+        XCTAssertEqual(viewModel.query, "existing")
+    }
+
     func testRepeatedLauncherFocusPreservesActiveEditorSelection() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 100),
@@ -23,6 +78,28 @@ final class LauncherViewModelTests: XCTestCase {
         LauncherSearchFieldFocus.focus(textField)
 
         XCTAssertEqual(editor.selectedRange, NSRange(location: 1, length: 0))
+    }
+
+    func testSearchFieldTextUpdateMovesCaretToEndWithoutSelectingText() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 100),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 400, height: 40))
+        window.contentView = textField
+        LauncherSearchFieldFocus.focus(textField)
+
+        guard let editor = textField.currentEditor() else {
+            return XCTFail("Expected the launcher search field to enter editing mode")
+        }
+        editor.selectedRange = NSRange(location: 0, length: 0)
+
+        LauncherSearchFieldTextSync.update(textField, text: "img")
+
+        XCTAssertEqual(textField.stringValue, "img")
+        XCTAssertEqual(editor.selectedRange, NSRange(location: 3, length: 0))
     }
 
     func testSearchFieldTextDisplaysSelectedHistoryInputWithoutChangingQuery() {

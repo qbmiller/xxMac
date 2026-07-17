@@ -127,6 +127,7 @@
 "clipboard.cache_duration" = "快取時長";
 "clipboard.clear_history" = "清除歷史";
 "clipboard.save_images" = "保存圖片";
+"clipboard.image_search_hint" = "輸入 img 或 /image，會自動篩選出圖片";
 "clipboard.max_image_size" = "圖片最大尺寸";
 "clipboard.max_history_items" = "最多保留";
 "clipboard.max_image_storage" = "圖片快取總量";
@@ -157,6 +158,7 @@
 "clipboard.item.text_format" = "文字 • %@";
 "clipboard.item.image_title" = "圖片";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
+"clipboard.filter_images" = "顯示圖片";
 
 "launcher.search_placeholder" = "搜尋應用、命令...";
 "launcher.search_clipboard_placeholder" = "搜尋剪貼簿歷史...";

@@ -50,7 +50,14 @@ struct ClipboardSettingsView: View {
             .disabled(!clipboardManager.settings.clipboardMonitoringEnabled)
             
             settingsSection(title: L10n.t("clipboard.section_images")) {
-                Toggle(L10n.t("clipboard.save_images"), isOn: $clipboardManager.settings.manageImages)
+                Toggle(isOn: $clipboardManager.settings.manageImages) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(L10n.t("clipboard.save_images"))
+                        Text(L10n.t("clipboard.image_search_hint"))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
                 
                 if clipboardManager.settings.manageImages {
                     Picker(L10n.t("clipboard.cache_duration"), selection: $clipboardManager.settings.imageCacheDurationDays) {
