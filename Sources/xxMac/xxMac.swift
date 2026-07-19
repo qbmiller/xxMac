@@ -1068,6 +1068,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
     
     @objc func closeLauncher() {
+        if launcherViewModel.mode == .clipboard {
+            ClipboardManager.shared.cancelClipboardHistory()
+            return
+        }
+
         launcherPanel.orderOut(nil)
         resetLauncherPanelPresentation()
         AccessibilityManager.shared.restoreSuspendedTextInputFocus()

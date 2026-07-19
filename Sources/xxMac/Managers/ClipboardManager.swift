@@ -54,6 +54,24 @@ struct ClipboardSettings: Codable {
     }
 }
 
+enum ClipboardFocusRestorationAction: Equatable {
+    case wait
+    case restoreTextInput
+}
+
+enum ClipboardFocusRestorationPolicy {
+    static func action(
+        targetPID: pid_t?,
+        frontmostPID: pid_t?,
+        retriesRemaining: Int
+    ) -> ClipboardFocusRestorationAction {
+        guard let targetPID, retriesRemaining > 0 else {
+            return .restoreTextInput
+        }
+        return targetPID == frontmostPID ? .restoreTextInput : .wait
+    }
+}
+
 class ClipboardManager: ObservableObject {
     static let shared = ClipboardManager()
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "ClipboardFlow")
@@ -325,6 +343,33 @@ class ClipboardManager: ObservableObject {
             AccessibilityManager.shared.restoreSuspendedTextInputFocus()
             self.restoreFocusToCapturedApp()
             self.sendPasteCommandWhenReady(retries: 8)
+        }
+    }
+
+    func cancelClipboardHistory() {
+        logClipboardFlow("cancel.begin")
+        NotificationCenter.default.post(name: NSNotification.Name("CloseLauncherPanelOnly"), object: nil)
+        restoreFocusToCapturedApp()
+        restoreTextInputWhenCapturedAppIsActive(retries: 8)
+    }
+
+    private func restoreTextInputWhenCapturedAppIsActive(retries: Int) {
+        let action = ClipboardFocusRestorationPolicy.action(
+            targetPID: previousFrontmostApp?.processIdentifier,
+            frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+            retriesRemaining: retries
+        )
+
+        switch action {
+        case .restoreTextInput:
+            AccessibilityManager.shared.restoreSuspendedTextInputFocus()
+            previousFrontmostApp = nil
+            logClipboardFlow("cancel.restored retries=\(retries)")
+        case .wait:
+            restoreFocusToCapturedApp()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+                self?.restoreTextInputWhenCapturedAppIsActive(retries: retries - 1)
+            }
         }
     }
 
