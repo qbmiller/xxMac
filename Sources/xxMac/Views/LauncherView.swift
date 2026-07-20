@@ -6,6 +6,7 @@ struct LauncherView: View {
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
     @ObservedObject private var updateManager = UpdateManager.shared
+    @ObservedObject private var clipboardManager = ClipboardManager.shared
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var isCommandPressed = false
 
@@ -14,12 +15,15 @@ struct LauncherView: View {
     }
 
     private var selectedClipboardItem: SearchItem? {
-        guard viewModel.mode == .clipboard, viewModel.results.indices.contains(viewModel.selectedIndex) else { return nil }
+        guard viewModel.mode == .clipboard,
+              clipboardManager.activeTab != .snippets,
+              viewModel.results.indices.contains(viewModel.selectedIndex) else { return nil }
         return viewModel.results[viewModel.selectedIndex]
     }
 
     private var selectedSnippetItem: SearchItem? {
-        guard viewModel.mode == .snippets, viewModel.results.indices.contains(viewModel.selectedIndex) else { return nil }
+        guard (viewModel.mode == .snippets || (viewModel.mode == .clipboard && clipboardManager.activeTab == .snippets)),
+              viewModel.results.indices.contains(viewModel.selectedIndex) else { return nil }
         return viewModel.results[viewModel.selectedIndex]
     }
 
@@ -109,7 +113,7 @@ struct LauncherView: View {
                     searchID: viewModel.searchID,
                     fontSize: scaledText(36),
                     onSubmit: {
-                        viewModel.executeSelection()
+                        viewModel.executeSelection(revealInFinder: NSEvent.modifierFlags.contains(.command))
                     },
                     onCancel: {
                         NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
@@ -125,6 +129,12 @@ struct LauncherView: View {
                     },
                     onPageUp: {
                         viewModel.selectPreviousPage()
+                    },
+                    onNextTab: {
+                        viewModel.selectNextClipboardTab()
+                    },
+                    onPreviousTab: {
+                        viewModel.selectPreviousClipboardTab()
                     }
                 )
                 .frame(height: scaled(48))
@@ -198,6 +208,21 @@ struct LauncherView: View {
                 Divider()
                     .overlay(Color.white.opacity(0.12))
 
+                if viewModel.mode == .clipboard {
+                    ClipboardPanelTabs(
+                        activeTab: clipboardManager.activeTab,
+                        onSelect: { tab in
+                            viewModel.selectedIndex = 0
+                            clipboardManager.selectTab(tab)
+                        }
+                    )
+                    .padding(.horizontal, scaled(28))
+                    .padding(.vertical, scaled(8))
+
+                    Divider()
+                        .overlay(Color.white.opacity(0.12))
+                }
+
                 HStack(spacing: 0) {
                     ScrollViewReader { proxy in
                         ScrollView {
@@ -207,7 +232,18 @@ struct LauncherView: View {
                                     SearchResultRow(
                                         item: item,
                                         isSelected: index == viewModel.selectedIndex,
-                                        showsRevealInFinderAction: false
+                                        showsRevealInFinderAction: false,
+                                        favoriteActionMode: clipboardManager.activeTab == .favorites ? .remove : .favorite,
+                                        previewFavoriteActive: isCommandPressed && index == viewModel.selectedIndex,
+                                        commandHintKey: clipboardManager.activeTab == .snippets && isCommandPressed && index == viewModel.selectedIndex ? "clipboard.edit_command_hint" : nil,
+                                        onToggleFavorite: { actionData in
+                                            viewModel.selectedIndex = index
+                                            viewModel.toggleSelectedClipboardFavorite()
+                                        },
+                                        onTogglePin: { actionData in
+                                            viewModel.selectedIndex = index
+                                            viewModel.toggleSelectedClipboardPin()
+                                        }
                                     )
                                     .id(index)
                                     .onTapGesture {
@@ -229,7 +265,7 @@ struct LauncherView: View {
                     Divider()
                         .overlay(Color.white.opacity(0.12))
 
-                    if viewModel.mode == .clipboard {
+                    if viewModel.mode == .clipboard && clipboardManager.activeTab != .snippets {
                         ClipboardDetailPane(item: selectedClipboardItem)
                             .frame(maxWidth: .infinity, maxHeight: launcherHeight)
                     } else {
@@ -249,7 +285,12 @@ struct LauncherView: View {
                                 SearchResultRow(
                                     item: item,
                                     isSelected: index == viewModel.selectedIndex,
-                                    showsRevealInFinderAction: isCommandPressed && item.type == .app
+                                    showsRevealInFinderAction: isCommandPressed && item.type == .app,
+                                    favoriteActionMode: .favorite,
+                                    previewFavoriteActive: false,
+                                    commandHintKey: nil,
+                                    onToggleFavorite: nil,
+                                    onTogglePin: nil
                                 )
                                     .id(index)
                                     .onTapGesture {
@@ -332,6 +373,8 @@ private struct LauncherSearchField: NSViewRepresentable {
     let onMoveUp: () -> Void
     let onPageDown: () -> Void
     let onPageUp: () -> Void
+    let onNextTab: () -> Bool
+    let onPreviousTab: () -> Bool
 
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField()
@@ -423,6 +466,10 @@ private struct LauncherSearchField: NSViewRepresentable {
             case #selector(NSResponder.pageUp(_:)):
                 parent.onPageUp()
                 return true
+            case #selector(NSResponder.insertTab(_:)):
+                return parent.onNextTab()
+            case #selector(NSResponder.insertBacktab(_:)):
+                return parent.onPreviousTab()
             case #selector(NSResponder.insertNewline(_:)):
                 parent.onSubmit()
                 return true
@@ -436,10 +483,74 @@ private struct LauncherSearchField: NSViewRepresentable {
     }
 }
 
+struct ClipboardPanelTabs: View {
+    let activeTab: ClipboardPanelTab
+    let onSelect: (ClipboardPanelTab) -> Void
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+
+    private var sizeScale: CGFloat {
+        CGFloat(appearance.sizeScale)
+    }
+
+    private var textScale: CGFloat {
+        CGFloat(appearance.textScale)
+    }
+
+    private func scaled(_ value: CGFloat) -> CGFloat {
+        value * sizeScale
+    }
+
+    private func scaledText(_ value: CGFloat) -> CGFloat {
+        value * sizeScale * textScale
+    }
+
+    var body: some View {
+        HStack(spacing: scaled(10)) {
+            ForEach(ClipboardPanelTab.allCases, id: \.self) { tab in
+                Button {
+                    onSelect(tab)
+                } label: {
+                    Label(L10n.t(tab.titleKey), systemImage: tab.iconName)
+                        .font(.system(size: scaledText(18), weight: activeTab == tab ? .semibold : .medium))
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, scaled(18))
+                        .frame(height: scaled(44))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.white.opacity(activeTab == tab ? 0.96 : 0.66))
+                .background(
+                    RoundedRectangle(cornerRadius: scaled(10), style: .continuous)
+                        .fill(activeTab == tab ? Color.white.opacity(0.16) : Color.white.opacity(0.04))
+                )
+                .overlay(alignment: .bottom) {
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(width: scaled(46), height: scaled(4))
+                        .opacity(activeTab == tab ? 1 : 0)
+                        .offset(y: scaled(6))
+                }
+                .help(L10n.t(tab.titleKey))
+            }
+
+            Spacer()
+        }
+    }
+}
+
+enum ClipboardFavoriteActionMode {
+    case favorite
+    case remove
+}
+
 struct SearchResultRow: View {
     let item: SearchItem
     let isSelected: Bool
     let showsRevealInFinderAction: Bool
+    let favoriteActionMode: ClipboardFavoriteActionMode
+    let previewFavoriteActive: Bool
+    let commandHintKey: String?
+    let onToggleFavorite: ((ClipboardActionData) -> Void)?
+    let onTogglePin: ((ClipboardActionData) -> Void)?
     @ObservedObject private var appearance = LauncherAppearanceManager.shared
 
     private var sizeScale: CGFloat {
@@ -481,6 +592,70 @@ struct SearchResultRow: View {
             }
             
             Spacer()
+
+            if let commandHintKey {
+                Text(L10n.t(commandHintKey))
+                    .font(.system(size: scaledText(12), weight: .semibold))
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, scaled(9))
+                    .frame(height: scaled(26))
+                    .background(
+                        Capsule()
+                            .fill(Color.accentColor.opacity(0.16))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.accentColor.opacity(0.35), lineWidth: 1)
+                    )
+            }
+
+            if let clipboardAction = item.clipboardAction, let onToggleFavorite {
+                if previewFavoriteActive {
+                    Text(L10n.t(favoriteCommandHintKey))
+                        .font(.system(size: scaledText(12), weight: .semibold))
+                    .foregroundColor(favoriteHintColor)
+                    .padding(.horizontal, scaled(9))
+                    .frame(height: scaled(26))
+                    .background(
+                        Capsule()
+                            .fill(favoriteHintColor.opacity(0.16))
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(favoriteHintColor.opacity(0.35), lineWidth: 1)
+                    )
+                }
+
+                Button {
+                    onToggleFavorite(clipboardAction)
+                } label: {
+                    Image(systemName: favoriteIconName(isActive: clipboardAction.isFavorite || previewFavoriteActive))
+                        .font(.system(size: scaled(19), weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundColor(favoriteIconColor(isActive: clipboardAction.isFavorite || previewFavoriteActive))
+                        .frame(width: scaled(34), height: scaled(34))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(L10n.t(clipboardAction.isFavorite ? "clipboard.unfavorite" : "clipboard.favorite"))
+                .accessibilityLabel(L10n.t(clipboardAction.isFavorite ? "clipboard.unfavorite" : "clipboard.favorite"))
+
+                if favoriteActionMode == .remove, let onTogglePin {
+                    Button {
+                        onTogglePin(clipboardAction)
+                    } label: {
+                        Image(systemName: clipboardAction.isPinned ? "pin.fill" : "pin")
+                            .font(.system(size: scaled(18), weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundColor(clipboardAction.isPinned ? .accentColor : .white.opacity(0.58))
+                            .frame(width: scaled(34), height: scaled(34))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.t(clipboardAction.isPinned ? "clipboard.unpin" : "clipboard.pin"))
+                    .accessibilityLabel(L10n.t(clipboardAction.isPinned ? "clipboard.unpin" : "clipboard.pin"))
+                }
+            }
             
             if isSelected {
                 if showsRevealInFinderAction {
@@ -503,6 +678,25 @@ struct SearchResultRow: View {
         .frame(height: scaled(86))
         .background(isSelected ? Color.white.opacity(0.14) : Color.clear)
         .contentShape(Rectangle())
+    }
+
+    private func favoriteIconName(isActive: Bool) -> String {
+        return isActive ? "star.fill" : "star"
+    }
+
+    private var favoriteCommandHintKey: String {
+        return favoriteActionMode == .remove ? "clipboard.remove_favorite_command_hint" : "clipboard.favorite_command_hint"
+    }
+
+    private var favoriteHintColor: Color {
+        .red
+    }
+
+    private func favoriteIconColor(isActive: Bool) -> Color {
+        if isActive {
+            return .red
+        }
+        return .white.opacity(isActive ? 0.92 : 0.58)
     }
 }
 

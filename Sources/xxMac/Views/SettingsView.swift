@@ -25,6 +25,14 @@ struct SettingsView: View {
     @State private var monitor: Any?
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var snippetManager = SnippetManager.shared
+
+    init(initialTool: ToolType? = nil) {
+        let tool = initialTool.flatMap { type in
+            ToolOption.allTools.first { $0.type == type }
+        } ?? ToolOption.allTools.first
+        _selectedTool = State(initialValue: tool)
+        _selectedFunction = State(initialValue: tool?.functions.first)
+    }
     
     var body: some View {
         HStack(spacing: 0) {
@@ -73,6 +81,11 @@ struct SettingsView: View {
         }
         .onChange(of: QuickShortcutManager.shared.items) { _ in
             ensureQuickShortcutSelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SelectSettingsTool"))) { notification in
+            guard let rawValue = notification.userInfo?["toolType"] as? String,
+                  let toolType = ToolType(rawValue: rawValue) else { return }
+            selectTool(toolType)
         }
     }
 
@@ -206,6 +219,17 @@ struct SettingsView: View {
         }
         ensureSnippetCollectionSelection()
         ensureQuickShortcutSelection()
+    }
+
+    private func selectTool(_ toolType: ToolType) {
+        guard let tool = ToolOption.allTools.first(where: { $0.type == toolType }) else { return }
+        selectedTool = tool
+        selectedFunction = tool.functions.first
+        if toolType == .snippets {
+            ensureSnippetCollectionSelection()
+        } else if toolType == .quickShortcut {
+            ensureQuickShortcutSelection()
+        }
     }
 
     private func ensureSnippetCollectionSelection() {

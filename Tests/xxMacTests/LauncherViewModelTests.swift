@@ -58,6 +58,18 @@ final class LauncherViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.query, "existing")
     }
 
+    func testClipboardTabShortcutsOnlyHandleClipboardMode() {
+        let viewModel = LauncherViewModel()
+
+        viewModel.mode = .launcher
+        XCTAssertFalse(viewModel.selectNextClipboardTab())
+        XCTAssertFalse(viewModel.selectPreviousClipboardTab())
+
+        viewModel.mode = .clipboard
+        XCTAssertTrue(viewModel.selectNextClipboardTab())
+        XCTAssertTrue(viewModel.selectPreviousClipboardTab())
+    }
+
     func testRepeatedLauncherFocusPreservesActiveEditorSelection() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 100),
@@ -190,5 +202,51 @@ final class LauncherViewModelTests: XCTestCase {
         viewModel.executeSelection()
 
         XCTAssertEqual(events, ["close", "action"])
+    }
+
+    func testCommandReturnInClipboardModeDoesNotPasteSelection() {
+        let viewModel = LauncherViewModel()
+        var didPaste = false
+
+        viewModel.mode = .clipboard
+        viewModel.results = [
+            SearchItem(
+                title: "Clipboard item",
+                subtitle: "Text",
+                iconName: "doc.text",
+                type: .clipboard,
+                clipboardAction: ClipboardActionData(id: UUID(), isFavorite: false, isPinned: false),
+                action: { didPaste = true }
+            )
+        ]
+
+        viewModel.executeSelection(revealInFinder: true)
+
+        XCTAssertFalse(didPaste)
+    }
+
+    func testCommandReturnInClipboardSnippetTabOpensSnippetsSettings() {
+        let viewModel = LauncherViewModel()
+        var didRun = false
+        let openedSettings = expectation(forNotification: NSNotification.Name("OpenSnippetsSettings"), object: nil)
+
+        viewModel.mode = .clipboard
+        ClipboardManager.shared.selectTab(.snippets)
+        defer { ClipboardManager.shared.selectTab(.history) }
+        viewModel.results = [
+            SearchItem(
+                title: "Snippet item",
+                subtitle: "Text",
+                iconName: "text.quote",
+                type: .snippet,
+                snippetPreview: SnippetPreviewData(content: "hello"),
+                action: { didRun = true }
+            )
+        ]
+
+        viewModel.executeSelection(revealInFinder: true)
+
+        wait(for: [openedSettings], timeout: 1)
+        XCTAssertFalse(didRun)
     }
 }

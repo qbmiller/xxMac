@@ -80,6 +80,96 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
         XCTAssertTrue(storage.searchListItems(query: "temporary").isEmpty)
     }
 
+    func testFavoriteItemsAppearInFavoritesAndRemainInHistory() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveItem(type: .text, content: "favorite token", size: 14)
+        storage.saveItem(type: .text, content: "regular token", size: 13)
+
+        let favorite = try XCTUnwrap(storage.searchListItems(query: "favorite").first)
+        storage.setFavorite(id: favorite.id, isFavorite: true)
+
+        XCTAssertEqual(storage.searchFavoriteListItems(query: "favorite").first?.id, favorite.id)
+        XCTAssertTrue(try XCTUnwrap(storage.getItem(id: favorite.id)).isFavorite)
+
+        storage.setFavorite(id: favorite.id, isFavorite: false)
+
+        XCTAssertTrue(storage.searchFavoriteListItems(query: "favorite").isEmpty)
+        XCTAssertEqual(storage.searchListItems(query: "favorite").first?.id, favorite.id)
+        XCTAssertFalse(try XCTUnwrap(storage.getItem(id: favorite.id)).isFavorite)
+    }
+
+    func testPinnedFavoritesSortBeforeUnpinnedFavorites() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveItem(type: .text, content: "older favorite", size: 14)
+        storage.saveItem(type: .text, content: "newer favorite", size: 14)
+
+        let older = try XCTUnwrap(storage.searchListItems(query: "older").first)
+        let newer = try XCTUnwrap(storage.searchListItems(query: "newer").first)
+        storage.setFavorite(id: older.id, isFavorite: true)
+        storage.setFavorite(id: newer.id, isFavorite: true)
+        storage.setPinned(id: older.id, isPinned: true)
+
+        let favorites = storage.getFavoriteListItems(limit: 10)
+        XCTAssertEqual(favorites.first?.id, older.id)
+        XCTAssertTrue(try XCTUnwrap(favorites.first).isPinned)
+    }
+
+    func testRemovingFavoriteClearsPinnedStateButKeepsHistory() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveItem(type: .text, content: "pinned favorite", size: 15)
+
+        let item = try XCTUnwrap(storage.searchListItems(query: "pinned").first)
+        storage.setFavorite(id: item.id, isFavorite: true)
+        storage.setPinned(id: item.id, isPinned: true)
+        storage.setFavorite(id: item.id, isFavorite: false)
+
+        let fullItem = try XCTUnwrap(storage.getItem(id: item.id))
+        XCTAssertFalse(fullItem.isFavorite)
+        XCTAssertFalse(fullItem.isPinned)
+        XCTAssertEqual(storage.searchListItems(query: "pinned").first?.id, item.id)
+    }
+
+    func testClearHistoryKeepsFavoriteItems() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveItem(type: .text, content: "keep me", size: 7)
+        storage.saveItem(type: .text, content: "delete me", size: 9)
+
+        let kept = try XCTUnwrap(storage.searchListItems(query: "keep").first)
+        storage.setFavorite(id: kept.id, isFavorite: true)
+
+        storage.clearHistory()
+
+        let remaining = storage.getListItems(limit: 10)
+        XCTAssertEqual(remaining.map(\.id), [kept.id])
+        XCTAssertTrue(remaining[0].isFavorite)
+    }
+
+    func testLRUCleanupKeepsFavoritesOutsideHistoryLimit() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+        storage.configureLimits(maxItemsCount: 1, maxImageStorageSizeMB: 1)
+
+        storage.saveItem(type: .text, content: "favorite item", size: 13)
+        let favorite = try XCTUnwrap(storage.searchListItems(query: "favorite").first)
+        storage.setFavorite(id: favorite.id, isFavorite: true)
+        storage.saveItem(type: .text, content: "older regular", size: 13)
+        storage.saveItem(type: .text, content: "newer regular", size: 13)
+
+        storage.enforceLimits()
+
+        let remaining = storage.getListItems(limit: 10)
+        XCTAssertTrue(remaining.contains { $0.id == favorite.id && $0.isFavorite })
+        XCTAssertEqual(remaining.filter { !$0.isFavorite }.count, 1)
+    }
+
     private func makeTemporaryDirectory() -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

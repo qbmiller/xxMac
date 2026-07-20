@@ -41,6 +41,12 @@ enum ClipboardPreviewData: Hashable {
     )
 }
 
+struct ClipboardActionData: Hashable {
+    let id: UUID
+    let isFavorite: Bool
+    let isPinned: Bool
+}
+
 struct SnippetPreviewData: Hashable {
     let content: String
 }
@@ -53,6 +59,7 @@ struct SearchItem: Identifiable, Hashable {
     let iconFileURL: URL?
     let type: SearchResultType
     let clipboardPreview: ClipboardPreviewData?
+    let clipboardAction: ClipboardActionData?
     let snippetPreview: SnippetPreviewData?
     let launcherHistorySnapshot: LauncherHistorySnapshot?
     let launcherInputText: String?
@@ -66,6 +73,7 @@ struct SearchItem: Identifiable, Hashable {
         iconFileURL: URL? = nil,
         type: SearchResultType,
         clipboardPreview: ClipboardPreviewData? = nil,
+        clipboardAction: ClipboardActionData? = nil,
         snippetPreview: SnippetPreviewData? = nil,
         launcherHistorySnapshot: LauncherHistorySnapshot? = nil,
         launcherInputText: String? = nil,
@@ -78,6 +86,7 @@ struct SearchItem: Identifiable, Hashable {
         self.iconFileURL = iconFileURL
         self.type = type
         self.clipboardPreview = clipboardPreview
+        self.clipboardAction = clipboardAction
         self.snippetPreview = snippetPreview
         self.launcherHistorySnapshot = launcherHistorySnapshot
         self.launcherInputText = launcherInputText

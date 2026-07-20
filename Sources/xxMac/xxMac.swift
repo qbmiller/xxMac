@@ -289,6 +289,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         NotificationCenter.default.addObserver(self, selector: #selector(closeLauncherPanelOnly), name: NSNotification.Name("CloseLauncherPanelOnly"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(showClipboardHistory), name: NSNotification.Name("ShowClipboardHistory"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(showSnippets), name: NSNotification.Name("ShowSnippets"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(openSnippetsSettings), name: NSNotification.Name("OpenSnippetsSettings"), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(reaffirmMenuBarStatusFromNotification), name: .menuBarStatusReaffirmRequested, object: nil)
 
         localizationCancellable = LocalizationManager.shared.$language.sink { [weak self] _ in
@@ -618,6 +619,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         let resultRowHeight = 86 * scale
         let dividerHeight = 1.0
         let indexingHeight = 31 * scale
+        let clipboardTabHeight = 62 * scale
         let hasQuery = !launcherViewModel.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
         let width: CGFloat
@@ -626,7 +628,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         switch launcherViewModel.mode {
         case .clipboard:
             width = CGFloat(max(appearance.launcherWidth, 920))
-            height = CGFloat(searchRowHeight + dividerHeight + appearance.launcherHeight)
+            height = CGFloat(searchRowHeight + dividerHeight + clipboardTabHeight + dividerHeight + appearance.launcherHeight)
         case .snippets:
             width = CGFloat(max(appearance.launcherWidth, 920))
             let resultHeight = min(Double(max(launcherViewModel.results.count, 1)) * resultRowHeight, appearance.launcherHeight)
@@ -672,6 +674,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             return true
         case 116: // Page Up
             launcherViewModel.selectPreviousPage()
+            return true
+        case 48: // Tab
+            guard launcherViewModel.mode == .clipboard else { return false }
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if modifiers.contains(.shift) {
+                launcherViewModel.selectPreviousClipboardTab()
+            } else {
+                launcherViewModel.selectNextClipboardTab()
+            }
             return true
         case 36: // Enter
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
@@ -719,6 +730,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
     
     @objc func openSettings() {
+        openSettingsWindow(initialTool: nil)
+    }
+
+    @objc func openSnippetsSettings() {
+        openSettingsWindow(initialTool: .snippets)
+    }
+
+    private func openSettingsWindow(initialTool: ToolType?) {
         dismissLauncherBeforeOpeningSettings()
 
         if settingsWindow == nil {
@@ -730,7 +749,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             )
             window.center()
             window.title = L10n.t("window.settings")
-            window.contentView = NSHostingView(rootView: SettingsView())
+            window.contentView = NSHostingView(rootView: SettingsView(initialTool: initialTool))
             configureSettingsWindow(window)
             window.setFrameAutosaveName("SettingsWindow")
             window.isReleasedWhenClosed = false
@@ -743,6 +762,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+
+        if let initialTool {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("SelectSettingsTool"),
+                object: nil,
+                userInfo: ["toolType": initialTool.rawValue]
+            )
+        }
     }
 
     private func configureSettingsWindow(_ window: NSWindow) {

@@ -159,6 +159,17 @@
 "clipboard.item.image_title" = "图片";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
 "clipboard.filter_images" = "显示图片";
+"clipboard.tab.history" = "历史";
+"clipboard.tab.favorites" = "收藏";
+"clipboard.tab.snippets" = "Snippets";
+"clipboard.favorite" = "收藏";
+"clipboard.unfavorite" = "取消收藏";
+"clipboard.remove_favorite_short" = "移出";
+"clipboard.favorite_command_hint" = "回车收藏";
+"clipboard.remove_favorite_command_hint" = "回车移出";
+"clipboard.edit_command_hint" = "回车编辑";
+"clipboard.pin" = "置顶";
+"clipboard.unpin" = "取消置顶";
 
 "launcher.search_placeholder" = "搜索应用、命令...";
 "launcher.search_clipboard_placeholder" = "搜索剪贴板历史...";

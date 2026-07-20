@@ -54,6 +54,10 @@ class ClipboardStorageManager {
         self.maxItemsCount = max(1, maxItemsCount)
         self.maxImageStorageSizeMB = max(1, maxImageStorageSizeMB)
     }
+
+    func enforceLimits() {
+        performLRU()
+    }
     
     func saveItem(type: ClipboardContentType, content: String, size: Int) {
         let id = UUID().uuidString
@@ -103,12 +107,24 @@ class ClipboardStorageManager {
         return dbManager.getListItems(limit: limit)
     }
 
+    func getFavoriteListItems(limit: Int = 100) -> [ClipboardListItem] {
+        return dbManager.getFavoriteListItems(limit: limit)
+    }
+
     func getItem(id: UUID) -> ClipboardItem? {
         return dbManager.getItem(id: id.uuidString)
     }
 
     func updateImageOCR(id: UUID, text: String?, status: ClipboardOCRStatus) {
         dbManager.updateImageOCR(id: id.uuidString, text: text, status: status)
+    }
+
+    func setFavorite(id: UUID, isFavorite: Bool) {
+        dbManager.updateFavorite(id: id.uuidString, isFavorite: isFavorite)
+    }
+
+    func setPinned(id: UUID, isPinned: Bool) {
+        dbManager.updatePinned(id: id.uuidString, isPinned: isPinned)
     }
     
     func search(query: String) -> [ClipboardItem] {
@@ -130,6 +146,19 @@ class ClipboardStorageManager {
 
         return dbManager.searchListItems(query: normalized, limit: limit)
     }
+
+    func searchFavoriteListItems(query: String, limit: Int = 50) -> [ClipboardListItem] {
+        if query.isEmpty {
+            return getFavoriteListItems(limit: limit)
+        }
+
+        let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if Self.imageSearchTerms.contains(normalized) {
+            return dbManager.getFavoriteImageListItems(limit: limit)
+        }
+
+        return dbManager.searchFavoriteListItems(query: normalized, limit: limit)
+    }
     
     func deleteItem(_ item: ClipboardItem) {
         dbManager.deleteItem(id: item.id.uuidString)
@@ -150,7 +179,7 @@ class ClipboardStorageManager {
     func clearHistory(type: ClipboardContentType? = nil) {
         let items = dbManager.getAllItems(limit: 10000)
         for item in items {
-            if type == nil || item.type == type {
+            if !item.isFavorite, type == nil || item.type == type {
                 deleteItem(item)
             }
         }
@@ -189,7 +218,7 @@ class ClipboardStorageManager {
         
         if currentSize > maxImageStorageSize {
             // Remove oldest images until we are under limit
-            for item in imageItems.reversed() {
+            for item in imageItems.reversed() where !item.isFavorite {
                 if currentSize <= maxImageStorageSize { break }
                 currentSize -= item.size
                 deleteItem(item)

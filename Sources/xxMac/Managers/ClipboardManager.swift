@@ -72,11 +72,34 @@ enum ClipboardFocusRestorationPolicy {
     }
 }
 
+enum ClipboardPanelTab: CaseIterable, Hashable {
+    case history
+    case favorites
+    case snippets
+
+    var titleKey: String {
+        switch self {
+        case .history: return "clipboard.tab.history"
+        case .favorites: return "clipboard.tab.favorites"
+        case .snippets: return "clipboard.tab.snippets"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .history: return "clock.arrow.circlepath"
+        case .favorites: return "star"
+        case .snippets: return "text.quote"
+        }
+    }
+}
+
 class ClipboardManager: ObservableObject {
     static let shared = ClipboardManager()
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "ClipboardFlow")
     
     @Published var history: [SearchItem] = []
+    @Published private(set) var activeTab: ClipboardPanelTab = .history
     @Published var settings: ClipboardSettings = ClipboardSettings() {
         didSet {
             saveSettings()
@@ -87,6 +110,7 @@ class ClipboardManager: ObservableObject {
     }
     
     private var clipboardItems: [ClipboardListItem] = []
+    private var currentQuery = ""
     private var changeCount: Int
     private var timer: Timer?
     private var hotKey: CarbonHotKeyRegistration?
@@ -122,6 +146,24 @@ class ClipboardManager: ObservableObject {
             name: .clipboardOCRDidUpdate,
             object: nil
         )
+
+        SnippetManager.shared.$entries
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard self?.activeTab == .snippets else { return }
+                self?.refreshHistory()
+            }
+            .store(in: &cancellables)
+
+        SnippetManager.shared.$collections
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard self?.activeTab == .snippets else { return }
+                self?.refreshHistory()
+            }
+            .store(in: &cancellables)
     }
 
     private func updateStorageLimits() {
@@ -239,30 +281,86 @@ class ClipboardManager: ObservableObject {
     }
     
     func refreshHistory() {
+        if activeTab == .snippets {
+            publishSnippetHistory(query: currentQuery)
+            return
+        }
+
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-            let items = self?.storage.getListItems() ?? []
+            guard let self else { return }
+            let items = self.items(for: self.activeTab, query: self.currentQuery)
             DispatchQueue.main.async {
-                self?.clipboardItems = items
-                self?.updatePublishedHistory()
+                self.clipboardItems = items
+                self.updatePublishedHistory()
             }
         }
     }
 
     func searchClipboard(query: String) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        currentQuery = trimmedQuery
+
+        if activeTab == .snippets {
+            publishSnippetHistory(query: trimmedQuery)
+            return
+        }
+
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             guard let self = self else { return }
-            let listItems: [ClipboardListItem]
-
-            if trimmedQuery.isEmpty {
-                listItems = self.storage.getListItems()
-            } else {
-                listItems = self.storage.searchListItems(query: trimmedQuery)
-            }
+            let listItems = self.items(for: self.activeTab, query: trimmedQuery)
 
             DispatchQueue.main.async {
                 self.clipboardItems = listItems
                 self.updatePublishedHistory()
+            }
+        }
+    }
+
+    func selectTab(_ tab: ClipboardPanelTab) {
+        activeTab = tab
+        refreshHistory()
+    }
+
+    func selectNextTab() {
+        selectAdjacentTab(offset: 1)
+    }
+
+    func selectPreviousTab() {
+        selectAdjacentTab(offset: -1)
+    }
+
+    private func selectAdjacentTab(offset: Int) {
+        let tabs = ClipboardPanelTab.allCases
+        guard let index = tabs.firstIndex(of: activeTab) else {
+            selectTab(.history)
+            return
+        }
+        selectTab(tabs[(index + offset + tabs.count) % tabs.count])
+    }
+
+    private func items(for tab: ClipboardPanelTab, query: String) -> [ClipboardListItem] {
+        switch tab {
+        case .history:
+            return query.isEmpty ? storage.getListItems() : storage.searchListItems(query: query)
+        case .favorites:
+            return query.isEmpty ? storage.getFavoriteListItems() : storage.searchFavoriteListItems(query: query)
+        case .snippets:
+            return []
+        }
+    }
+
+    private func publishSnippetHistory(query: String) {
+        let publish = { [weak self] in
+            guard let self, self.activeTab == .snippets else { return }
+            self.clipboardItems = []
+            self.history = SnippetManager.shared.search(query: query)
+        }
+
+        if Thread.isMainThread {
+            publish()
+        } else {
+            DispatchQueue.main.async {
+                publish()
             }
         }
     }
@@ -282,6 +380,7 @@ class ClipboardManager: ObservableObject {
                         preview: item.previewContent,
                         fullLength: item.fullContentLength
                     ),
+                    clipboardAction: ClipboardActionData(id: item.id, isFavorite: item.isFavorite, isPinned: item.isPinned),
                     action: { [weak self] in self?.pasteItem(id: item.id) }
                 )
             case .image:
@@ -298,10 +397,35 @@ class ClipboardManager: ObservableObject {
                         ocrStatus: item.imageOCRStatus,
                         ocrTextPreview: item.imageOCRTextPreview
                     ),
+                    clipboardAction: ClipboardActionData(id: item.id, isFavorite: item.isFavorite, isPinned: item.isPinned),
                     action: { [weak self] in self?.pasteItem(id: item.id) }
                 )
             }
         }
+    }
+
+    func toggleFavorite(id: UUID) {
+        guard let item = storage.getItem(id: id) else { return }
+        setFavorite(id: id, isFavorite: !item.isFavorite)
+    }
+
+    func addFavorite(id: UUID) {
+        setFavorite(id: id, isFavorite: true)
+    }
+
+    func removeFavorite(id: UUID) {
+        setFavorite(id: id, isFavorite: false)
+    }
+
+    func togglePinned(id: UUID) {
+        guard let item = storage.getItem(id: id), item.isFavorite else { return }
+        storage.setPinned(id: id, isPinned: !item.isPinned)
+        refreshHistory()
+    }
+
+    private func setFavorite(id: UUID, isFavorite: Bool) {
+        storage.setFavorite(id: id, isFavorite: isFavorite)
+        refreshHistory()
     }
 
     private func pasteItem(id: UUID) {

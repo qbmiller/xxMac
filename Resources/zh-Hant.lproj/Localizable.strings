@@ -159,6 +159,17 @@
 "clipboard.item.image_title" = "圖片";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
 "clipboard.filter_images" = "顯示圖片";
+"clipboard.tab.history" = "歷史";
+"clipboard.tab.favorites" = "收藏";
+"clipboard.tab.snippets" = "Snippets";
+"clipboard.favorite" = "收藏";
+"clipboard.unfavorite" = "取消收藏";
+"clipboard.remove_favorite_short" = "移出";
+"clipboard.favorite_command_hint" = "Return 收藏";
+"clipboard.remove_favorite_command_hint" = "Return 移出";
+"clipboard.edit_command_hint" = "Return 編輯";
+"clipboard.pin" = "置頂";
+"clipboard.unpin" = "取消置頂";
 
 "launcher.search_placeholder" = "搜尋應用、命令...";
 "launcher.search_clipboard_placeholder" = "搜尋剪貼簿歷史...";

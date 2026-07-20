@@ -82,7 +82,9 @@ class DatabaseManager {
             thumbnail_filename TEXT,
             image_ocr_text TEXT,
             image_ocr_status TEXT,
-            image_ocr_updated_at REAL
+            image_ocr_updated_at REAL,
+            is_favorite INTEGER DEFAULT 0,
+            is_pinned INTEGER DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
@@ -133,7 +135,9 @@ class DatabaseManager {
             thumbnail_filename TEXT,
             image_ocr_text TEXT,
             image_ocr_status TEXT,
-            image_ocr_updated_at REAL
+            image_ocr_updated_at REAL,
+            is_favorite INTEGER DEFAULT 0,
+            is_pinned INTEGER DEFAULT 0
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
@@ -181,6 +185,8 @@ class DatabaseManager {
         ensureColumnExists(table: "clipboard_items", column: "image_ocr_text", definition: "TEXT")
         ensureColumnExists(table: "clipboard_items", column: "image_ocr_status", definition: "TEXT")
         ensureColumnExists(table: "clipboard_items", column: "image_ocr_updated_at", definition: "REAL")
+        ensureColumnExists(table: "clipboard_items", column: "is_favorite", definition: "INTEGER DEFAULT 0")
+        ensureColumnExists(table: "clipboard_items", column: "is_pinned", definition: "INTEGER DEFAULT 0")
     }
 
     private func ensureColumnExists(table: String, column: String, definition: String) {
@@ -231,7 +237,9 @@ class DatabaseManager {
         thumbnailFilename: String? = nil,
         imageOCRText: String? = nil,
         imageOCRStatus: ClipboardOCRStatus? = nil,
-        imageOCRUpdatedAt: Date? = nil
+        imageOCRUpdatedAt: Date? = nil,
+        isFavorite: Bool = false,
+        isPinned: Bool = false
     ) {
         withDatabase {
             // Deduplication: If same content exists, we update its timestamp and move to top
@@ -265,8 +273,8 @@ class DatabaseManager {
             let sql = """
             INSERT OR REPLACE INTO clipboard_items
             (id, type, content, timestamp, size, image_width, image_height, thumbnail_filename,
-             image_ocr_text, image_ocr_status, image_ocr_updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+             image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
             var statement: OpaquePointer?
             
@@ -282,6 +290,8 @@ class DatabaseManager {
                 bindOptionalText(imageOCRText, to: statement, index: 9)
                 bindOptionalText(imageOCRStatus?.rawValue, to: statement, index: 10)
                 bindOptionalDouble(imageOCRUpdatedAt?.timeIntervalSince1970, to: statement, index: 11)
+                sqlite3_bind_int(statement, 12, isFavorite ? 1 : 0)
+                sqlite3_bind_int(statement, 13, isPinned ? 1 : 0)
                 
                 if sqlite3_step(statement) != SQLITE_DONE {
                     print("Error inserting item")
@@ -340,9 +350,36 @@ class DatabaseManager {
         }
     }
 
+    func updateFavorite(id: String, isFavorite: Bool) {
+        withDatabase {
+            let sql = "UPDATE clipboard_items SET is_favorite = ?, is_pinned = CASE WHEN ? = 0 THEN 0 ELSE is_pinned END WHERE id = ?;"
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, isFavorite ? 1 : 0)
+                sqlite3_bind_int(statement, 2, isFavorite ? 1 : 0)
+                sqlite3_bind_text(statement, 3, (id as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
+
+    func updatePinned(id: String, isPinned: Bool) {
+        withDatabase {
+            let sql = "UPDATE clipboard_items SET is_pinned = ? WHERE id = ? AND is_favorite = 1;"
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, isPinned ? 1 : 0)
+                sqlite3_bind_text(statement, 2, (id as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
+
     func getAllItems(limit: Int = 100) -> [ClipboardItem] {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -368,7 +405,9 @@ class DatabaseManager {
                             thumbnailFilename: optionalString(statement, 7),
                             imageOCRText: optionalString(statement, 8),
                             imageOCRStatus: optionalOCRStatus(statement, 9),
-                            imageOCRUpdatedAt: optionalDate(statement, 10)
+                            imageOCRUpdatedAt: optionalDate(statement, 10),
+                            isFavorite: optionalInt(statement, 11) == 1,
+                            isPinned: optionalInt(statement, 12) == 1
                         ))
                     }
                 }
@@ -380,7 +419,7 @@ class DatabaseManager {
 
     func getItem(id itemID: String) -> ClipboardItem? {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items WHERE id = ? LIMIT 1;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items WHERE id = ? LIMIT 1;"
             var statement: OpaquePointer?
             var item: ClipboardItem?
 
@@ -403,9 +442,42 @@ class DatabaseManager {
                    length(content), timestamp, size, image_width, image_height, thumbnail_filename,
                    image_ocr_status,
                    CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
-                   substr(image_ocr_text, 1, 500)
+                   substr(image_ocr_text, 1, 500),
+                   is_favorite, is_pinned
             FROM clipboard_items
             ORDER BY timestamp DESC
+            LIMIT ?;
+            """
+            var statement: OpaquePointer?
+            var items: [ClipboardListItem] = []
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, Int32(previewLimit))
+                sqlite3_bind_int(statement, 2, Int32(limit))
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    if let item = makeClipboardListItem(from: statement) {
+                        items.append(item)
+                    }
+                }
+            }
+            sqlite3_finalize(statement)
+            return items
+        }
+    }
+
+    func getFavoriteListItems(limit: Int = 100, previewLimit: Int = DatabaseManager.defaultTextPreviewLimit) -> [ClipboardListItem] {
+        return withDatabase {
+            let sql = """
+            SELECT id, type,
+                   CASE WHEN type = 'text' THEN substr(content, 1, ?) ELSE content END,
+                   length(content), timestamp, size, image_width, image_height, thumbnail_filename,
+                   image_ocr_status,
+                   CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
+                   substr(image_ocr_text, 1, 500),
+                   is_favorite, is_pinned
+            FROM clipboard_items
+            WHERE is_favorite = 1
+            ORDER BY is_pinned DESC, timestamp DESC
             LIMIT ?;
             """
             var statement: OpaquePointer?
@@ -430,7 +502,7 @@ class DatabaseManager {
             // Search using FTS5 for text items, combined with simple LIKE for filename/meta if needed
             // Here we primarily use FTS5 for content search.
             let sql = """
-            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename, i.image_ocr_text, i.image_ocr_status, i.image_ocr_updated_at
+            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename, i.image_ocr_text, i.image_ocr_status, i.image_ocr_updated_at, i.is_favorite, i.is_pinned
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             WHERE f.content MATCH ?
@@ -468,11 +540,50 @@ class DatabaseManager {
                    i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename,
                    i.image_ocr_status,
                    CASE WHEN i.image_ocr_text IS NULL OR length(i.image_ocr_text) = 0 THEN 0 ELSE 1 END,
-                   substr(i.image_ocr_text, 1, 500)
+                   substr(i.image_ocr_text, 1, 500),
+                   i.is_favorite, i.is_pinned
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             WHERE f.content MATCH ?
             ORDER BY rank
+            LIMIT ?;
+            """
+
+            var statement: OpaquePointer?
+            var items: [ClipboardListItem] = []
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                let searchPattern = "\(query)*"
+                sqlite3_bind_int(statement, 1, Int32(previewLimit))
+                sqlite3_bind_text(statement, 2, (searchPattern as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 3, Int32(limit))
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    if let item = makeClipboardListItem(from: statement) {
+                        items.append(item)
+                    }
+                }
+            } else {
+                let error = String(cString: sqlite3_errmsg(db))
+                print("Search Prepare Error: \(error)")
+            }
+            sqlite3_finalize(statement)
+            return items
+        }
+    }
+
+    func searchFavoriteListItems(query: String, limit: Int = 50, previewLimit: Int = DatabaseManager.defaultTextPreviewLimit) -> [ClipboardListItem] {
+        return withDatabase {
+            let sql = """
+            SELECT i.id, i.type, substr(i.content, 1, ?), length(i.content),
+                   i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename,
+                   i.image_ocr_status,
+                   CASE WHEN i.image_ocr_text IS NULL OR length(i.image_ocr_text) = 0 THEN 0 ELSE 1 END,
+                   substr(i.image_ocr_text, 1, 500),
+                   i.is_favorite, i.is_pinned
+            FROM clipboard_items i
+            JOIN clipboard_fts f ON i.id = f.id
+            WHERE i.is_favorite = 1 AND f.content MATCH ?
+            ORDER BY i.is_pinned DESC, rank
             LIMIT ?;
             """
 
@@ -505,10 +616,41 @@ class DatabaseManager {
                    image_width, image_height, thumbnail_filename,
                    image_ocr_status,
                    CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
-                   substr(image_ocr_text, 1, 500)
+                   substr(image_ocr_text, 1, 500),
+                   is_favorite, is_pinned
             FROM clipboard_items
             WHERE type = 'image'
             ORDER BY timestamp DESC
+            LIMIT ?;
+            """
+            var statement: OpaquePointer?
+            var items: [ClipboardListItem] = []
+
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, Int32(limit))
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    if let item = makeClipboardListItem(from: statement) {
+                        items.append(item)
+                    }
+                }
+            }
+            sqlite3_finalize(statement)
+            return items
+        }
+    }
+
+    func getFavoriteImageListItems(limit: Int = 50) -> [ClipboardListItem] {
+        return withDatabase {
+            let sql = """
+            SELECT id, type, content, length(content), timestamp, size,
+                   image_width, image_height, thumbnail_filename,
+                   image_ocr_status,
+                   CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
+                   substr(image_ocr_text, 1, 500),
+                   is_favorite, is_pinned
+            FROM clipboard_items
+            WHERE type = 'image' AND is_favorite = 1
+            ORDER BY is_pinned DESC, timestamp DESC
             LIMIT ?;
             """
             var statement: OpaquePointer?
@@ -530,7 +672,7 @@ class DatabaseManager {
     func getOldItems(maxCount: Int) -> [ClipboardItem] {
         return withDatabase {
             // We want items beyond the first N items.
-            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
+            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items WHERE is_favorite = 0 ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
             
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
@@ -552,7 +694,7 @@ class DatabaseManager {
     func deleteItemsOlderThan(date: Date) -> [ClipboardItem] {
         return withDatabase {
             // We return items to be deleted so file cache can be cleaned up
-            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at FROM clipboard_items WHERE timestamp < ?;"
+            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items WHERE timestamp < ? AND is_favorite = 0;"
             var selectStatement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -566,7 +708,7 @@ class DatabaseManager {
             }
             sqlite3_finalize(selectStatement)
             
-            let deleteSql = "DELETE FROM clipboard_items WHERE timestamp < ?;"
+            let deleteSql = "DELETE FROM clipboard_items WHERE timestamp < ? AND is_favorite = 0;"
             var deleteStatement: OpaquePointer?
             if sqlite3_prepare_v2(db, deleteSql, -1, &deleteStatement, nil) == SQLITE_OK {
                 sqlite3_bind_double(deleteStatement, 1, date.timeIntervalSince1970)
@@ -679,7 +821,9 @@ class DatabaseManager {
             thumbnailFilename: optionalString(statement, 7),
             imageOCRText: optionalString(statement, 8),
             imageOCRStatus: optionalOCRStatus(statement, 9),
-            imageOCRUpdatedAt: optionalDate(statement, 10)
+            imageOCRUpdatedAt: optionalDate(statement, 10),
+            isFavorite: optionalInt(statement, 11) == 1,
+            isPinned: optionalInt(statement, 12) == 1
         )
     }
 
@@ -716,7 +860,9 @@ class DatabaseManager {
             thumbnailFilename: optionalString(statement, 8),
             imageOCRStatus: optionalOCRStatus(statement, 9),
             hasImageOCRText: optionalInt(statement, 10) == 1,
-            imageOCRTextPreview: optionalString(statement, 11)
+            imageOCRTextPreview: optionalString(statement, 11),
+            isFavorite: optionalInt(statement, 12) == 1,
+            isPinned: optionalInt(statement, 13) == 1
         )
     }
 

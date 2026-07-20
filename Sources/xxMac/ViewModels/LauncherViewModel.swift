@@ -86,6 +86,9 @@ class LauncherViewModel: ObservableObject {
             .sink { [weak self] history in
                 if self?.mode == .clipboard {
                     self?.results = history
+                    if let self, self.selectedIndex >= history.count {
+                        self.selectedIndex = max(0, history.count - 1)
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -145,6 +148,7 @@ class LauncherViewModel: ObservableObject {
     
     @objc func onShowClipboardHistory() {
         mode = .clipboard
+        ClipboardManager.shared.selectTab(.history)
         resetSearchState()
         
         // Ensure UI state is reset on the main thread
@@ -200,6 +204,51 @@ class LauncherViewModel: ObservableObject {
     func setClipboardImageFilterEnabled(_ isEnabled: Bool) {
         guard mode == .clipboard else { return }
         query = isEnabled ? "img" : ""
+    }
+
+    @discardableResult
+    func selectNextClipboardTab() -> Bool {
+        guard mode == .clipboard else { return false }
+        selectedIndex = 0
+        ClipboardManager.shared.selectNextTab()
+        return true
+    }
+
+    @discardableResult
+    func selectPreviousClipboardTab() -> Bool {
+        guard mode == .clipboard else { return false }
+        selectedIndex = 0
+        ClipboardManager.shared.selectPreviousTab()
+        return true
+    }
+
+    @discardableResult
+    func toggleSelectedClipboardFavorite() -> Bool {
+        guard mode == .clipboard,
+              results.indices.contains(selectedIndex),
+              let clipboardAction = results[selectedIndex].clipboardAction else {
+            return false
+        }
+
+        if ClipboardManager.shared.activeTab == .favorites {
+            ClipboardManager.shared.removeFavorite(id: clipboardAction.id)
+        } else {
+            ClipboardManager.shared.addFavorite(id: clipboardAction.id)
+        }
+        return true
+    }
+
+    @discardableResult
+    func toggleSelectedClipboardPin() -> Bool {
+        guard mode == .clipboard,
+              ClipboardManager.shared.activeTab == .favorites,
+              results.indices.contains(selectedIndex),
+              let clipboardAction = results[selectedIndex].clipboardAction else {
+            return false
+        }
+
+        ClipboardManager.shared.togglePinned(id: clipboardAction.id)
+        return true
     }
     
     private func performLauncherSearch(query: String) {
@@ -488,7 +537,20 @@ class LauncherViewModel: ObservableObject {
     }
     
     func executeSelection(revealInFinder: Bool = false) {
+        if mode == .clipboard,
+           ClipboardManager.shared.activeTab == .snippets,
+           revealInFinder {
+            NotificationCenter.default.post(name: NSNotification.Name("OpenSnippetsSettings"), object: nil)
+            return
+        }
+
         guard results.indices.contains(selectedIndex) else { return }
+        if mode == .clipboard, revealInFinder {
+            if toggleSelectedClipboardFavorite() {
+                return
+            }
+        }
+
         let item = results[selectedIndex]
         if mode == .launcher, !revealInFinder {
             LauncherHistoryManager.shared.record(item: item, query: query)

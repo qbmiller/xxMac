@@ -24,6 +24,8 @@ struct ClipboardItem: Codable, Identifiable {
     var imageOCRText: String?
     var imageOCRStatus: ClipboardOCRStatus?
     var imageOCRUpdatedAt: Date?
+    var isFavorite = false
+    var isPinned = false
 
     func searchableContent(imageDescription: String? = nil) -> String {
         switch type {
@@ -56,4 +58,6 @@ struct ClipboardListItem: Identifiable, Equatable {
     let imageOCRStatus: ClipboardOCRStatus?
     let hasImageOCRText: Bool
     let imageOCRTextPreview: String?
+    let isFavorite: Bool
+    let isPinned: Bool
 }

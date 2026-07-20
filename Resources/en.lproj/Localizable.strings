@@ -159,6 +159,17 @@
 "clipboard.item.image_title" = "Image";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
 "clipboard.filter_images" = "Show Images";
+"clipboard.tab.history" = "History";
+"clipboard.tab.favorites" = "Favorites";
+"clipboard.tab.snippets" = "Snippets";
+"clipboard.favorite" = "Favorite";
+"clipboard.unfavorite" = "Remove from Favorites";
+"clipboard.remove_favorite_short" = "Remove";
+"clipboard.favorite_command_hint" = "Return to Favorite";
+"clipboard.remove_favorite_command_hint" = "Return to Remove";
+"clipboard.edit_command_hint" = "Return to Edit";
+"clipboard.pin" = "Pin";
+"clipboard.unpin" = "Unpin";
 
 "launcher.search_placeholder" = "Search apps, commands...";
 "launcher.search_clipboard_placeholder" = "Search clipboard history...";
