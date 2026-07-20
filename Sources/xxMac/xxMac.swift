@@ -628,7 +628,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             width = CGFloat(max(appearance.launcherWidth, 920))
             height = CGFloat(searchRowHeight + dividerHeight + appearance.launcherHeight)
         case .snippets:
-            width = CGFloat(appearance.launcherWidth)
+            width = CGFloat(max(appearance.launcherWidth, 920))
             let resultHeight = min(Double(max(launcherViewModel.results.count, 1)) * resultRowHeight, appearance.launcherHeight)
             height = CGFloat(searchRowHeight + dividerHeight + resultHeight)
         case .launcher:

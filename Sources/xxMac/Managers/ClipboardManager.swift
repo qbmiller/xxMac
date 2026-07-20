@@ -402,24 +402,7 @@ class ClipboardManager: ObservableObject {
         }
 
         let activated = app.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
-        let reopened = sendReopenAndActivateAppleScript(to: app)
-        logClipboardFlow("restoreFocus.activated=\(activated) reopened=\(reopened)")
-    }
-
-    private func sendReopenAndActivateAppleScript(to app: NSRunningApplication) -> Bool {
-        guard let bundleIdentifier = app.bundleIdentifier else { return false }
-        let safeBundleIdentifier = bundleIdentifier.replacingOccurrences(of: "\"", with: "\\\"")
-        let scriptSource = """
-        tell application id "\(safeBundleIdentifier)"
-            reopen
-            activate
-        end tell
-        """
-
-        guard let script = NSAppleScript(source: scriptSource) else { return false }
-        var error: NSDictionary?
-        script.executeAndReturnError(&error)
-        return error == nil
+        logClipboardFlow("restoreFocus.activated=\(activated)")
     }
 
     private func sendCommandV() {
