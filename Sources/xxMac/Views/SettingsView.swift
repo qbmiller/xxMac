@@ -17,6 +17,8 @@ enum SettingsWindowConfiguration {
 // MARK: - Main View
 
 struct SettingsView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedTool: ToolOption? = ToolOption.allTools.first
     @State private var selectedFunction: ToolFunction? = ToolOption.allTools.first?.functions.first
     @State private var selectedSnippetCollectionID: SnippetCollection.ID?
@@ -35,25 +37,24 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        HStack(spacing: 0) {
-            sidebarToggleRail
+        HSplitView {
+            toolSidebar
+                .frame(
+                    minWidth: isToolSidebarVisible ? 220 : 56,
+                    idealWidth: isToolSidebarVisible ? 260 : 56,
+                    maxWidth: isToolSidebarVisible ? 360 : 56
+                )
+                .frame(maxHeight: .infinity)
 
-            Divider()
+            secondarySidebar
+                .frame(minWidth: 220, idealWidth: secondaryColumnWidth, maxWidth: 380)
+                .frame(maxHeight: .infinity)
 
-            HSplitView {
-                if isToolSidebarVisible {
-                    toolSidebar
-                        .frame(minWidth: 220, idealWidth: 260, maxWidth: 360)
-                }
-
-                secondarySidebar
-                    .frame(minWidth: 220, idealWidth: secondaryColumnWidth, maxWidth: 380)
-
-                detailContent
-                    .frame(minWidth: 680, maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            detailContent
+                .frame(minWidth: 680, maxWidth: .infinity, maxHeight: .infinity)
         }
+        .animation(sidebarAnimation, value: isToolSidebarVisible)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .frame(minWidth: 1050, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .background(Color(NSColor.windowBackgroundColor))
         .background(SettingsWindowConfigurator())
@@ -100,51 +101,79 @@ struct SettingsView: View {
         }
     }
 
-    private var sidebarToggleRail: some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.16)) {
-                    isToolSidebarVisible.toggle()
-                }
-            } label: {
-                Image(systemName: "sidebar.leading")
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.borderless)
-            .help(L10n.t("settings.toggle_sidebar"))
-            .padding(.top, 12)
-
-            Spacer()
-        }
-        .frame(width: 48)
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-
     private var toolSidebar: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text(L10n.t("settings.tools"))
-                    .font(.headline)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            HStack(spacing: 8) {
+                if isToolSidebarVisible {
+                    Text(L10n.t("settings.tools"))
+                        .font(.headline)
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
+                    Spacer(minLength: 8)
+                } else {
+                    Spacer(minLength: 0)
+                }
 
-            List(selection: $selectedTool) {
-                ForEach(ToolOption.allTools) { tool in
-                    Label(tool.type.displayName, systemImage: tool.type.icon)
-                        .padding(.vertical, 4)
-                        .tag(tool)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedTool = tool
-                        }
+                sidebarToggleButton
+
+                if !isToolSidebarVisible {
+                    Spacer(minLength: 0)
                 }
             }
-            .listStyle(.sidebar)
+            .padding(.horizontal, isToolSidebarVisible ? 12 : 6)
+            .frame(height: 48)
+
+            Divider()
+
+            if isToolSidebarVisible {
+                List(selection: $selectedTool) {
+                    ForEach(ToolOption.allTools) { tool in
+                        Label(tool.type.displayName, systemImage: tool.type.icon)
+                            .padding(.vertical, 4)
+                            .tag(tool)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedTool = tool
+                            }
+                    }
+                }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .transition(.opacity)
+            } else {
+                Spacer(minLength: 0)
+            }
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .frame(maxHeight: .infinity)
+        .clipped()
+        .background(toolSidebarBackground)
+    }
+
+    private var sidebarToggleButton: some View {
+        SidebarToggleButton(isExpanded: isToolSidebarVisible) {
+            withAnimation(sidebarAnimation) {
+                isToolSidebarVisible.toggle()
+            }
+        }
+        .help(L10n.t("settings.toggle_sidebar"))
+        .accessibilityLabel(L10n.t("settings.toggle_sidebar"))
+    }
+
+    private var sidebarAnimation: Animation? {
+        reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.86)
+    }
+
+    private var toolSidebarBackground: some View {
+        ZStack {
+            Color(NSColor.windowBackgroundColor)
+            Color.accentColor.opacity(colorScheme == .dark ? 0.14 : 0.08)
+        }
+    }
+
+    private var secondarySidebarBackground: some View {
+        ZStack {
+            Color(NSColor.windowBackgroundColor)
+            Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.045)
+        }
     }
 
     private var secondarySidebar: some View {
@@ -155,13 +184,13 @@ struct SettingsView: View {
                 Spacer()
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .frame(height: 48)
 
             Divider()
 
             secondaryContent
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(secondarySidebarBackground)
     }
 
     @ViewBuilder
@@ -184,6 +213,7 @@ struct SettingsView: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
             }
         } else {
             VStack {
@@ -269,6 +299,44 @@ struct SettingsView: View {
     }
 }
 
+private struct SidebarToggleButton: View {
+    let isExpanded: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isExpanded ? "chevron.left" : "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(isHovering ? .accentColor : .secondary)
+                .frame(width: 36, height: 36)
+                .background {
+                    Circle()
+                        .fill(Color.accentColor.opacity(isHovering ? 0.16 : 0.08))
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(SidebarTonalButtonStyle())
+        .onHover { isHovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+    }
+}
+
+private struct SidebarTonalButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .opacity(configuration.isPressed ? 0.78 : 1)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.22, dampingFraction: 0.72),
+                value: configuration.isPressed
+            )
+    }
+}
+
 private struct SnippetCollectionSidebar: View {
     @ObservedObject private var manager = SnippetManager.shared
     @Binding var selection: SnippetCollection.ID?
@@ -311,8 +379,9 @@ private struct SnippetCollectionSidebar: View {
                 }
             }
             .listStyle(.sidebar)
+            .scrollContentBackground(.hidden)
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.clear)
     }
 }
 
@@ -485,9 +554,11 @@ struct ConfigurationView: View {
                     .fontWeight(.semibold)
                 Spacer()
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .frame(height: 48)
             .background(Color(NSColor.controlBackgroundColor))
-            .border(Color(NSColor.separatorColor), width: 0.5)
+
+            Divider()
             
             configurationContent
         }

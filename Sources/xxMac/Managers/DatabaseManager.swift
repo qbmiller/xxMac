@@ -536,6 +536,19 @@ class DatabaseManager {
     func searchListItems(query: String, limit: Int = 50, previewLimit: Int = DatabaseManager.defaultTextPreviewLimit) -> [ClipboardListItem] {
         return withDatabase {
             let sql = """
+            WITH matching_rows AS (
+                SELECT rowid, rank AS search_rank
+                FROM clipboard_fts
+                WHERE clipboard_fts MATCH ?
+                UNION ALL
+                SELECT rowid, 0 AS search_rank
+                FROM clipboard_fts
+                WHERE instr(lower(content), lower(?)) > 0
+            ), ranked_matches AS (
+                SELECT rowid, MIN(search_rank) AS search_rank
+                FROM matching_rows
+                GROUP BY rowid
+            )
             SELECT i.id, i.type, substr(i.content, 1, ?), length(i.content),
                    i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename,
                    i.image_ocr_status,
@@ -544,8 +557,8 @@ class DatabaseManager {
                    i.is_favorite, i.is_pinned
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
-            WHERE f.content MATCH ?
-            ORDER BY rank
+            JOIN ranked_matches m ON f.rowid = m.rowid
+            ORDER BY m.search_rank, i.timestamp DESC
             LIMIT ?;
             """
 
@@ -553,10 +566,11 @@ class DatabaseManager {
             var items: [ClipboardListItem] = []
 
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
-                let searchPattern = "\(query)*"
-                sqlite3_bind_int(statement, 1, Int32(previewLimit))
-                sqlite3_bind_text(statement, 2, (searchPattern as NSString).utf8String, -1, nil)
-                sqlite3_bind_int(statement, 3, Int32(limit))
+                let searchPattern = Self.ftsPrefixSearchPattern(for: query)
+                sqlite3_bind_text(statement, 1, (searchPattern as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (query as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 3, Int32(previewLimit))
+                sqlite3_bind_int(statement, 4, Int32(limit))
                 while sqlite3_step(statement) == SQLITE_ROW {
                     if let item = makeClipboardListItem(from: statement) {
                         items.append(item)
@@ -574,6 +588,19 @@ class DatabaseManager {
     func searchFavoriteListItems(query: String, limit: Int = 50, previewLimit: Int = DatabaseManager.defaultTextPreviewLimit) -> [ClipboardListItem] {
         return withDatabase {
             let sql = """
+            WITH matching_rows AS (
+                SELECT rowid, rank AS search_rank
+                FROM clipboard_fts
+                WHERE clipboard_fts MATCH ?
+                UNION ALL
+                SELECT rowid, 0 AS search_rank
+                FROM clipboard_fts
+                WHERE instr(lower(content), lower(?)) > 0
+            ), ranked_matches AS (
+                SELECT rowid, MIN(search_rank) AS search_rank
+                FROM matching_rows
+                GROUP BY rowid
+            )
             SELECT i.id, i.type, substr(i.content, 1, ?), length(i.content),
                    i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename,
                    i.image_ocr_status,
@@ -582,8 +609,9 @@ class DatabaseManager {
                    i.is_favorite, i.is_pinned
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
-            WHERE i.is_favorite = 1 AND f.content MATCH ?
-            ORDER BY i.is_pinned DESC, rank
+            JOIN ranked_matches m ON f.rowid = m.rowid
+            WHERE i.is_favorite = 1
+            ORDER BY i.is_pinned DESC, m.search_rank, i.timestamp DESC
             LIMIT ?;
             """
 
@@ -591,10 +619,11 @@ class DatabaseManager {
             var items: [ClipboardListItem] = []
 
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
-                let searchPattern = "\(query)*"
-                sqlite3_bind_int(statement, 1, Int32(previewLimit))
-                sqlite3_bind_text(statement, 2, (searchPattern as NSString).utf8String, -1, nil)
-                sqlite3_bind_int(statement, 3, Int32(limit))
+                let searchPattern = Self.ftsPrefixSearchPattern(for: query)
+                sqlite3_bind_text(statement, 1, (searchPattern as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (query as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 3, Int32(previewLimit))
+                sqlite3_bind_int(statement, 4, Int32(limit))
                 while sqlite3_step(statement) == SQLITE_ROW {
                     if let item = makeClipboardListItem(from: statement) {
                         items.append(item)
@@ -607,6 +636,16 @@ class DatabaseManager {
             sqlite3_finalize(statement)
             return items
         }
+    }
+
+    private static func ftsPrefixSearchPattern(for query: String) -> String {
+        query
+            .split(whereSeparator: \Character.isWhitespace)
+            .map { term in
+                let escapedTerm = term.replacingOccurrences(of: "\"", with: "\"\"")
+                return "\"\(escapedTerm)\"*"
+            }
+            .joined(separator: " ")
     }
 
     func getImageListItems(limit: Int = 50) -> [ClipboardListItem] {

@@ -267,32 +267,38 @@ class LauncherViewModel: ObservableObject {
 
         isBrowsingEmptyHistory = false
 
-        if handleQuickShortcut(query: trimmedQuery) {
+        let quickShortcutActivation = QuickShortcutManager.shared.activation(query: query)
+        if let quickShortcutActivation,
+           quickShortcutActivation.resultScope == .shortcutOnly {
+            handleQuickShortcut(state: quickShortcutActivation.state)
             selectedIndex = 0
             return
         }
+        cancelPendingQuickShortcutCommand()
 
-        if handleBrowserSearch(query: trimmedQuery) {
-            selectedIndex = 0
-            return
-        }
+        if quickShortcutActivation == nil {
+            if handleBrowserSearch(query: trimmedQuery) {
+                selectedIndex = 0
+                return
+            }
 
-        if let calculatorResult = CalculatorExpressionEvaluator.evaluate(trimmedQuery) {
-            results = [
-                SearchItem(
-                    id: "calculator.\(calculatorResult.expression)",
-                    title: calculatorResult.value,
-                    subtitle: L10n.t("calculator.copy_result"),
-                    iconName: "function",
-                    type: .calculator,
-                    action: {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(calculatorResult.value, forType: .string)
-                    }
-                )
-            ]
-            selectedIndex = 0
-            return
+            if let calculatorResult = CalculatorExpressionEvaluator.evaluate(trimmedQuery) {
+                results = [
+                    SearchItem(
+                        id: "calculator.\(calculatorResult.expression)",
+                        title: calculatorResult.value,
+                        subtitle: L10n.t("calculator.copy_result"),
+                        iconName: "function",
+                        type: .calculator,
+                        action: {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(calculatorResult.value, forType: .string)
+                        }
+                    )
+                ]
+                selectedIndex = 0
+                return
+            }
         }
         
         // 1. Window Commands (only if query is not empty)
@@ -317,8 +323,14 @@ class LauncherViewModel: ObservableObject {
         
         let fallbackShortcuts = QuickShortcutManager.shared.fallbackSearchItems(query: trimmedQuery) { [weak self] item, query in
             self?.runQuickShortcutCommand(item: item, query: query)
+        }.filter { item in
+            guard let quickShortcutActivation else { return true }
+            return item.id != "quick_shortcut.fallback.\(quickShortcutActivation.itemID.uuidString)"
         }
-        let newResults = appResults + windowCommands + fallbackShortcuts
+        let exactShortcutResults = quickShortcutActivation.map {
+            coexistingQuickShortcutResults(for: $0.state)
+        } ?? []
+        let newResults = exactShortcutResults + appResults + windowCommands + fallbackShortcuts
         self.results = newResults
         self.selectedIndex = 0
         let preview = newResults.prefix(8).map { $0.title }.joined(separator: ", ")
@@ -326,56 +338,95 @@ class LauncherViewModel: ObservableObject {
         Self.logger.debug("top=[\(preview, privacy: .public)]")
     }
 
-    private func handleQuickShortcut(query: String) -> Bool {
-        switch QuickShortcutManager.shared.activationState(query: query) {
+    private func handleQuickShortcut(state: QuickShortcutManager.ActivationState) {
+        switch state {
         case .none:
             cancelPendingQuickShortcutCommand()
-            return false
         case .waitingForInput(let item):
             cancelPendingQuickShortcutCommand()
-            results = [
-                SearchItem(
-                    id: "quick_shortcut.waiting.\(item.id.uuidString)",
-                    title: item.title,
-                    subtitle: L10n.t("quick_shortcut.input_required"),
-                    iconName: item.actionType.iconName,
-                    iconFileURL: QuickShortcutManager.shared.iconURL(for: item),
-                    type: .quickShortcut,
-                    action: {}
-                )
-            ]
-            return true
+            results = [waitingQuickShortcutItem(item)]
         case .ready(let match):
             switch match.item.actionType {
             case .webSearch:
                 cancelPendingQuickShortcutCommand()
-                results = [
-                    SearchItem(
-                        id: "quick_shortcut.\(match.item.id.uuidString)",
-                        title: match.item.title,
-                        subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
-                        iconName: match.item.actionType.iconName,
-                        iconFileURL: QuickShortcutManager.shared.iconURL(for: match.item),
-                        type: .quickShortcut,
-                        launcherHistorySnapshot: LauncherHistorySnapshot(
-                            kind: .quickShortcut,
-                            sourceID: match.item.id.uuidString,
-                            title: match.item.title,
-                            subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
-                            iconName: match.item.actionType.iconName,
-                            query: match.query
-                        ),
-                        action: {
-                            QuickShortcutManager.shared.execute(item: match.item, query: match.query)
-                        }
-                    )
-                ]
-                return true
+                results = [webSearchShortcutItem(match)]
             case .commandScript:
                 runQuickShortcutCommand(item: match.item, query: match.query)
-                return true
             }
         }
+    }
+
+    private func coexistingQuickShortcutResults(
+        for state: QuickShortcutManager.ActivationState
+    ) -> [SearchItem] {
+        switch state {
+        case .none:
+            return []
+        case .waitingForInput(let item):
+            return [waitingQuickShortcutItem(item)]
+        case .ready(let match):
+            switch match.item.actionType {
+            case .webSearch:
+                return [webSearchShortcutItem(match)]
+            case .commandScript:
+                return [commandShortcutItem(match)]
+            }
+        }
+    }
+
+    private func waitingQuickShortcutItem(_ item: QuickShortcut) -> SearchItem {
+        SearchItem(
+            id: "quick_shortcut.waiting.\(item.id.uuidString)",
+            title: item.title,
+            subtitle: L10n.t("quick_shortcut.input_required"),
+            iconName: item.actionType.iconName,
+            iconFileURL: QuickShortcutManager.shared.iconURL(for: item),
+            type: .quickShortcut,
+            action: {}
+        )
+    }
+
+    private func webSearchShortcutItem(_ match: QuickShortcutManager.Match) -> SearchItem {
+        SearchItem(
+            id: "quick_shortcut.\(match.item.id.uuidString)",
+            title: match.item.title,
+            subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
+            iconName: match.item.actionType.iconName,
+            iconFileURL: QuickShortcutManager.shared.iconURL(for: match.item),
+            type: .quickShortcut,
+            launcherHistorySnapshot: launcherHistorySnapshot(for: match),
+            action: {
+                QuickShortcutManager.shared.execute(item: match.item, query: match.query)
+            }
+        )
+    }
+
+    private func commandShortcutItem(_ match: QuickShortcutManager.Match) -> SearchItem {
+        SearchItem(
+            id: "quick_shortcut.\(match.item.id.uuidString)",
+            title: match.item.title,
+            subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
+            iconName: match.item.actionType.iconName,
+            iconFileURL: QuickShortcutManager.shared.iconURL(for: match.item),
+            type: .quickShortcutOutput,
+            launcherHistorySnapshot: launcherHistorySnapshot(for: match),
+            action: { [weak self] in
+                self?.runQuickShortcutCommand(item: match.item, query: match.query)
+            }
+        )
+    }
+
+    private func launcherHistorySnapshot(
+        for match: QuickShortcutManager.Match
+    ) -> LauncherHistorySnapshot {
+        LauncherHistorySnapshot(
+            kind: .quickShortcut,
+            sourceID: match.item.id.uuidString,
+            title: match.item.title,
+            subtitle: QuickShortcutManager.shared.subtitle(for: match.item),
+            iconName: match.item.actionType.iconName,
+            query: match.query
+        )
     }
 
     private func handleBrowserSearch(query: String) -> Bool {

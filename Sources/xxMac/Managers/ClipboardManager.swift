@@ -341,7 +341,9 @@ class ClipboardManager: ObservableObject {
     private func items(for tab: ClipboardPanelTab, query: String) -> [ClipboardListItem] {
         switch tab {
         case .history:
-            return query.isEmpty ? storage.getListItems() : storage.searchListItems(query: query)
+            return query.isEmpty
+                ? storage.getListItems()
+                : storage.searchHistoryAndFavoriteListItems(query: query)
         case .favorites:
             return query.isEmpty ? storage.getFavoriteListItems() : storage.searchFavoriteListItems(query: query)
         case .snippets:

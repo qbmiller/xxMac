@@ -159,6 +159,16 @@ class ClipboardStorageManager {
 
         return dbManager.searchFavoriteListItems(query: normalized, limit: limit)
     }
+
+    func searchHistoryAndFavoriteListItems(query: String, limit: Int = 50) -> [ClipboardListItem] {
+        let historyItems = searchListItems(query: query, limit: limit)
+        let favoriteItems = searchFavoriteListItems(query: query, limit: limit)
+        var seenIDs = Set<UUID>()
+
+        return (historyItems + favoriteItems).filter { item in
+            seenIDs.insert(item.id).inserted
+        }
+    }
     
     func deleteItem(_ item: ClipboardItem) {
         dbManager.deleteItem(id: item.id.uuidString)

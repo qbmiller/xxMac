@@ -62,9 +62,10 @@ struct QuickShortcutItemsSidebar: View {
                     }
                 }
                 .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color.clear)
     }
 
     private func deleteSelectedItem() {

@@ -29,6 +29,22 @@ final class QuickShortcutManager: ObservableObject {
         case none
     }
 
+    enum ResultScope: Equatable {
+        case shortcutOnly
+        case shortcutAndAppResults
+    }
+
+    struct Activation {
+        let state: ActivationState
+        let resultScope: ResultScope
+        let itemID: UUID
+    }
+
+    private struct Invocation {
+        let query: String
+        let isExplicit: Bool
+    }
+
     private init() {
         loadItems()
     }
@@ -156,39 +172,59 @@ final class QuickShortcutManager: ObservableObject {
     }
 
     func activationState(query: String) -> ActivationState {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else { return .none }
+        Self.resolveActivation(query: query, items: items)?.state ?? .none
+    }
+
+    func activation(query: String) -> Activation? {
+        Self.resolveActivation(query: query, items: items)
+    }
+
+    static func resolveActivation(query: String, items: [QuickShortcut]) -> Activation? {
+        let leadingTrimmedQuery = String(query.drop(while: { $0.isWhitespace }))
+        guard !leadingTrimmedQuery.isEmpty else { return nil }
 
         for item in items where item.isEnabled {
-            if let invokedQuery = invokedQuery(for: trimmedQuery, keyword: item.keyword) {
+            if let invocation = invocation(for: leadingTrimmedQuery, keyword: item.keyword) {
+                let state: ActivationState
                 if item.actionType == .commandScript,
                    item.commandInputMode.requiresInput,
-                   invokedQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return .waitingForInput(item)
+                   invocation.query.isEmpty {
+                    state = .waitingForInput(item)
+                } else {
+                    state = .ready(Match(item: item, query: invocation.query))
                 }
-                return .ready(Match(item: item, query: invokedQuery))
+                return Activation(
+                    state: state,
+                    resultScope: invocation.isExplicit ? .shortcutOnly : .shortcutAndAppResults,
+                    itemID: item.id
+                )
             }
         }
-        return .none
+        return nil
     }
 
     private func invokedQuery(for query: String, keyword: String) -> String? {
+        Self.invocation(for: query, keyword: keyword)?.query
+    }
+
+    private static func invocation(for query: String, keyword: String) -> Invocation? {
         let trimmedKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedKeyword.isEmpty else { return nil }
-
-        let lowerQuery = query.lowercased()
-        let lowerKeyword = trimmedKeyword.lowercased()
-
-        guard lowerQuery == lowerKeyword || lowerQuery.hasPrefix(lowerKeyword + " ") else {
+        guard !trimmedKeyword.isEmpty,
+              let keywordRange = query.range(
+                of: trimmedKeyword,
+                options: [.anchored, .caseInsensitive]
+              ) else {
             return nil
         }
 
-        if query.count == trimmedKeyword.count {
-            return ""
+        if keywordRange.upperBound == query.endIndex {
+            return Invocation(query: "", isExplicit: false)
         }
 
-        let startIndex = query.index(query.startIndex, offsetBy: trimmedKeyword.count)
-        return query[startIndex...].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query[keywordRange.upperBound].isWhitespace else { return nil }
+        let invokedQuery = query[keywordRange.upperBound...]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Invocation(query: invokedQuery, isExplicit: true)
     }
 
     func subtitle(for item: QuickShortcut) -> String {

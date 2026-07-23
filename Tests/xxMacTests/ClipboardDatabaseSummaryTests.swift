@@ -59,11 +59,38 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
 
         let results = storage.searchListItems(query: "ABC123")
         XCTAssertEqual(results.first?.id, item.id)
+        XCTAssertEqual(storage.searchListItems(query: "C12").first?.id, item.id)
 
         let fullItem = try XCTUnwrap(storage.getItem(id: item.id))
         XCTAssertEqual(fullItem.imageOCRText, "invoice number ABC123")
         XCTAssertEqual(fullItem.imageOCRStatus, .ready)
         XCTAssertNotNil(fullItem.imageOCRUpdatedAt)
+    }
+
+    func testSearchMatchesMiddleTextAndLiteralSymbolsInHistoryAndFavorites() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+        let content = "alpha中文中间omega%_tail"
+
+        storage.saveItem(type: .text, content: content, size: content.utf8.count)
+        let item = try XCTUnwrap(storage.getListItems(limit: 1).first)
+        storage.setFavorite(id: item.id, isFavorite: true)
+
+        for query in ["pha", "中间", "%_"] {
+            XCTAssertEqual(storage.searchListItems(query: query).first?.id, item.id)
+            XCTAssertEqual(storage.searchFavoriteListItems(query: query).first?.id, item.id)
+        }
+    }
+
+    func testSearchPreservesMultiTermMatchingAcrossSeparatedWords() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+        let content = "alpha has text between omega"
+
+        storage.saveItem(type: .text, content: content, size: content.utf8.count)
+        let item = try XCTUnwrap(storage.getListItems(limit: 1).first)
+
+        XCTAssertEqual(storage.searchListItems(query: "alpha omega").first?.id, item.id)
     }
 
     func testDeletingImageRemovesOCRSearchIndex() throws {
@@ -98,6 +125,25 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
         XCTAssertTrue(storage.searchFavoriteListItems(query: "favorite").isEmpty)
         XCTAssertEqual(storage.searchListItems(query: "favorite").first?.id, favorite.id)
         XCTAssertFalse(try XCTUnwrap(storage.getItem(id: favorite.id)).isFavorite)
+    }
+
+    func testCombinedSearchIncludesFavoriteOutsideGeneralResultLimitWithoutDuplicates() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        for index in 0..<60 {
+            let content = "shared search token regular \(index)"
+            storage.saveItem(type: .text, content: content, size: content.utf8.count)
+        }
+        let favoriteContent = "shared search token favorite"
+        storage.saveItem(type: .text, content: favoriteContent, size: favoriteContent.utf8.count)
+        let favorite = try XCTUnwrap(storage.searchListItems(query: "favorite").first)
+        storage.setFavorite(id: favorite.id, isFavorite: true)
+
+        let results = storage.searchHistoryAndFavoriteListItems(query: "shared", limit: 50)
+
+        XCTAssertTrue(results.contains { $0.id == favorite.id })
+        XCTAssertEqual(Set(results.map(\.id)).count, results.count)
     }
 
     func testPinnedFavoritesSortBeforeUnpinnedFavorites() throws {

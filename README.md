@@ -8,6 +8,17 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 2. A floating launcher panel opened by a global hotkey.
 3. A three-column settings window shown when opening the app directly, with a resizable window and draggable column widths.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="25%" align="center"><img src="docs/images/image.png" alt="xxMac screenshot 1" width="100%"><br>1</td>
+    <td width="25%" align="center"><img src="docs/images/image2.png" alt="xxMac screenshot 2" width="100%"><br>2</td>
+    <td width="25%" align="center"><img src="docs/images/image3.png" alt="xxMac screenshot 3" width="100%"><br>3</td>
+    <td width="25%" align="center"><img src="docs/images/image4.png" alt="xxMac screenshot 4" width="100%"><br>4</td>
+  </tr>
+</table>
+
 ## Feature Overview
 
 | Capability | Description | Similar / Alternative |
@@ -19,9 +30,9 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 | Finder Path Paste | Copy files or folders in Finder, then press `Command + Shift + V` to paste their full paths into the frontmost app. Useful for terminals, editors, and chat windows. | Copy Path / Path Finder |
 | Chinese Calendar | Provides a top-right status bar entry, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable status bar icon styles. | CalendarX |
 | Shortcut Capture | Records which app receives a shortcut, helping locate shortcut conflicts. | Shortcut Detective |
-| Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, paste-back, favorites, and pinned favorites. The panel opens on History by default; use Tab / Shift+Tab to switch between History, Favorites, and Snippets. Command+Return favorites the selected history item or removes the selected favorite while keeping the history record. In Favorites, the red star removes an item from Favorites and the pin button pins or unpins it within the Favorites list. The image Toggle writes `img` into the search field to show all images. Favorited records are protected from automatic and manual history cleanup until removed from Favorites. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews; local OCR is enabled by default and stores recognized image text as searchable metadata. | Clipboard manager |
+| Clipboard History [disabled by default] | Records text and image clipboard items, persists them with SQLite, and supports search, preview, paste-back, favorites, and pinned favorites. Search matches both prefixes and middle substrings, including OCR text and literal symbols. Searching from History merges matching Favorites into the results and removes duplicate records. The panel opens on History by default; use Tab / Shift+Tab to switch between History, Favorites, and Snippets. Command+Return favorites the selected history item or removes the selected favorite while keeping the history record. In Favorites, the red star removes an item from Favorites and the pin button pins or unpins it within the Favorites list. The image Toggle writes `img` into the search field to show all images. Favorited records are protected from automatic and manual history cleanup until removed from Favorites. Large text previews show only the first part while paste-back keeps the full content; images above the configured threshold get thumbnail previews; local OCR is enabled by default and stores recognized image text as searchable metadata. | Clipboard manager |
 | Snippets | Provides Alfred-style snippet categories, entries, and keyword search. Open the search panel with a global hotkey, select an entry on the left, preview it on the right, then press Return to type it into the frontmost app and copy it to the system clipboard. | Alfred Snippets |
-| Quick Shortcut Search | Trigger web searches from the launcher with custom keywords and URL templates. Shortcuts can also be pinned into launcher results for Google, Baidu, and similar search entries. | Alfred Web Search |
+| Quick Shortcut Search | Trigger web searches from the launcher with custom keywords and URL templates. Typing an exact keyword keeps matching apps visible; adding a space enters shortcut-only mode. Shortcuts can also be pinned into launcher results for Google, Baidu, and similar search entries. | Alfred Web Search |
 | Quick Shortcut Scripts | Run local command scripts from launcher keywords. Scripts support no-input, `{query}` single-argument, and `argv` multi-argument modes. They run after input remains stable for about 400 ms, so continuous typing only executes the latest pending input. Complex scripts can live under the configuration folder's `quick/` directory. | Alfred Workflows |
 | Browser Search | Use `bm` to search bookmarks and `bh` to search history in the current Chrome/Edge profile. The browser and both keywords are configurable under Search > Browser Search. | Alfred Browser Bookmarks |
 | Update Checks | Check GitHub Releases manually or automatically on a daily, weekly, or monthly schedule from About. Automatic checks default to weekly and stay silent; when an update is available, a red update button appears on the right side of the launcher and opens the Releases page. | Sparkle |
