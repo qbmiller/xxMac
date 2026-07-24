@@ -6,6 +6,7 @@ final class SpotlightApplicationFinderTests: XCTestCase {
         let paths = [
             "/Applications/Safari.app",
             "/Applications/Safari.app/Contents/Helpers/Safari Helper.app",
+            "/Applications/.Kimi.app.installing/Contents/Frameworks/Kimi Helper.app",
             "/Users/test/Tools/Example.app",
             "/Users/test/Downloads/Outside.app",
             "/Applications/Readme.txt"

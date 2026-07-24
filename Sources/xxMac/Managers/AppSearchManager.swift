@@ -47,6 +47,21 @@ class AppSearchManager: ObservableObject {
         let nameCompactKeys: [String]?
     }
 
+    static func shouldIndexApplicationPath(_ path: String, roots: [String]) -> Bool {
+        let normalizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
+        guard normalizedPath.hasSuffix(".app"),
+              roots.contains(where: { isPath(normalizedPath, inside: $0) }),
+              !containsNestedApplicationOrInstaller(normalizedPath, relativeTo: roots) else {
+            return false
+        }
+        return true
+    }
+
+    static func applicationExists(at path: String, fileManager: FileManager = .default) -> Bool {
+        var isDirectory: ObjCBool = false
+        return fileManager.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
+    }
+
     private init() {
         loadSearchPaths()
         configureAppDirectoryMonitors()
@@ -84,9 +99,18 @@ class AppSearchManager: ObservableObject {
             return false
         }
 
-        let entries = cached.map(makeEntry(fromCached:))
+        let roots = prioritizedPaths(searchPaths)
+        let entries = cached
+            .map(makeEntry(fromCached:))
+            .filter { entry in
+                Self.shouldIndexApplicationPath(entry.path, roots: roots) &&
+                Self.applicationExists(at: entry.path)
+            }
         appEntries = entries
         apps = entries.map(makeSearchItem)
+        if entries.count != cached.count {
+            saveCachedIndex(entries)
+        }
         Self.logger.debug("cache loaded=\(entries.count)")
         return !entries.isEmpty
     }
@@ -154,6 +178,23 @@ class AppSearchManager: ObservableObject {
         let head = paths.filter { $0 == "/Applications" }
         let tail = paths.filter { $0 != "/Applications" }
         return head + tail
+    }
+
+    private static func isPath(_ path: String, inside root: String) -> Bool {
+        path == root || path.hasPrefix(root.hasSuffix("/") ? root : root + "/")
+    }
+
+    private static func containsNestedApplicationOrInstaller(_ path: String, relativeTo roots: [String]) -> Bool {
+        guard let root = roots.filter({ isPath(path, inside: $0) }).max(by: { $0.count < $1.count }) else {
+            return true
+        }
+
+        let relativePath = String(path.dropFirst(root.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let parentComponents = relativePath.split(separator: "/").dropLast()
+        return parentComponents.contains { component in
+            let lowercased = component.lowercased()
+            return lowercased.hasSuffix(".app") || lowercased.hasSuffix(".app.installing")
+        }
     }
 
     private func makeEntry(fromPath path: String, fileManager: FileManager) -> AppEntry {
@@ -240,6 +281,8 @@ class AppSearchManager: ObservableObject {
             let fileManager = FileManager.default
             var foundByPath: [String: AppEntry] = [:]
             for path in paths {
+                guard Self.shouldIndexApplicationPath(path, roots: roots),
+                      Self.applicationExists(at: path, fileManager: fileManager) else { continue }
                 foundByPath[path] = self.makeEntry(fromPath: path, fileManager: fileManager)
             }
 
@@ -271,7 +314,9 @@ class AppSearchManager: ObservableObject {
 
                 paths.append(contentsOf: subpaths.compactMap { subpath in
                     guard subpath.hasSuffix(".app"), !subpath.contains(".app/") else { return nil }
-                    return (rootPath as NSString).appendingPathComponent(subpath)
+                    let fullPath = (rootPath as NSString).appendingPathComponent(subpath)
+                    guard Self.shouldIndexApplicationPath(fullPath, roots: pathsToScan) else { return nil }
+                    return fullPath
                 })
             }
 
@@ -281,10 +326,15 @@ class AppSearchManager: ObservableObject {
 
     private func appendNewApplications() {
         let pathsToScan = prioritizedPaths(searchPaths)
-        let existingPaths = Set(appEntries.map(\.path))
+        let currentEntries = appEntries
 
         DispatchQueue.global(qos: .utility).async {
             let fileManager = FileManager.default
+            let existingEntries = currentEntries.filter { entry in
+                Self.shouldIndexApplicationPath(entry.path, roots: pathsToScan) &&
+                Self.applicationExists(at: entry.path, fileManager: fileManager)
+            }
+            let existingPaths = Set(existingEntries.map(\.path))
             var newEntries: [AppEntry] = []
             var seenPaths = existingPaths
 
@@ -296,22 +346,24 @@ class AppSearchManager: ObservableObject {
 
                 for subpath in subpaths where subpath.hasSuffix(".app") && !subpath.contains(".app/") {
                     let fullPath = (rootPath as NSString).appendingPathComponent(subpath)
-                    guard !seenPaths.contains(fullPath) else { continue }
+                    guard !seenPaths.contains(fullPath),
+                          Self.shouldIndexApplicationPath(fullPath, roots: pathsToScan),
+                          Self.applicationExists(at: fullPath, fileManager: fileManager) else { continue }
                     seenPaths.insert(fullPath)
                     newEntries.append(self.makeEntry(fromPath: fullPath, fileManager: fileManager))
                 }
             }
 
-            guard !newEntries.isEmpty else { return }
+            guard !newEntries.isEmpty || existingEntries.count != currentEntries.count else { return }
 
             DispatchQueue.main.async {
-                let mergedEntries = (self.appEntries + newEntries).sorted {
+                let mergedEntries = (existingEntries + newEntries).sorted {
                     $0.title.localizedStandardCompare($1.title) == .orderedAscending
                 }
                 self.appEntries = mergedEntries
                 self.apps = mergedEntries.map(self.makeSearchItem)
                 self.saveCachedIndex(mergedEntries)
-                Self.logger.debug("append roots='\(pathsToScan.joined(separator: ","), privacy: .public)' added=\(newEntries.count) indexed=\(mergedEntries.count)")
+                Self.logger.debug("append roots='\(pathsToScan.joined(separator: ","), privacy: .public)' added=\(newEntries.count) removed=\(currentEntries.count - existingEntries.count) indexed=\(mergedEntries.count)")
             }
         }
     }
@@ -326,6 +378,7 @@ class AppSearchManager: ObservableObject {
         }
 
         let matched = appEntries.compactMap { entry -> (entry: AppEntry, rank: Int)? in
+            guard Self.applicationExists(at: entry.path) else { return nil }
             var bestRank: Int?
 
             if !compactQuery.isEmpty {

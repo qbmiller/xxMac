@@ -67,25 +67,11 @@ final class SpotlightApplicationFinder {
         let roots = searchPaths.map { URL(fileURLWithPath: $0).standardizedFileURL.path }
         return Set(paths.compactMap { path -> String? in
             let normalizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
-            guard normalizedPath.hasSuffix(".app"),
-                  roots.contains(where: { isPath(normalizedPath, inside: $0) }),
-                  !containsNestedApplication(normalizedPath, relativeTo: roots) else {
+            guard AppSearchManager.shouldIndexApplicationPath(normalizedPath, roots: roots) else {
                 return nil
             }
             return normalizedPath
         }).sorted()
-    }
-
-    private static func isPath(_ path: String, inside root: String) -> Bool {
-        path == root || path.hasPrefix(root.hasSuffix("/") ? root : root + "/")
-    }
-
-    private static func containsNestedApplication(_ path: String, relativeTo roots: [String]) -> Bool {
-        guard let root = roots.filter({ isPath(path, inside: $0) }).max(by: { $0.count < $1.count }) else {
-            return true
-        }
-        let relativePath = String(path.dropFirst(root.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return relativePath.split(separator: "/").dropLast().contains { $0.lowercased().hasSuffix(".app") }
     }
 
     private func finish(
