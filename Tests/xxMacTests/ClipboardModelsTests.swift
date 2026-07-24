@@ -47,6 +47,20 @@ final class ClipboardModelsTests: XCTestCase {
         XCTAssertTrue(settings.imageOCREnabled)
     }
 
+    func testClipboardSettingsWithoutPreviewFontSizeUsesDefault() throws {
+        let settings = try JSONDecoder().decode(ClipboardSettings.self, from: Data("{}".utf8))
+
+        XCTAssertEqual(settings.previewFontSize, AppDefaultSettings.Clipboard.previewFontSize)
+    }
+
+    func testClipboardSettingsClampsPreviewFontSize() throws {
+        let small = try JSONDecoder().decode(ClipboardSettings.self, from: Data(#"{"previewFontSize":2}"#.utf8))
+        let large = try JSONDecoder().decode(ClipboardSettings.self, from: Data(#"{"previewFontSize":80}"#.utf8))
+
+        XCTAssertEqual(small.previewFontSize, AppDefaultSettings.Clipboard.previewFontSizeRange.lowerBound)
+        XCTAssertEqual(large.previewFontSize, AppDefaultSettings.Clipboard.previewFontSizeRange.upperBound)
+    }
+
     func testClipboardSettingsPreservesExplicitlyDisabledLocalOCR() throws {
         let json = #"{"imageOCREnabled":false}"#
         let settings = try JSONDecoder().decode(ClipboardSettings.self, from: Data(json.utf8))

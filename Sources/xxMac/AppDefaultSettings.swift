@@ -28,6 +28,8 @@ enum AppDefaultSettings {
         static let imageOCREnabled = true
         static let maxOCRImageSizeMB = 20
         static let imageOCRLanguages = ["zh-Hans", "en-US"]
+        static let previewFontSizeRange = 12...28
+        static let previewFontSize = 16
     }
 
     enum LauncherAppearance {

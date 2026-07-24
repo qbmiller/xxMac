@@ -39,6 +39,17 @@ struct ClipboardSettingsView: View {
                     Text(L10n.t("clipboard.days_30")).tag(30)
                     Text(L10n.t("clipboard.days_90")).tag(90)
                 }
+
+                HStack {
+                    Text(L10n.t("clipboard.preview_font_size"))
+                    Slider(value: Binding(
+                        get: { Double(clipboardManager.settings.previewFontSize) },
+                        set: { clipboardManager.settings.previewFontSize = Int($0.rounded()) }
+                    ), in: Double(AppDefaultSettings.Clipboard.previewFontSizeRange.lowerBound)...Double(AppDefaultSettings.Clipboard.previewFontSizeRange.upperBound), step: 1)
+                    Text(L10n.f("clipboard.font_size_format", clipboardManager.settings.previewFontSize))
+                        .foregroundColor(.secondary)
+                        .frame(width: 54, alignment: .trailing)
+                }
                 
                 HStack {
                     Spacer()

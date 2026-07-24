@@ -125,6 +125,7 @@
 "clipboard.section_images" = "圖片";
 "clipboard.section_shortcuts" = "快速鍵";
 "clipboard.cache_duration" = "快取時長";
+"clipboard.preview_font_size" = "預覽字體大小";
 "clipboard.clear_history" = "清除歷史";
 "clipboard.save_images" = "保存圖片";
 "clipboard.image_search_hint" = "輸入 img 或 /image，會自動篩選出圖片";
@@ -151,6 +152,7 @@
 "clipboard.days_90" = "90 天";
 "clipboard.items_format" = "%d 條";
 "clipboard.max_size_format" = "%d MB";
+"clipboard.font_size_format" = "%d pt";
 "clipboard.image_unavailable" = "圖片不可用";
 "clipboard.select_item_preview" = "選擇剪貼簿項目以預覽";
 "clipboard.preview_truncated" = "內容較大，僅顯示前一部分，按 Return 仍會貼上完整內容。";
@@ -167,6 +169,7 @@
 "clipboard.remove_favorite_short" = "移出";
 "clipboard.favorite_command_hint" = "Return 收藏";
 "clipboard.remove_favorite_command_hint" = "Return 移出";
+"clipboard.delete_command_hint" = "Delete 刪除";
 "clipboard.edit_command_hint" = "Return 編輯";
 "clipboard.pin" = "置頂";
 "clipboard.unpin" = "取消置頂";

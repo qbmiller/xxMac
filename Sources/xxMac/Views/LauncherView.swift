@@ -573,18 +573,9 @@ struct SearchResultRow: View {
 
             if let clipboardAction = item.clipboardAction, let onToggleFavorite {
                 if previewFavoriteActive {
-                    Text(L10n.t(favoriteCommandHintKey))
-                        .font(.system(size: scaledText(12), weight: .semibold))
-                    .foregroundColor(favoriteHintColor)
-                    .padding(.horizontal, scaled(9))
-                    .frame(height: scaled(26))
-                    .background(
-                        Capsule()
-                            .fill(favoriteHintColor.opacity(0.16))
-                    )
-                    .overlay(
-                        Capsule()
-                            .stroke(favoriteHintColor.opacity(0.35), lineWidth: 1)
+                    ClipboardCommandHintStack(
+                        favoriteActionTitleKey: favoriteActionMode == .remove ? nil : favoriteCommandHintKey,
+                        showsDeleteAction: true
                     )
                 }
 
@@ -650,15 +641,67 @@ struct SearchResultRow: View {
         return favoriteActionMode == .remove ? "clipboard.remove_favorite_command_hint" : "clipboard.favorite_command_hint"
     }
 
-    private var favoriteHintColor: Color {
-        .red
-    }
-
     private func favoriteIconColor(isActive: Bool) -> Color {
         if isActive {
             return .red
         }
         return .white.opacity(isActive ? 0.92 : 0.58)
+    }
+}
+
+private struct ClipboardCommandHintStack: View {
+    let favoriteActionTitleKey: String?
+    let showsDeleteAction: Bool
+    @ObservedObject private var appearance = LauncherAppearanceManager.shared
+
+    private var sizeScale: CGFloat {
+        CGFloat(appearance.sizeScale)
+    }
+
+    private var textScale: CGFloat {
+        CGFloat(appearance.textScale)
+    }
+
+    private func scaled(_ value: CGFloat) -> CGFloat {
+        value * sizeScale
+    }
+
+    private func scaledText(_ value: CGFloat) -> CGFloat {
+        value * sizeScale * textScale
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: scaled(3)) {
+            if let favoriteActionTitleKey {
+                commandHintRow(symbol: "return", titleKey: favoriteActionTitleKey)
+            }
+            if showsDeleteAction {
+                commandHintRow(symbol: "delete.left", titleKey: "clipboard.delete_command_hint")
+            }
+        }
+        .padding(.horizontal, scaled(10))
+        .padding(.vertical, scaled(6))
+        .background(
+            RoundedRectangle(cornerRadius: scaled(8), style: .continuous)
+                .fill(Color.white.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: scaled(8), style: .continuous)
+                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.14), radius: scaled(8), x: 0, y: scaled(3))
+    }
+
+    private func commandHintRow(symbol: String, titleKey: String) -> some View {
+        HStack(spacing: scaled(6)) {
+            Image(systemName: symbol)
+                .font(.system(size: scaled(11), weight: .semibold))
+                .frame(width: scaled(14), height: scaled(14))
+            Text(L10n.t(titleKey))
+                .font(.system(size: scaledText(12), weight: .semibold))
+                .lineLimit(1)
+        }
+        .foregroundColor(.white.opacity(0.82))
     }
 }
 
@@ -747,6 +790,7 @@ struct SearchResultIcon: View {
 
 struct ClipboardDetailPane: View {
     let item: SearchItem?
+    @ObservedObject private var clipboardManager = ClipboardManager.shared
 
     var body: some View {
         Group {
@@ -763,11 +807,11 @@ struct ClipboardDetailPane: View {
                             }
                             if isTruncated {
                                 Text(verbatim: preview)
-                                    .font(.body)
+                                    .font(.system(size: CGFloat(clipboardManager.settings.previewFontSize)))
                                     .frame(maxWidth: .infinity, alignment: .topLeading)
                             } else {
                                 Text(verbatim: preview)
-                                    .font(.body)
+                                    .font(.system(size: CGFloat(clipboardManager.settings.previewFontSize)))
                                     .frame(maxWidth: .infinity, alignment: .topLeading)
                                     .textSelection(.enabled)
                             }

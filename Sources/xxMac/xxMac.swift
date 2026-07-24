@@ -707,6 +707,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
             launcherViewModel.executeSelection(revealInFinder: modifiers.contains(.command))
             return true
+        case 51, 117: // Delete / Forward Delete
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard modifiers.contains(.command) else {
+                return false
+            }
+            return launcherViewModel.deleteSelectedClipboardItem()
         case 53: // ESC
             if launcherViewModel.previewImageFilename != nil {
                 dismissClipboardImagePreview(refocusLauncher: true)

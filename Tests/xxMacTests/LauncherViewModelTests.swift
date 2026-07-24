@@ -318,6 +318,51 @@ final class LauncherViewModelTests: XCTestCase {
         XCTAssertFalse(didPaste)
     }
 
+    func testCommandDeleteIsAllowedInFavoritesTab() {
+        let viewModel = LauncherViewModel()
+        var didPaste = false
+
+        viewModel.mode = .clipboard
+        ClipboardManager.shared.selectTab(.favorites)
+        defer { ClipboardManager.shared.selectTab(.history) }
+        viewModel.results = [
+            SearchItem(
+                title: "Favorite item",
+                subtitle: "Text",
+                iconName: "doc.text",
+                type: .clipboard,
+                clipboardAction: ClipboardActionData(id: UUID(), isFavorite: true, isPinned: false),
+                action: { didPaste = true }
+            )
+        ]
+
+        XCTAssertTrue(viewModel.deleteSelectedClipboardItem())
+        XCTAssertFalse(didPaste)
+    }
+
+    func testCommandReturnInFavoritesTabPastesInsteadOfRemovingFavorite() {
+        let viewModel = LauncherViewModel()
+        var didPaste = false
+
+        viewModel.mode = .clipboard
+        ClipboardManager.shared.selectTab(.favorites)
+        defer { ClipboardManager.shared.selectTab(.history) }
+        viewModel.results = [
+            SearchItem(
+                title: "Favorite item",
+                subtitle: "Text",
+                iconName: "doc.text",
+                type: .clipboard,
+                clipboardAction: ClipboardActionData(id: UUID(), isFavorite: true, isPinned: false),
+                action: { didPaste = true }
+            )
+        ]
+
+        viewModel.executeSelection(revealInFinder: true)
+
+        XCTAssertTrue(didPaste)
+    }
+
     func testCommandReturnInClipboardSnippetTabOpensSnippetsSettings() {
         let viewModel = LauncherViewModel()
         var didRun = false

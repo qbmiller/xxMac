@@ -283,6 +283,24 @@ class LauncherViewModel: ObservableObject {
         ClipboardManager.shared.togglePinned(id: clipboardAction.id)
         return true
     }
+
+    @discardableResult
+    func deleteSelectedClipboardItem() -> Bool {
+        guard mode == .clipboard,
+              ClipboardManager.shared.activeTab != .snippets,
+              results.indices.contains(selectedIndex),
+              let clipboardAction = results[selectedIndex].clipboardAction else {
+            return false
+        }
+
+        if ClipboardManager.shared.activeTab == .favorites {
+            ClipboardManager.shared.removeFavorite(id: clipboardAction.id)
+        } else {
+            ClipboardManager.shared.removeItemFromHistory(id: clipboardAction.id)
+        }
+        selectedIndex = min(selectedIndex, max(0, results.count - 1))
+        return true
+    }
     
     private func performLauncherSearch(query: String) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -629,7 +647,9 @@ class LauncherViewModel: ObservableObject {
         }
 
         guard results.indices.contains(selectedIndex) else { return }
-        if mode == .clipboard, revealInFinder {
+        if mode == .clipboard,
+           ClipboardManager.shared.activeTab != .favorites,
+           revealInFinder {
             if toggleSelectedClipboardFavorite() {
                 return
             }

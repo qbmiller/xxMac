@@ -18,6 +18,7 @@ struct ClipboardSettings: Codable {
     var imageOCREnabled = AppDefaultSettings.Clipboard.imageOCREnabled
     var maxOCRImageSizeMB = AppDefaultSettings.Clipboard.maxOCRImageSizeMB
     var imageOCRLanguages = AppDefaultSettings.Clipboard.imageOCRLanguages
+    var previewFontSize = AppDefaultSettings.Clipboard.previewFontSize
     var hotKey: HotKeyConfiguration?
 
     enum CodingKeys: String, CodingKey {
@@ -32,6 +33,7 @@ struct ClipboardSettings: Codable {
         case imageOCREnabled
         case maxOCRImageSizeMB
         case imageOCRLanguages
+        case previewFontSize
         case hotKey
     }
 
@@ -50,7 +52,16 @@ struct ClipboardSettings: Codable {
         imageOCREnabled = try container.decodeIfPresent(Bool.self, forKey: .imageOCREnabled) ?? AppDefaultSettings.Clipboard.imageOCREnabled
         maxOCRImageSizeMB = try container.decodeIfPresent(Int.self, forKey: .maxOCRImageSizeMB) ?? AppDefaultSettings.Clipboard.maxOCRImageSizeMB
         imageOCRLanguages = try container.decodeIfPresent([String].self, forKey: .imageOCRLanguages) ?? AppDefaultSettings.Clipboard.imageOCRLanguages
+        let decodedPreviewFontSize = try container.decodeIfPresent(Int.self, forKey: .previewFontSize) ?? AppDefaultSettings.Clipboard.previewFontSize
+        previewFontSize = Self.clampedPreviewFontSize(decodedPreviewFontSize)
         hotKey = try container.decodeIfPresent(HotKeyConfiguration.self, forKey: .hotKey)
+    }
+
+    private static func clampedPreviewFontSize(_ value: Int) -> Int {
+        min(
+            max(value, AppDefaultSettings.Clipboard.previewFontSizeRange.lowerBound),
+            AppDefaultSettings.Clipboard.previewFontSizeRange.upperBound
+        )
     }
 }
 
@@ -422,7 +433,18 @@ class ClipboardManager: ObservableObject {
     }
 
     func removeFavorite(id: UUID) {
-        setFavorite(id: id, isFavorite: false)
+        guard let item = storage.getItem(id: id) else { return }
+        if item.isHistoryVisible {
+            setFavorite(id: id, isFavorite: false)
+        } else {
+            storage.deleteItem(item)
+            refreshHistory()
+        }
+    }
+
+    func removeItemFromHistory(id: UUID) {
+        storage.removeFromHistory(id: id)
+        refreshHistory()
     }
 
     func togglePinned(id: UUID) {

@@ -84,7 +84,8 @@ class DatabaseManager {
             image_ocr_status TEXT,
             image_ocr_updated_at REAL,
             is_favorite INTEGER DEFAULT 0,
-            is_pinned INTEGER DEFAULT 0
+            is_pinned INTEGER DEFAULT 0,
+            is_history_visible INTEGER DEFAULT 1
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
@@ -137,7 +138,8 @@ class DatabaseManager {
             image_ocr_status TEXT,
             image_ocr_updated_at REAL,
             is_favorite INTEGER DEFAULT 0,
-            is_pinned INTEGER DEFAULT 0
+            is_pinned INTEGER DEFAULT 0,
+            is_history_visible INTEGER DEFAULT 1
         );
         CREATE INDEX IF NOT EXISTS idx_timestamp ON clipboard_items(timestamp);
         """
@@ -187,6 +189,7 @@ class DatabaseManager {
         ensureColumnExists(table: "clipboard_items", column: "image_ocr_updated_at", definition: "REAL")
         ensureColumnExists(table: "clipboard_items", column: "is_favorite", definition: "INTEGER DEFAULT 0")
         ensureColumnExists(table: "clipboard_items", column: "is_pinned", definition: "INTEGER DEFAULT 0")
+        ensureColumnExists(table: "clipboard_items", column: "is_history_visible", definition: "INTEGER DEFAULT 1")
     }
 
     private func ensureColumnExists(table: String, column: String, definition: String) {
@@ -258,7 +261,7 @@ class DatabaseManager {
                 sqlite3_finalize(checkStatement)
                 
                 if let eid = existingId {
-                    let updateSql = "UPDATE clipboard_items SET timestamp = ? WHERE id = ?;"
+                    let updateSql = "UPDATE clipboard_items SET timestamp = ?, is_history_visible = 1 WHERE id = ?;"
                     var updateStatement: OpaquePointer?
                     if sqlite3_prepare_v2(db, updateSql, -1, &updateStatement, nil) == SQLITE_OK {
                         sqlite3_bind_double(updateStatement, 1, Date().timeIntervalSince1970)
@@ -273,8 +276,8 @@ class DatabaseManager {
             let sql = """
             INSERT OR REPLACE INTO clipboard_items
             (id, type, content, timestamp, size, image_width, image_height, thumbnail_filename,
-             image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+             image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned, is_history_visible)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
             var statement: OpaquePointer?
             
@@ -292,6 +295,7 @@ class DatabaseManager {
                 bindOptionalDouble(imageOCRUpdatedAt?.timeIntervalSince1970, to: statement, index: 11)
                 sqlite3_bind_int(statement, 12, isFavorite ? 1 : 0)
                 sqlite3_bind_int(statement, 13, isPinned ? 1 : 0)
+                sqlite3_bind_int(statement, 14, 1)
                 
                 if sqlite3_step(statement) != SQLITE_DONE {
                     print("Error inserting item")
@@ -377,9 +381,22 @@ class DatabaseManager {
         }
     }
 
+    func updateHistoryVisible(id: String, isVisible: Bool) {
+        withDatabase {
+            let sql = "UPDATE clipboard_items SET is_history_visible = ? WHERE id = ?;"
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_int(statement, 1, isVisible ? 1 : 0)
+                sqlite3_bind_text(statement, 2, (id as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
+
     func getAllItems(limit: Int = 100) -> [ClipboardItem] {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned, is_history_visible FROM clipboard_items ORDER BY timestamp DESC LIMIT ?;"
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -407,7 +424,8 @@ class DatabaseManager {
                             imageOCRStatus: optionalOCRStatus(statement, 9),
                             imageOCRUpdatedAt: optionalDate(statement, 10),
                             isFavorite: optionalInt(statement, 11) == 1,
-                            isPinned: optionalInt(statement, 12) == 1
+                            isPinned: optionalInt(statement, 12) == 1,
+                            isHistoryVisible: optionalInt(statement, 13) != 0
                         ))
                     }
                 }
@@ -419,7 +437,7 @@ class DatabaseManager {
 
     func getItem(id itemID: String) -> ClipboardItem? {
         return withDatabase {
-            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items WHERE id = ? LIMIT 1;"
+            let sql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned, is_history_visible FROM clipboard_items WHERE id = ? LIMIT 1;"
             var statement: OpaquePointer?
             var item: ClipboardItem?
 
@@ -443,8 +461,9 @@ class DatabaseManager {
                    image_ocr_status,
                    CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
                    substr(image_ocr_text, 1, 500),
-                   is_favorite, is_pinned
+                   is_favorite, is_pinned, is_history_visible
             FROM clipboard_items
+            WHERE is_history_visible = 1
             ORDER BY timestamp DESC
             LIMIT ?;
             """
@@ -474,7 +493,7 @@ class DatabaseManager {
                    image_ocr_status,
                    CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
                    substr(image_ocr_text, 1, 500),
-                   is_favorite, is_pinned
+                   is_favorite, is_pinned, is_history_visible
             FROM clipboard_items
             WHERE is_favorite = 1
             ORDER BY is_pinned DESC, timestamp DESC
@@ -502,10 +521,10 @@ class DatabaseManager {
             // Search using FTS5 for text items, combined with simple LIKE for filename/meta if needed
             // Here we primarily use FTS5 for content search.
             let sql = """
-            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename, i.image_ocr_text, i.image_ocr_status, i.image_ocr_updated_at, i.is_favorite, i.is_pinned
+            SELECT i.id, i.type, i.content, i.timestamp, i.size, i.image_width, i.image_height, i.thumbnail_filename, i.image_ocr_text, i.image_ocr_status, i.image_ocr_updated_at, i.is_favorite, i.is_pinned, i.is_history_visible
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
-            WHERE f.content MATCH ?
+            WHERE f.content MATCH ? AND i.is_history_visible = 1
             ORDER BY rank
             LIMIT ?;
             """
@@ -554,10 +573,11 @@ class DatabaseManager {
                    i.image_ocr_status,
                    CASE WHEN i.image_ocr_text IS NULL OR length(i.image_ocr_text) = 0 THEN 0 ELSE 1 END,
                    substr(i.image_ocr_text, 1, 500),
-                   i.is_favorite, i.is_pinned
+                   i.is_favorite, i.is_pinned, i.is_history_visible
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             JOIN ranked_matches m ON f.rowid = m.rowid
+            WHERE i.is_history_visible = 1
             ORDER BY m.search_rank, i.timestamp DESC
             LIMIT ?;
             """
@@ -606,7 +626,7 @@ class DatabaseManager {
                    i.image_ocr_status,
                    CASE WHEN i.image_ocr_text IS NULL OR length(i.image_ocr_text) = 0 THEN 0 ELSE 1 END,
                    substr(i.image_ocr_text, 1, 500),
-                   i.is_favorite, i.is_pinned
+                   i.is_favorite, i.is_pinned, i.is_history_visible
             FROM clipboard_items i
             JOIN clipboard_fts f ON i.id = f.id
             JOIN ranked_matches m ON f.rowid = m.rowid
@@ -656,9 +676,9 @@ class DatabaseManager {
                    image_ocr_status,
                    CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
                    substr(image_ocr_text, 1, 500),
-                   is_favorite, is_pinned
+                   is_favorite, is_pinned, is_history_visible
             FROM clipboard_items
-            WHERE type = 'image'
+            WHERE type = 'image' AND is_history_visible = 1
             ORDER BY timestamp DESC
             LIMIT ?;
             """
@@ -686,7 +706,7 @@ class DatabaseManager {
                    image_ocr_status,
                    CASE WHEN image_ocr_text IS NULL OR length(image_ocr_text) = 0 THEN 0 ELSE 1 END,
                    substr(image_ocr_text, 1, 500),
-                   is_favorite, is_pinned
+                   is_favorite, is_pinned, is_history_visible
             FROM clipboard_items
             WHERE type = 'image' AND is_favorite = 1
             ORDER BY is_pinned DESC, timestamp DESC
@@ -711,7 +731,7 @@ class DatabaseManager {
     func getOldItems(maxCount: Int) -> [ClipboardItem] {
         return withDatabase {
             // We want items beyond the first N items.
-            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items WHERE is_favorite = 0 ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
+            let sqlCorrect = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned, is_history_visible FROM clipboard_items WHERE is_favorite = 0 ORDER BY timestamp DESC LIMIT -1 OFFSET ?;"
             
             var statement: OpaquePointer?
             var items: [ClipboardItem] = []
@@ -733,7 +753,7 @@ class DatabaseManager {
     func deleteItemsOlderThan(date: Date) -> [ClipboardItem] {
         return withDatabase {
             // We return items to be deleted so file cache can be cleaned up
-            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned FROM clipboard_items WHERE timestamp < ? AND is_favorite = 0;"
+            let selectSql = "SELECT id, type, content, timestamp, size, image_width, image_height, thumbnail_filename, image_ocr_text, image_ocr_status, image_ocr_updated_at, is_favorite, is_pinned, is_history_visible FROM clipboard_items WHERE timestamp < ? AND is_favorite = 0;"
             var selectStatement: OpaquePointer?
             var items: [ClipboardItem] = []
             
@@ -862,7 +882,8 @@ class DatabaseManager {
             imageOCRStatus: optionalOCRStatus(statement, 9),
             imageOCRUpdatedAt: optionalDate(statement, 10),
             isFavorite: optionalInt(statement, 11) == 1,
-            isPinned: optionalInt(statement, 12) == 1
+            isPinned: optionalInt(statement, 12) == 1,
+            isHistoryVisible: optionalInt(statement, 13) != 0
         )
     }
 
@@ -901,7 +922,8 @@ class DatabaseManager {
             hasImageOCRText: optionalInt(statement, 10) == 1,
             imageOCRTextPreview: optionalString(statement, 11),
             isFavorite: optionalInt(statement, 12) == 1,
-            isPinned: optionalInt(statement, 13) == 1
+            isPinned: optionalInt(statement, 13) == 1,
+            isHistoryVisible: optionalInt(statement, 14) != 0
         )
     }
 

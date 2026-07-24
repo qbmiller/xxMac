@@ -24,6 +24,7 @@ final class AppDefaultSettingsTests: XCTestCase {
         XCTAssertTrue(AppDefaultSettings.Clipboard.imageOCREnabled)
         XCTAssertEqual(AppDefaultSettings.Clipboard.maxHistoryItems, 1000)
         XCTAssertEqual(AppDefaultSettings.Clipboard.maxImageStorageSizeMB, 500)
+        XCTAssertEqual(AppDefaultSettings.Clipboard.previewFontSize, 16)
     }
 
     func testLauncherAppearanceDefaults() {

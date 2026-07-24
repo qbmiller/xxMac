@@ -163,6 +163,7 @@ class ClipboardStorageManager {
     func searchHistoryAndFavoriteListItems(query: String, limit: Int = 50) -> [ClipboardListItem] {
         let historyItems = searchListItems(query: query, limit: limit)
         let favoriteItems = searchFavoriteListItems(query: query, limit: limit)
+            .filter(\.isHistoryVisible)
         var seenIDs = Set<UUID>()
 
         return (historyItems + favoriteItems).filter { item in
@@ -179,6 +180,15 @@ class ClipboardStorageManager {
                 let thumbnailURL = thumbnailsDir.appendingPathComponent(thumbnailFilename)
                 try? FileManager.default.removeItem(at: thumbnailURL)
             }
+        }
+    }
+
+    func removeFromHistory(id: UUID) {
+        guard let item = getItem(id: id) else { return }
+        if item.isFavorite {
+            dbManager.updateHistoryVisible(id: id.uuidString, isVisible: false)
+        } else {
+            deleteItem(item)
         }
     }
 

@@ -198,6 +198,24 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
         XCTAssertTrue(remaining[0].isFavorite)
     }
 
+    func testRemovingFavoriteItemFromHistoryKeepsItInFavoritesOnly() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveItem(type: .text, content: "favorite history token", size: 22)
+        let item = try XCTUnwrap(storage.searchListItems(query: "favorite").first)
+        storage.setFavorite(id: item.id, isFavorite: true)
+
+        storage.removeFromHistory(id: item.id)
+
+        XCTAssertTrue(storage.searchListItems(query: "favorite").isEmpty)
+        XCTAssertTrue(storage.searchHistoryAndFavoriteListItems(query: "favorite").isEmpty)
+
+        let favorite = try XCTUnwrap(storage.searchFavoriteListItems(query: "favorite").first)
+        XCTAssertEqual(favorite.id, item.id)
+        XCTAssertFalse(favorite.isHistoryVisible)
+    }
+
     func testLRUCleanupKeepsFavoritesOutsideHistoryLimit() throws {
         let root = makeTemporaryDirectory()
         let storage = ClipboardStorageManager(storageDirectory: root)
