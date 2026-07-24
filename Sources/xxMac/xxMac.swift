@@ -155,6 +155,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private var localizationCancellable: AnyCancellable?
     private var generalSettingsCancellable: AnyCancellable?
     private var launcherPanelCancellables = Set<AnyCancellable>()
+    private var clipboardImagePreviewController: ClipboardImagePreviewPanelController?
     private var isOpeningLauncher = false
     private var pendingLauncherRestore = false
     private var ignoreLauncherResignKeyUntil = Date.distantPast
@@ -579,6 +580,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         // .canJoinAllSpaces and .moveToActiveSpace are mutually exclusive for NSPanel.
         launcherPanel.collectionBehavior = launcherCollectionBehavior
         launcherPanel.delegate = self
+
+        clipboardImagePreviewController = ClipboardImagePreviewPanelController { [weak self] in
+            self?.dismissClipboardImagePreview(refocusLauncher: true)
+        }
         
         (launcherPanel as? FloatingPanel)?.keyDownHandler = { [weak self] event in
             guard let self = self else { return false }
@@ -662,7 +667,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
 
     private func handleLauncherKeyDown(_ event: NSEvent) -> Bool {
+        if clipboardImagePreviewController?.isVisible == true {
+            guard event.keyCode == 49 || event.keyCode == 53 else {
+                return false
+            }
+            dismissClipboardImagePreview(refocusLauncher: true)
+            return true
+        }
+
         switch event.keyCode {
+        case 49: // Space
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard modifiers.isEmpty else {
+                return false
+            }
+            return showSelectedClipboardImagePreview()
         case 125: // Arrow Down
             launcherViewModel.selectNext()
             return true
@@ -689,11 +708,45 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             launcherViewModel.executeSelection(revealInFinder: modifiers.contains(.command))
             return true
         case 53: // ESC
+            if launcherViewModel.previewImageFilename != nil {
+                dismissClipboardImagePreview(refocusLauncher: true)
+                return true
+            }
             closeLauncher()
             return true
         default:
             return false
         }
+    }
+
+    private func showSelectedClipboardImagePreview() -> Bool {
+        guard launcherViewModel.openSelectedClipboardImagePreview(),
+              let filename = launcherViewModel.previewImageFilename else {
+            return false
+        }
+
+        let imageURL = ClipboardStorageManager.shared.getImagePath(filename: filename)
+        guard clipboardImagePreviewController?.showImage(
+            at: imageURL,
+            relativeTo: launcherPanel
+        ) == true else {
+            launcherViewModel.closeClipboardImagePreview()
+            return true
+        }
+        return true
+    }
+
+    private func dismissClipboardImagePreview(refocusLauncher: Bool) {
+        clipboardImagePreviewController?.dismiss()
+        launcherViewModel.closeClipboardImagePreview()
+
+        guard refocusLauncher, launcherPanel.isVisible else { return }
+        launcherPanel.makeKeyAndOrderFront(nil)
+        launcherPanel.orderFrontRegardless()
+        NotificationCenter.default.post(
+            name: NSNotification.Name("FocusLauncherSearch"),
+            object: nil
+        )
     }
     
     @objc func showClipboardHistory() {
@@ -990,6 +1043,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     func closeLauncherForClipboardPaste() {
         logFocusState("closeLauncherForPaste.before")
+        dismissClipboardImagePreview(refocusLauncher: false)
         launcherPanel.orderOut(nil)
         resetLauncherPanelPresentation()
         isOpeningLauncher = false
@@ -1086,6 +1140,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private func dismissLauncherBeforeOpeningSettings() {
         isOpeningLauncher = false
         pendingLauncherRestore = false
+        dismissClipboardImagePreview(refocusLauncher: false)
 
         guard launcherPanel != nil, launcherPanel.isVisible else { return }
         ignoreLauncherResignKeyUntil = Date().addingTimeInterval(0.5)
@@ -1095,6 +1150,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
     
     @objc func closeLauncher() {
+        dismissClipboardImagePreview(refocusLauncher: false)
+
         if launcherViewModel.mode == .clipboard {
             ClipboardManager.shared.cancelClipboardHistory()
             return
@@ -1115,12 +1172,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
 
     @objc func closeLauncherPanelOnly() {
+        dismissClipboardImagePreview(refocusLauncher: false)
         launcherPanel.orderOut(nil)
         resetLauncherPanelPresentation()
     }
     
     func windowDidResignKey(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, window == launcherPanel else {
+            return
+        }
+
+        if clipboardImagePreviewController?.isVisible == true {
+            logLauncherState("windowDidResignKey.ignored imagePreview")
             return
         }
 

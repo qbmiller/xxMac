@@ -43,6 +43,7 @@ class LauncherViewModel: ObservableObject {
     @Published var selectedIndex: Int = 0
     @Published var mode: LauncherMode = .launcher
     @Published var searchID = UUID()
+    @Published private(set) var previewImageFilename: String?
     
     private var cancellables = Set<AnyCancellable>()
     private let quickShortcutCommandDebouncer = LauncherCommandDebouncer()
@@ -66,7 +67,24 @@ class LauncherViewModel: ObservableObject {
         let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return Self.clipboardImageFilterQueries.contains(normalizedQuery)
     }
-    
+
+    func openSelectedClipboardImagePreview() -> Bool {
+        guard mode == .clipboard,
+              ClipboardManager.shared.activeTab != .snippets,
+              results.indices.contains(selectedIndex),
+              let preview = results[selectedIndex].clipboardPreview,
+              case .image(let filename, _, _, _, _) = preview else {
+            return false
+        }
+
+        previewImageFilename = filename
+        return true
+    }
+
+    func closeClipboardImagePreview() {
+        previewImageFilename = nil
+    }
+
     init() {
         $query
             .receive(on: RunLoop.main)
@@ -179,6 +197,7 @@ class LauncherViewModel: ObservableObject {
         query = ""
         results = []
         selectedIndex = 0
+        previewImageFilename = nil
         searchID = UUID()
         cancelPendingQuickShortcutCommand()
         browserSearchRunID = nil

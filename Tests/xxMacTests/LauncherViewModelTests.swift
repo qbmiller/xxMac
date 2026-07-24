@@ -3,6 +3,89 @@ import AppKit
 @testable import xxMac
 
 final class LauncherViewModelTests: XCTestCase {
+    func testClipboardImagePreviewOpensOnlyForSelectedImage() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .clipboard
+        ClipboardManager.shared.selectTab(.history)
+        defer { ClipboardManager.shared.selectTab(.history) }
+
+        viewModel.results = [
+            SearchItem(
+                title: "Image",
+                subtitle: "Clipboard image",
+                iconName: "photo",
+                type: .clipboard,
+                clipboardPreview: .image(
+                    filename: "original.png",
+                    thumbnailFilename: "thumbnail.png",
+                    byteSize: 1,
+                    ocrStatus: nil,
+                    ocrTextPreview: nil
+                ),
+                action: {}
+            ),
+            SearchItem(
+                title: "Text",
+                subtitle: "Clipboard text",
+                iconName: "doc.text",
+                type: .clipboard,
+                clipboardPreview: .text(id: UUID(), preview: "text", fullLength: 4),
+                action: {}
+            )
+        ]
+
+        XCTAssertTrue(viewModel.openSelectedClipboardImagePreview())
+        XCTAssertEqual(viewModel.previewImageFilename, "original.png")
+
+        viewModel.closeClipboardImagePreview()
+        viewModel.selectedIndex = 1
+
+        XCTAssertFalse(viewModel.openSelectedClipboardImagePreview())
+        XCTAssertNil(viewModel.previewImageFilename)
+    }
+
+    func testClipboardImagePreviewStateClearsWhenLauncherCloses() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .clipboard
+        ClipboardManager.shared.selectTab(.history)
+        viewModel.results = [
+            SearchItem(
+                title: "Image",
+                subtitle: "Clipboard image",
+                iconName: "photo",
+                type: .clipboard,
+                clipboardPreview: .image(
+                    filename: "original.png",
+                    thumbnailFilename: nil,
+                    byteSize: 1,
+                    ocrStatus: nil,
+                    ocrTextPreview: nil
+                ),
+                action: {}
+            )
+        ]
+
+        XCTAssertTrue(viewModel.openSelectedClipboardImagePreview())
+        viewModel.onCloseLauncher()
+
+        XCTAssertNil(viewModel.previewImageFilename)
+    }
+
+    func testClipboardImagePreviewFrameUsesScreenBoundsInsteadOfLauncherBounds() {
+        let visibleFrame = NSRect(x: 100, y: 50, width: 1200, height: 800)
+
+        let frame = ClipboardImagePreviewPanelController.previewFrame(
+            imageSize: NSSize(width: 4000, height: 3000),
+            visibleFrame: visibleFrame
+        )
+
+        XCTAssertTrue(visibleFrame.contains(frame))
+        XCTAssertEqual(frame.midX, visibleFrame.midX, accuracy: 0.001)
+        XCTAssertEqual(frame.midY, visibleFrame.midY, accuracy: 0.001)
+        XCTAssertGreaterThan(frame.width, 600)
+        XCTAssertGreaterThan(frame.height, 400)
+    }
+
     func testClipboardPanelTabOrderPlacesImageHistoryAfterHistory() {
         XCTAssertEqual(ClipboardPanelTab.allCases, [.history, .imageHistory, .favorites, .snippets])
     }
