@@ -3,6 +3,10 @@ import AppKit
 @testable import xxMac
 
 final class LauncherViewModelTests: XCTestCase {
+    func testClipboardPanelTabOrderPlacesImageHistoryAfterHistory() {
+        XCTAssertEqual(ClipboardPanelTab.allCases, [.history, .imageHistory, .favorites, .snippets])
+    }
+
     func testClipboardImageFilterRecognizesOnlyImageAndImg() {
         let viewModel = LauncherViewModel()
         viewModel.mode = .clipboard
@@ -26,36 +30,42 @@ final class LauncherViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isClipboardImageFilterActive)
     }
 
-    func testEnablingClipboardImageFilterWritesImgQuery() {
+    func testSelectingImageHistoryTabWritesImgQuery() {
         let viewModel = LauncherViewModel()
         viewModel.mode = .clipboard
         viewModel.query = "image"
+        defer { ClipboardManager.shared.selectTab(.history) }
 
-        viewModel.setClipboardImageFilterEnabled(true)
+        viewModel.selectClipboardTab(.imageHistory)
 
         XCTAssertEqual(viewModel.query, "img")
         XCTAssertTrue(viewModel.isClipboardImageFilterActive)
+        XCTAssertEqual(ClipboardManager.shared.activeTab, .imageHistory)
     }
 
-    func testDisablingClipboardImageFilterClearsQuery() {
+    func testLeavingImageHistoryTabClearsImageFilterQuery() {
         let viewModel = LauncherViewModel()
         viewModel.mode = .clipboard
-        viewModel.query = "img"
+        defer { ClipboardManager.shared.selectTab(.history) }
+        viewModel.selectClipboardTab(.imageHistory)
 
-        viewModel.setClipboardImageFilterEnabled(false)
+        viewModel.selectClipboardTab(.favorites)
 
         XCTAssertEqual(viewModel.query, "")
         XCTAssertFalse(viewModel.isClipboardImageFilterActive)
+        XCTAssertEqual(ClipboardManager.shared.activeTab, .favorites)
     }
 
-    func testChangingClipboardImageFilterOutsideClipboardModeDoesNothing() {
+    func testSelectingClipboardTabOutsideClipboardModeDoesNothing() {
         let viewModel = LauncherViewModel()
         viewModel.mode = .launcher
         viewModel.query = "existing"
+        ClipboardManager.shared.selectTab(.history)
 
-        viewModel.setClipboardImageFilterEnabled(true)
+        viewModel.selectClipboardTab(.imageHistory)
 
         XCTAssertEqual(viewModel.query, "existing")
+        XCTAssertEqual(ClipboardManager.shared.activeTab, .history)
     }
 
     func testClipboardTabShortcutsOnlyHandleClipboardMode() {

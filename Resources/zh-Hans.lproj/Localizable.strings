@@ -7,9 +7,9 @@
 "menu.quit_confirm_title" = "退出 xxMac？";
 "menu.quit_confirm_message" = "退出后，状态栏入口、全局快捷键、窗口管理和 LockJob 都会停止工作。";
 
-"window.settings" = "设置";
+"window.settings" = "xxMac - 设置";
 
-"settings.tools" = "工具";
+"settings.plan_accessibility" = "当前方案：免费";
 "settings.toggle_sidebar" = "折叠侧边栏";
 "settings.select_tool" = "请选择工具";
 "settings.select_function" = "请选择功能";
@@ -158,8 +158,8 @@
 "clipboard.item.text_format" = "文本 • %@";
 "clipboard.item.image_title" = "图片";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
-"clipboard.filter_images" = "显示图片";
 "clipboard.tab.history" = "历史";
+"clipboard.tab.image_history" = "历史-图片";
 "clipboard.tab.favorites" = "收藏";
 "clipboard.tab.snippets" = "Snippets";
 "clipboard.favorite" = "收藏";

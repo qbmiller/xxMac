@@ -7,9 +7,9 @@
 "menu.quit_confirm_title" = "Quit xxMac?";
 "menu.quit_confirm_message" = "After quitting, the status bar item, global shortcuts, window management, and LockJob will stop working.";
 
-"window.settings" = "Settings";
+"window.settings" = "xxMac - Settings";
 
-"settings.tools" = "Tools";
+"settings.plan_accessibility" = "Current plan: Free";
 "settings.toggle_sidebar" = "Toggle Sidebar";
 "settings.select_tool" = "Select a Tool";
 "settings.select_function" = "Select a Function";
@@ -158,8 +158,8 @@
 "clipboard.item.text_format" = "Text • %@";
 "clipboard.item.image_title" = "Image";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
-"clipboard.filter_images" = "Show Images";
 "clipboard.tab.history" = "History";
+"clipboard.tab.image_history" = "Image History";
 "clipboard.tab.favorites" = "Favorites";
 "clipboard.tab.snippets" = "Snippets";
 "clipboard.favorite" = "Favorite";

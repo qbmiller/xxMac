@@ -7,9 +7,9 @@
 "menu.quit_confirm_title" = "退出 xxMac？";
 "menu.quit_confirm_message" = "退出後，選單列入口、全域快速鍵、視窗管理和 LockJob 都會停止工作。";
 
-"window.settings" = "設定";
+"window.settings" = "xxMac - 設定";
 
-"settings.tools" = "工具";
+"settings.plan_accessibility" = "目前方案：免費";
 "settings.toggle_sidebar" = "折疊側邊欄";
 "settings.select_tool" = "請選擇工具";
 "settings.select_function" = "請選擇功能";
@@ -158,8 +158,8 @@
 "clipboard.item.text_format" = "文字 • %@";
 "clipboard.item.image_title" = "圖片";
 "clipboard.item.image_subtitle_format" = "%@ • %@";
-"clipboard.filter_images" = "顯示圖片";
 "clipboard.tab.history" = "歷史";
+"clipboard.tab.image_history" = "歷史-圖片";
 "clipboard.tab.favorites" = "收藏";
 "clipboard.tab.snippets" = "Snippets";
 "clipboard.favorite" = "收藏";

@@ -54,13 +54,6 @@ struct LauncherView: View {
         )
     }
 
-    private var clipboardImageFilter: Binding<Bool> {
-        Binding(
-            get: { viewModel.isClipboardImageFilterActive },
-            set: { viewModel.setClipboardImageFilterEnabled($0) }
-        )
-    }
-
     private var shouldShowLauncherIndexing: Bool {
         viewModel.mode == .launcher && launcherHasQuery && appSearchManager.isIndexing
     }
@@ -153,36 +146,6 @@ struct LauncherView: View {
                     .accessibilityLabel(L10n.f("launcher.update_available_format", availableVersion))
                 }
 
-                if viewModel.mode == .clipboard {
-                    Toggle(isOn: clipboardImageFilter) {
-                        Image(systemName: "photo")
-                            .font(.system(size: scaled(20), weight: .semibold))
-                            .foregroundColor(.white.opacity(viewModel.isClipboardImageFilterActive ? 1 : 0.72))
-                    }
-                    .toggleStyle(.switch)
-                    .tint(.accentColor)
-                    .padding(.horizontal, scaled(10))
-                    .frame(height: scaled(42))
-                    .background(
-                        RoundedRectangle(cornerRadius: scaled(7), style: .continuous)
-                            .fill(
-                                viewModel.isClipboardImageFilterActive
-                                    ? Color.accentColor.opacity(0.28)
-                                    : Color.white.opacity(0.08)
-                            )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: scaled(7), style: .continuous)
-                            .stroke(
-                                viewModel.isClipboardImageFilterActive
-                                    ? Color.accentColor.opacity(0.85)
-                                    : Color.white.opacity(0.16),
-                                lineWidth: viewModel.isClipboardImageFilterActive ? 1.5 : 1
-                            )
-                    )
-                    .help(L10n.t("clipboard.filter_images"))
-                    .accessibilityLabel(L10n.t("clipboard.filter_images"))
-                }
             }
             .padding(.horizontal, scaled(28))
             .padding(.vertical, scaled(22))
@@ -212,8 +175,7 @@ struct LauncherView: View {
                     ClipboardPanelTabs(
                         activeTab: clipboardManager.activeTab,
                         onSelect: { tab in
-                            viewModel.selectedIndex = 0
-                            clipboardManager.selectTab(tab)
+                            viewModel.selectClipboardTab(tab)
                         }
                     )
                     .padding(.horizontal, scaled(28))

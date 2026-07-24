@@ -201,25 +201,39 @@ class LauncherViewModel: ObservableObject {
         query = text
     }
 
-    func setClipboardImageFilterEnabled(_ isEnabled: Bool) {
+    func selectClipboardTab(_ tab: ClipboardPanelTab) {
         guard mode == .clipboard else { return }
-        query = isEnabled ? "img" : ""
+        let previousTab = ClipboardManager.shared.activeTab
+        if tab == .imageHistory {
+            query = "img"
+        } else if previousTab == .imageHistory && isClipboardImageFilterActive {
+            query = ""
+        }
+        selectedIndex = 0
+        ClipboardManager.shared.selectTab(tab)
     }
 
     @discardableResult
     func selectNextClipboardTab() -> Bool {
         guard mode == .clipboard else { return false }
-        selectedIndex = 0
-        ClipboardManager.shared.selectNextTab()
+        selectAdjacentClipboardTab(offset: 1)
         return true
     }
 
     @discardableResult
     func selectPreviousClipboardTab() -> Bool {
         guard mode == .clipboard else { return false }
-        selectedIndex = 0
-        ClipboardManager.shared.selectPreviousTab()
+        selectAdjacentClipboardTab(offset: -1)
         return true
+    }
+
+    private func selectAdjacentClipboardTab(offset: Int) {
+        let tabs = ClipboardPanelTab.allCases
+        guard let index = tabs.firstIndex(of: ClipboardManager.shared.activeTab) else {
+            selectClipboardTab(.history)
+            return
+        }
+        selectClipboardTab(tabs[(index + offset + tabs.count) % tabs.count])
     }
 
     @discardableResult

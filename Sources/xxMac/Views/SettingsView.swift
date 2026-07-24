@@ -105,8 +105,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 if isToolSidebarVisible {
-                    Text(L10n.t("settings.tools"))
-                        .font(.headline)
+                    SettingsPlanBadge()
                         .transition(.opacity.combined(with: .move(edge: .leading)))
                     Spacer(minLength: 8)
                 } else {
@@ -127,7 +126,11 @@ struct SettingsView: View {
             if isToolSidebarVisible {
                 List(selection: $selectedTool) {
                     ForEach(ToolOption.allTools) { tool in
-                        Label(tool.type.displayName, systemImage: tool.type.icon)
+                        SettingsSidebarLabel(
+                            title: tool.type.displayName,
+                            systemImage: tool.type.icon,
+                            color: tool.type.settingsTint
+                        )
                             .padding(.vertical, 4)
                             .tag(tool)
                             .contentShape(Rectangle())
@@ -203,7 +206,11 @@ struct SettingsView: View {
             } else {
                 List(selection: $selectedFunction) {
                     ForEach(tool.functions) { function in
-                        Label(function.name, systemImage: function.icon)
+                        SettingsSidebarLabel(
+                            title: function.name,
+                            systemImage: function.icon,
+                            color: tool.type.settingsTint
+                        )
                             .padding(.vertical, 4)
                             .tag(function)
                             .contentShape(Rectangle())
@@ -295,6 +302,53 @@ struct SettingsView: View {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
+        }
+    }
+}
+
+private struct SettingsPlanBadge: View {
+    var body: some View {
+        Text("FREE")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 4))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(L10n.t("settings.plan_accessibility"))
+    }
+}
+
+private struct SettingsSidebarLabel: View {
+    let title: String
+    let systemImage: String
+    let color: Color
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(color)
+        }
+    }
+}
+
+private extension ToolType {
+    var settingsTint: Color {
+        switch self {
+        case .common: return .gray
+        case .search: return .blue
+        case .window: return .indigo
+        case .shortcutDetective: return .orange
+        case .clipboard: return .teal
+        case .snippets: return .pink
+        case .quickShortcut: return .yellow
+        case .launcher: return .purple
+        case .calendar: return .red
+        case .lockAI: return .green
+        case .about: return .cyan
         }
     }
 }

@@ -74,12 +74,14 @@ enum ClipboardFocusRestorationPolicy {
 
 enum ClipboardPanelTab: CaseIterable, Hashable {
     case history
+    case imageHistory
     case favorites
     case snippets
 
     var titleKey: String {
         switch self {
         case .history: return "clipboard.tab.history"
+        case .imageHistory: return "clipboard.tab.image_history"
         case .favorites: return "clipboard.tab.favorites"
         case .snippets: return "clipboard.tab.snippets"
         }
@@ -88,6 +90,7 @@ enum ClipboardPanelTab: CaseIterable, Hashable {
     var iconName: String {
         switch self {
         case .history: return "clock.arrow.circlepath"
+        case .imageHistory: return "photo"
         case .favorites: return "star"
         case .snippets: return "text.quote"
         }
@@ -344,6 +347,9 @@ class ClipboardManager: ObservableObject {
             return query.isEmpty
                 ? storage.getListItems()
                 : storage.searchHistoryAndFavoriteListItems(query: query)
+        case .imageHistory:
+            return storage.searchListItems(query: query.isEmpty ? "img" : query)
+                .filter { $0.type == .image }
         case .favorites:
             return query.isEmpty ? storage.getFavoriteListItems() : storage.searchFavoriteListItems(query: query)
         case .snippets:
