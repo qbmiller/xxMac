@@ -3,6 +3,7 @@ import Combine
 import HotKey
 import ApplicationServices
 import OSLog
+import UniformTypeIdentifiers
 
 // MARK: - Clipboard Manager
 
@@ -83,6 +84,100 @@ enum ClipboardFocusRestorationPolicy {
     }
 }
 
+enum ClipboardCapturePayload: Equatable {
+    case image(Data)
+    case imagePending
+    case fileURLs([URL])
+    case text(String)
+    case empty
+}
+
+enum ClipboardCaptureDecision {
+    static func payload(
+        hasImage: Bool,
+        imageData: Data?,
+        fileURLs: [URL],
+        text: String?
+    ) -> ClipboardCapturePayload {
+        if hasImage {
+            return imageData.map(ClipboardCapturePayload.image) ?? .imagePending
+        }
+        if !fileURLs.isEmpty {
+            return .fileURLs(fileURLs)
+        }
+        if let text, ClipboardManager.shouldRecordText(text) {
+            return .text(text)
+        }
+        return .empty
+    }
+}
+
+private struct ClipboardCaptureSnapshot {
+    let changeCount: Int
+    let payload: ClipboardCapturePayload
+
+    private static let preferredImageTypes = [
+        NSPasteboard.PasteboardType("public.png"),
+        NSPasteboard.PasteboardType("public.tiff"),
+        NSPasteboard.PasteboardType("public.jpeg"),
+        NSPasteboard.PasteboardType("public.heic"),
+        NSPasteboard.PasteboardType("com.compuserve.gif"),
+        NSPasteboard.PasteboardType("com.microsoft.bmp"),
+        NSPasteboard.PasteboardType("com.adobe.pdf")
+    ]
+
+    static func capture(
+        from pasteboard: NSPasteboard,
+        expectedChangeCount: Int,
+        manageImages: Bool
+    ) -> ClipboardCaptureSnapshot? {
+        guard pasteboard.changeCount == expectedChangeCount else { return nil }
+
+        let pasteboardTypes = pasteboard.types ?? []
+        let hasImage = manageImages && pasteboardTypes.contains {
+            preferredImageTypes.contains($0) || isImageType($0)
+        }
+        let imageData = hasImage ? imageData(from: pasteboard, types: pasteboardTypes) : nil
+        let fileURLs = pasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL] ?? []
+        let text = pasteboard.string(forType: .string)
+
+        guard pasteboard.changeCount == expectedChangeCount else { return nil }
+
+        return ClipboardCaptureSnapshot(
+            changeCount: expectedChangeCount,
+            payload: ClipboardCaptureDecision.payload(
+                hasImage: hasImage,
+                imageData: imageData,
+                fileURLs: fileURLs,
+                text: text
+            )
+        )
+    }
+
+    private static func imageData(from pasteboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Data? {
+        for type in preferredImageTypes + types where isImageType(type) || preferredImageTypes.contains(type) {
+            if let data = pasteboard.data(forType: type) {
+                return data
+            }
+        }
+        return nil
+    }
+
+    private static func isImageType(_ type: NSPasteboard.PasteboardType) -> Bool {
+        UTType(type.rawValue)?.conforms(to: .image) == true
+    }
+}
+
+private struct ClipboardImageCaptureOptions {
+    let thumbnailGenerationThresholdMB: Int
+    let imageOCREnabled: Bool
+    let maxOCRImageSizeMB: Int
+    let imageOCRLanguages: [String]
+}
+
 enum ClipboardPanelTab: CaseIterable, Hashable {
     case history
     case imageHistory
@@ -129,6 +224,7 @@ class ClipboardManager: ObservableObject {
     private var timer: Timer?
     private var hotKey: CarbonHotKeyRegistration?
     private var previousFrontmostApp: NSRunningApplication?
+    private let imageCaptureQueue = DispatchQueue(label: "com.macefficiency.clipboard.image-capture", qos: .userInitiated)
     
     private let storage = ClipboardStorageManager.shared
     private var cancellables = Set<AnyCancellable>()
@@ -213,72 +309,102 @@ class ClipboardManager: ObservableObject {
         let currentCount = NSPasteboard.general.changeCount
         if currentCount != changeCount {
             changeCount = currentCount
-            processPasteboardContent()
+            processPasteboardContent(changeCount: currentCount)
         }
     }
     
-    private func processPasteboardContent() {
+    private func processPasteboardContent(changeCount: Int, retryAttempt: Int = 0) {
         let pasteboard = NSPasteboard.general
-        let fileURLs = pasteboard.readObjects(
-            forClasses: [NSURL.self],
-            options: [.urlReadingFileURLsOnly: true]
-        ) as? [URL] ?? []
-        var imageToSave: NSImage?
+        guard let snapshot = ClipboardCaptureSnapshot.capture(
+            from: pasteboard,
+            expectedChangeCount: changeCount,
+            manageImages: settings.manageImages
+        ) else {
+            return
+        }
 
-        if !fileURLs.isEmpty {
+        switch snapshot.payload {
+        case .image(let imageData):
+            let options = ClipboardImageCaptureOptions(
+                thumbnailGenerationThresholdMB: settings.thumbnailGenerationThresholdMB,
+                imageOCREnabled: settings.imageOCREnabled,
+                maxOCRImageSizeMB: settings.maxOCRImageSizeMB,
+                imageOCRLanguages: settings.imageOCRLanguages
+            )
+            imageCaptureQueue.async { [weak self] in
+                self?.saveImage(imageData, options: options)
+            }
+        case .imagePending:
+            retryImageSnapshot(changeCount: snapshot.changeCount, retryAttempt: retryAttempt)
+        case .fileURLs(let fileURLs):
             let nameText = FilePathPasteManager.nameText(for: fileURLs)
             addItem(type: .text, content: nameText, size: nameText.utf8.count)
+        case .text(let text):
+            addItem(type: .text, content: text, size: text.utf8.count)
+        case .empty:
             return
-        } else if let str = pasteboard.string(forType: .string), Self.shouldRecordText(str) {
-            addItem(type: .text, content: str, size: str.utf8.count)
+        }
+    }
+
+    private func retryImageSnapshot(changeCount: Int, retryAttempt: Int) {
+        let retryDelays: [TimeInterval] = [0.05, 0.15, 0.3]
+        guard retryAttempt < retryDelays.count else {
+            Self.logger.error("stage=imageSnapshotUnavailable changeCount=\(changeCount)")
             return
-        } else {
-            guard settings.manageImages else { return }
         }
-        
-        // Check for direct image data
-        if imageToSave == nil, let image = NSImage(pasteboard: pasteboard) {
-            imageToSave = image
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + retryDelays[retryAttempt]) { [weak self] in
+            guard let self, NSPasteboard.general.changeCount == changeCount else { return }
+            self.processPasteboardContent(changeCount: changeCount, retryAttempt: retryAttempt + 1)
         }
-        
-        if let image = imageToSave,
-           let tiffData = image.tiffRepresentation {
-            
-            if let bitmap = NSBitmapImageRep(data: tiffData),
-               let pngData = bitmap.representation(using: .png, properties: [:]) {
-                
-                let filename = "\(UUID().uuidString).png"
-                let fileURL = storage.getImagePath(filename: filename)
-                
-                do {
-                    try pngData.write(to: fileURL)
-                    let dimensions = imageDimensions(from: bitmap, fallback: image)
-                    let thumbnailFilename = saveThumbnailIfNeeded(
-                        from: image,
-                        originalFilename: filename,
-                        byteSize: pngData.count
-                    )
-                    let shouldOCR = shouldOCRImage(byteSize: pngData.count)
-                    let itemID = storage.saveImageItem(
-                        content: filename,
-                        size: pngData.count,
-                        width: dimensions.width,
-                        height: dimensions.height,
-                        thumbnailFilename: thumbnailFilename,
-                        ocrStatus: shouldOCR ? .pending : .skipped
-                    )
-                    if shouldOCR {
-                        ClipboardOCRManager.shared.enqueueImageOCR(
-                            itemID: itemID,
-                            imageURL: fileURL,
-                            languages: settings.imageOCRLanguages
-                        )
-                    }
-                    refreshHistory()
-                } catch {
-                    print("Failed to save clipboard image: \(error)")
-                }
+    }
+
+    private func saveImage(_ imageData: Data, options: ClipboardImageCaptureOptions) {
+        guard let image = NSImage(data: imageData),
+              let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:]) else {
+            Self.logger.error("stage=imageSnapshotDecodeFailed bytes=\(imageData.count)")
+            return
+        }
+
+        let filename = "\(UUID().uuidString).png"
+        let fileURL = storage.getImagePath(filename: filename)
+
+        do {
+            try pngData.write(to: fileURL)
+            let dimensions = imageDimensions(from: bitmap, fallback: image)
+            let thumbnailFilename = saveThumbnailIfNeeded(
+                from: image,
+                originalFilename: filename,
+                byteSize: pngData.count,
+                thresholdMB: options.thumbnailGenerationThresholdMB
+            )
+            let shouldOCR = shouldOCRImage(
+                byteSize: pngData.count,
+                imageOCREnabled: options.imageOCREnabled,
+                maxOCRImageSizeMB: options.maxOCRImageSizeMB
+            )
+            let itemID = storage.saveImageItem(
+                content: filename,
+                size: pngData.count,
+                width: dimensions.width,
+                height: dimensions.height,
+                thumbnailFilename: thumbnailFilename,
+                ocrStatus: shouldOCR ? .pending : .skipped
+            )
+            if shouldOCR {
+                ClipboardOCRManager.shared.enqueueImageOCR(
+                    itemID: itemID,
+                    imageURL: fileURL,
+                    languages: options.imageOCRLanguages
+                )
             }
+            DispatchQueue.main.async { [weak self] in
+                self?.refreshHistory()
+            }
+        } catch {
+            Self.logger.error("stage=imageSnapshotWriteFailed error=\(error.localizedDescription, privacy: .public)")
         }
     }
     
@@ -703,8 +829,13 @@ class ClipboardManager: ObservableObject {
         return (width, height)
     }
 
-    private func saveThumbnailIfNeeded(from image: NSImage, originalFilename: String, byteSize: Int) -> String? {
-        let thresholdBytes = max(1, settings.thumbnailGenerationThresholdMB) * 1024 * 1024
+    private func saveThumbnailIfNeeded(
+        from image: NSImage,
+        originalFilename: String,
+        byteSize: Int,
+        thresholdMB: Int
+    ) -> String? {
+        let thresholdBytes = max(1, thresholdMB) * 1024 * 1024
         guard byteSize >= thresholdBytes else { return nil }
         guard let thumbnail = resizedImage(image, maxPixelLength: 512),
               let tiffData = thumbnail.tiffRepresentation,
@@ -738,9 +869,9 @@ class ClipboardManager: ObservableObject {
         return thumbnail
     }
 
-    private func shouldOCRImage(byteSize: Int) -> Bool {
-        guard settings.imageOCREnabled else { return false }
-        let maxBytes = max(1, settings.maxOCRImageSizeMB) * 1024 * 1024
+    private func shouldOCRImage(byteSize: Int, imageOCREnabled: Bool, maxOCRImageSizeMB: Int) -> Bool {
+        guard imageOCREnabled else { return false }
+        let maxBytes = max(1, maxOCRImageSizeMB) * 1024 * 1024
         return byteSize <= maxBytes
     }
 

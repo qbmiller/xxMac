@@ -37,6 +37,41 @@ final class ClipboardModelsTests: XCTestCase {
         XCTAssertFalse(ClipboardManager.shouldRecordText(""))
     }
 
+    func testClipboardCapturePrioritizesImageSnapshotOverText() {
+        let imageData = Data([0x89, 0x50, 0x4E, 0x47])
+
+        let payload = ClipboardCaptureDecision.payload(
+            hasImage: true,
+            imageData: imageData,
+            fileURLs: [],
+            text: "copied image description"
+        )
+
+        XCTAssertEqual(payload, .image(imageData))
+    }
+
+    func testClipboardCaptureRetriesWhenAdvertisedImageDataIsUnavailable() {
+        let payload = ClipboardCaptureDecision.payload(
+            hasImage: true,
+            imageData: nil,
+            fileURLs: [],
+            text: "copied image description"
+        )
+
+        XCTAssertEqual(payload, .imagePending)
+    }
+
+    func testClipboardCaptureFallsBackToTextWithoutImage() {
+        let payload = ClipboardCaptureDecision.payload(
+            hasImage: false,
+            imageData: nil,
+            fileURLs: [],
+            text: "plain text"
+        )
+
+        XCTAssertEqual(payload, .text("plain text"))
+    }
+
     func testClipboardLocalOCRIsEnabledByDefault() {
         XCTAssertTrue(ClipboardSettings().imageOCREnabled)
     }
