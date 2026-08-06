@@ -67,6 +67,8 @@
 "language.english" = "英文";
 "language.simplified" = "簡體中文";
 "language.traditional" = "繁體中文";
+"language.launcher_default_english_input" = "開啟啟動器時使用英文輸入法";
+"language.launcher_default_english_input_desc" = "每次開啟啟動器時切換到 macOS ABC 英文輸入法。";
 
 "searchpaths.description" = "新增啟動器搜尋應用的目錄。";
 "searchpaths.add_path" = "新增路徑...";

@@ -36,6 +36,7 @@ final class AppDefaultSettingsTests: XCTestCase {
 
     func testGeneralDefaults() {
         XCTAssertEqual(AppDefaultSettings.General.appLanguage, .english)
+        XCTAssertFalse(AppDefaultSettings.General.launcherDefaultsToEnglishInput)
         XCTAssertEqual(
             AppDefaultSettings.General.appSearchPaths,
             ["/Applications", "/System/Applications", "/System/Library/CoreServices"]

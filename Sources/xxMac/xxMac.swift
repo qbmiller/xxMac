@@ -5,7 +5,6 @@ import OSLog
 enum MenuBarVisibilityAction: Equatable {
     case create
     case showExisting
-    case recreate
     case hide
     case none
 }
@@ -13,14 +12,10 @@ enum MenuBarVisibilityAction: Equatable {
 enum MenuBarVisibilityPolicy {
     static func action(
         shouldShow: Bool,
-        hasStatusItem: Bool,
-        recreateWhenShowing: Bool
+        hasStatusItem: Bool
     ) -> MenuBarVisibilityAction {
         if shouldShow {
-            if hasStatusItem {
-                return recreateWhenShowing ? .recreate : .showExisting
-            }
-            return .create
+            return hasStatusItem ? .showExisting : .create
         }
 
         return hasStatusItem ? .hide : .none
@@ -31,6 +26,14 @@ enum MenuBarStatusItemIdentity {
     static let autosaveName = "xxMac.statusItem"
     static let accessibilityLabel = "xxMac"
     static let accessibilityIdentifier = "xxMac.statusItem"
+
+    static var visibleKey: String {
+        "NSStatusItem Visible \(autosaveName)"
+    }
+
+    static var controlCenterVisibleKey: String {
+        "NSStatusItem VisibleCC \(autosaveName)"
+    }
 }
 
 extension Notification.Name {
@@ -236,7 +239,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         _ = LauncherHistoryManager.shared
         // Initialize LockAIManager
         _ = LockAIManager.shared
-        
+
         // Request accessibility permissions (critical for hotkeys to work)
         _ = AccessibilityManager.shared.checkAccessibilityPermissions()
         // if !hasAccessibility {
@@ -245,7 +248,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         //     alert.informativeText = "xxMac needs accessibility permission to manage windows and register global hotkeys.\n\n1. Go to System Settings > Privacy & Security > Accessibility\n2. Add 'xxMac' to the allowed apps\n3. Restart the application\n\nWithout this permission, window management and hotkeys won't work."
         //     alert.addButton(withTitle: "Open System Settings")
         //     alert.addButton(withTitle: "Remind Later")
-            
+
         //     if alert.runModal() == .alertFirstButtonReturn {
         //         // Open System Settings to Accessibility
         //         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
@@ -253,12 +256,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         //         }
         //     }
         // }
-        
+
         // 1. Setup Menu Bar
         syncMenuBarVisibility()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.reaffirmMenuBarItemIfNeeded(trigger: "launch")
-        }
         
         // 2. Setup Launcher Window
         createLauncherPanel()
@@ -301,7 +301,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             .dropFirst()
             .sink { [weak self] showMenuBarItem in
                 Task { @MainActor in
-                    self?.syncMenuBarVisibility(recreateWhenShowing: showMenuBarItem)
+                    self?.syncMenuBarVisibility()
                 }
             }
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuShortcuts), name: HotKeyManager.configurationsDidChangeNotification, object: nil)
@@ -350,21 +350,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
 
     @MainActor
-    private func syncMenuBarVisibility(recreateWhenShowing: Bool = false) {
+    private func syncMenuBarVisibility() {
         let shouldShow = GeneralSettingsManager.shared.showMenuBarItem
         let action = MenuBarVisibilityPolicy.action(
             shouldShow: shouldShow,
-            hasStatusItem: statusItem != nil,
-            recreateWhenShowing: recreateWhenShowing
+            hasStatusItem: statusItem != nil
         )
 
-        Self.menuBarLogger.notice("sync requested show=\(shouldShow) hasStatusItem=\(self.statusItem != nil) recreate=\(recreateWhenShowing) action=\(String(describing: action), privacy: .public)")
+        Self.menuBarLogger.notice("sync requested show=\(shouldShow) hasStatusItem=\(self.statusItem != nil) action=\(String(describing: action), privacy: .public)")
 
         switch action {
         case .create, .showExisting:
-            ensureMenuBarItem()
-        case .recreate:
-            destroyMenuBarItemForRecreation()
             ensureMenuBarItem()
         case .hide:
             removeMenuBarItem()
@@ -416,6 +412,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     ///   - `overlappingClock`：按钮至少部分与时钟区重叠。
     ///   - `leftOfClock`：按钮在时钟区左侧。
     ///   - `rightOfClock`：按钮在时钟区右侧（少见，可能是多显示器）。
+    ///   - `malpositioned`：按钮位置明显异常（x < 100 或超出可见区域）。
     ///   - `noButton` / `noScreen` / `unknown`：无法判断。
     private static func evaluateClockZoneOverlap(for button: NSStatusBarButton?) -> String {
         guard let button else { return "noButton" }
@@ -425,6 +422,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         }
         let screen = button.window?.screen ?? NSScreen.main
         guard let screen else { return "noScreen" }
+
+        // 检测明显异常的位置（例如 x < 100，说明在屏幕最左侧）
+        if frame.minX < 100 {
+            return "malpositioned"
+        }
+
+        // 检测是否超出屏幕可见区域（考虑到刘海屏等）
+        let visibleFrame = screen.visibleFrame
+        if frame.minX >= visibleFrame.maxX {
+            return "malpositioned"
+        }
+
         let clockZoneMaxX = screen.frame.maxX
         let clockZoneMinX = clockZoneMaxX - 60
         if frame.maxX >= clockZoneMinX && frame.minX <= clockZoneMaxX {
@@ -467,6 +476,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         button.setAccessibilityIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
     }
 
+    private func prepareMenuBarStatusItemDefaults() {
+        let defaults = UserDefaults.standard
+        defaults.set(true, forKey: MenuBarStatusItemIdentity.visibleKey)
+        defaults.set(true, forKey: MenuBarStatusItemIdentity.controlCenterVisibleKey)
+    }
+
     @MainActor
     private func reaffirmMenuBarItemIfNeeded(trigger: String) {
         guard GeneralSettingsManager.shared.showMenuBarItem else { return }
@@ -474,23 +489,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         guard let existingStatusItem = statusItem else {
             ensureMenuBarItem()
             updateMenuBarDiagnostics(event: "reaffirm-create:\(trigger)")
-            Self.menuBarLogger.notice("status item reaffirmed by creating trigger=\(trigger, privacy: .public)")
             return
         }
 
-        if existingStatusItem.isVisible {
-            existingStatusItem.isVisible = true
-            configureMenuBarStatusItemIdentity(existingStatusItem)
-            calendarMenuBarController?.refreshStatusItem()
-            updateMenuBarDiagnostics(event: "reaffirm-existing:\(trigger)")
-            Self.menuBarLogger.notice("status item reaffirmed existing trigger=\(trigger, privacy: .public)")
-            return
-        }
-
-        destroyMenuBarItemForRecreation()
-        ensureMenuBarItem()
-        updateMenuBarDiagnostics(event: "reaffirm-recreate:\(trigger)")
-        Self.menuBarLogger.notice("status item reaffirmed by recreating hidden item trigger=\(trigger, privacy: .public)")
+        existingStatusItem.isVisible = true
+        configureMenuBarStatusItemIdentity(existingStatusItem)
+        calendarMenuBarController?.refreshStatusItem()
+        updateMenuBarDiagnostics(event: "reaffirm-existing:\(trigger)")
     }
 
     @MainActor
@@ -508,8 +513,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             return
         }
 
-        let newStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        newStatusItem.length = CalendarPreferencesStore.shared.menuBarDisplayMode == .appIcon ? NSStatusItem.squareLength : 28
+        prepareMenuBarStatusItemDefaults()
+        let initialLength = CalendarPreferencesStore.shared.menuBarDisplayMode == .appIcon
+            ? NSStatusItem.squareLength
+            : 28
+        let newStatusItem = NSStatusBar.system.statusItem(withLength: initialLength)
         configureMenuBarStatusItemIdentity(newStatusItem)
         statusItem = newStatusItem
         calendarMenuBarController = CalendarMenuBarController(statusItem: newStatusItem, contextMenu: makeStatusMenu())
@@ -517,7 +525,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         updateMenuShortcuts()
         newStatusItem.isVisible = true
         updateMenuBarDiagnostics(event: "create")
-        Self.menuBarLogger.notice("status item created and shown")
+        Self.menuBarLogger.notice("status item created with final display length")
     }
 
     @MainActor
@@ -530,27 +538,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         calendarMenuBarController?.closeTransientUI()
         existingStatusItem.isVisible = false
         updateMenuBarDiagnostics(event: "hide")
-        Self.menuBarLogger.notice("status item hidden via isVisible=false")
-    }
-
-    @MainActor
-    private func destroyMenuBarItemForRecreation() {
-        guard let existingStatusItem = statusItem else {
-            Self.menuBarLogger.notice("recreate skipped destroy: no status item")
-            return
-        }
-
-        calendarMenuBarController?.closeTransientUI()
-        calendarMenuBarController = nil
-        NSStatusBar.system.removeStatusItem(existingStatusItem)
-        statusItem = nil
-        toggleLauncherMenuItem = nil
-        showClipboardHistoryMenuItem = nil
-        lockAIMenuItem = nil
-        settingsMenuItem = nil
-        quitMenuItem = nil
-        updateMenuBarDiagnostics(event: "destroy")
-        Self.menuBarLogger.notice("status item destroyed for recreation")
+        Self.menuBarLogger.notice("status item hidden without recreation")
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -918,6 +906,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
     
     func openLauncher() {
+        if LocalizationManager.shared.launcherDefaultsToEnglishInput {
+            InputSourceManager.selectEnglishInputSource()
+        }
+
         launcherOpenAttempt += 1
         let openAttempt = launcherOpenAttempt
         isOpeningLauncher = true

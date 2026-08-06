@@ -790,6 +790,7 @@ final class CalendarMenuBarController {
     func refreshStatusItem() {
         guard let button = statusItem.button else { return }
         statusItem.length = preferences.menuBarDisplayMode == .appIcon ? NSStatusItem.squareLength : 28
+        button.title = ""
         button.image = CalendarMenuBarIconRenderer.image(
             displayMode: preferences.menuBarDisplayMode,
             style: preferences.menuBarIconStyle,
@@ -797,6 +798,9 @@ final class CalendarMenuBarController {
         )
         button.imagePosition = .imageOnly
         button.attributedTitle = NSAttributedString()
+        button.isEnabled = true
+        button.appearsDisabled = false
+        button.alphaValue = 1
         button.toolTip = L10n.t("calendar.menu_bar_tooltip")
         button.identifier = NSUserInterfaceItemIdentifier(MenuBarStatusItemIdentity.accessibilityIdentifier)
         button.setAccessibilityLabel(MenuBarStatusItemIdentity.accessibilityLabel)

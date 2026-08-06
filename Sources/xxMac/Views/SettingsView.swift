@@ -175,7 +175,7 @@ struct SettingsView: View {
     private var secondarySidebarBackground: some View {
         ZStack {
             Color(NSColor.windowBackgroundColor)
-            Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.045)
+            Color.accentColor.opacity(colorScheme == .dark ? 0.16 : 0.05)
         }
     }
 

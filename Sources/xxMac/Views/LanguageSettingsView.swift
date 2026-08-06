@@ -29,6 +29,13 @@ struct LanguageSettingsView: View {
                     .stroke(Color.gray.opacity(0.2), lineWidth: 1)
             )
 
+            Toggle(L10n.t("language.launcher_default_english_input"), isOn: $localization.launcherDefaultsToEnglishInput)
+                .toggleStyle(.checkbox)
+
+            Text(L10n.t("language.launcher_default_english_input_desc"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
             Spacer()
         }
     }

@@ -6,30 +6,17 @@ final class MenuBarVisibilityPolicyTests: XCTestCase {
         XCTAssertEqual(
             MenuBarVisibilityPolicy.action(
                 shouldShow: true,
-                hasStatusItem: false,
-                recreateWhenShowing: false
+                hasStatusItem: false
             ),
             .create
         )
     }
 
-    func testRecreatesExistingStatusItemWhenSettingsToggleTurnsShowingBackOn() {
+    func testShowsExistingStatusItemWhenRefreshing() {
         XCTAssertEqual(
             MenuBarVisibilityPolicy.action(
                 shouldShow: true,
-                hasStatusItem: true,
-                recreateWhenShowing: true
-            ),
-            .recreate
-        )
-    }
-
-    func testShowsExistingStatusItemWhenRefreshingWithoutRecreateRequest() {
-        XCTAssertEqual(
-            MenuBarVisibilityPolicy.action(
-                shouldShow: true,
-                hasStatusItem: true,
-                recreateWhenShowing: false
+                hasStatusItem: true
             ),
             .showExisting
         )
@@ -39,8 +26,7 @@ final class MenuBarVisibilityPolicyTests: XCTestCase {
         XCTAssertEqual(
             MenuBarVisibilityPolicy.action(
                 shouldShow: false,
-                hasStatusItem: true,
-                recreateWhenShowing: false
+                hasStatusItem: true
             ),
             .hide
         )
@@ -50,8 +36,7 @@ final class MenuBarVisibilityPolicyTests: XCTestCase {
         XCTAssertEqual(
             MenuBarVisibilityPolicy.action(
                 shouldShow: false,
-                hasStatusItem: false,
-                recreateWhenShowing: false
+                hasStatusItem: false
             ),
             .none
         )

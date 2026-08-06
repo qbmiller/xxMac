@@ -12,6 +12,8 @@ enum AppDefaultSettings {
         /// Whether xxMac creates the top-right status bar item on first launch.
         static let showMenuBarItem = true
         static let appLanguage = AppLanguage.english
+        /// Whether opening the launcher selects the macOS English input source.
+        static let launcherDefaultsToEnglishInput = false
         static let appSearchPaths = ["/Applications", "/System/Applications", "/System/Library/CoreServices"]
         static let shortcutDetectiveEnabled = false
     }

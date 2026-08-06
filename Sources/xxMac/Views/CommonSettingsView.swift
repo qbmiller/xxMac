@@ -375,6 +375,7 @@ struct CommonSettingsView: View {
     struct AppConfiguration: Codable {
         let showMenuBarItem: Bool?
         let appLanguage: String?
+        let launcherDefaultsToEnglishInput: Bool?
         let searchPaths: [String]?
         let hotKeyConfigurations: Data?
         let clearedHotKeyActions: [String]?
@@ -405,6 +406,7 @@ struct CommonSettingsView: View {
         return AppConfiguration(
             showMenuBarItem: store.boolObject(forKey: GeneralPreferencesKey.showMenuBarItem),
             appLanguage: store.string(forKey: UserDefaultsKeys.appLanguage),
+            launcherDefaultsToEnglishInput: store.boolObject(forKey: UserDefaultsKeys.launcherDefaultsToEnglishInput),
             searchPaths: store.stringArray(forKey: "AppSearchPaths"),
             hotKeyConfigurations: store.data(forKey: "HotKeyConfigurations"),
             clearedHotKeyActions: store.stringArray(forKey: "ClearedHotKeyActions"),
@@ -440,6 +442,10 @@ struct CommonSettingsView: View {
         if let appLanguage = config.appLanguage,
            let language = AppLanguage(rawValue: appLanguage) {
             LocalizationManager.shared.language = language
+        }
+
+        if let launcherDefaultsToEnglishInput = config.launcherDefaultsToEnglishInput {
+            LocalizationManager.shared.launcherDefaultsToEnglishInput = launcherDefaultsToEnglishInput
         }
         
         if let paths = config.searchPaths {

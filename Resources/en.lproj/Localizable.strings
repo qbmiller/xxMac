@@ -67,6 +67,8 @@
 "language.english" = "English";
 "language.simplified" = "Simplified Chinese";
 "language.traditional" = "Traditional Chinese";
+"language.launcher_default_english_input" = "Use English input when opening Launcher";
+"language.launcher_default_english_input_desc" = "Switches to the macOS ABC input source each time Launcher opens.";
 
 "searchpaths.description" = "Add directories where the launcher should look for applications.";
 "searchpaths.add_path" = "Add Path...";

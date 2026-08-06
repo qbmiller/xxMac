@@ -169,6 +169,7 @@ final class PreferencesStore {
 
     private static let boolKeys = [
         "GeneralShowMenuBarItem",
+        "LauncherDefaultsToEnglishInput",
         "ShortcutDetectiveEnabled",
         "CalendarShowLunar",
         "CalendarShowWeekNumbers",

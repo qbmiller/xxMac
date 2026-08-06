@@ -189,8 +189,7 @@ struct LauncherView: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(spacing: 0) {
-                                ForEach(viewModel.results.indices, id: \.self) { index in
-                                    let item = viewModel.results[index]
+                                ForEach(Array(viewModel.results.enumerated()), id: \.offset) { index, item in
                                     SearchResultRow(
                                         item: item,
                                         isSelected: index == viewModel.selectedIndex,
@@ -242,8 +241,7 @@ struct LauncherView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(viewModel.results.indices, id: \.self) { index in
-                                let item = viewModel.results[index]
+                            ForEach(Array(viewModel.results.enumerated()), id: \.offset) { index, item in
                                 SearchResultRow(
                                     item: item,
                                     isSelected: index == viewModel.selectedIndex,

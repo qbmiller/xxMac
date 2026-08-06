@@ -24,6 +24,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
 
 enum UserDefaultsKeys {
     static let appLanguage = "AppLanguage"
+    static let launcherDefaultsToEnglishInput = "LauncherDefaultsToEnglishInput"
 }
 
 final class LocalizationManager: ObservableObject {
@@ -35,6 +36,15 @@ final class LocalizationManager: ObservableObject {
         }
     }
 
+    @Published var launcherDefaultsToEnglishInput: Bool {
+        didSet {
+            PreferencesStore.shared.set(
+                launcherDefaultsToEnglishInput,
+                forKey: UserDefaultsKeys.launcherDefaultsToEnglishInput
+            )
+        }
+    }
+
     private init() {
         if let rawValue = PreferencesStore.shared.string(forKey: UserDefaultsKeys.appLanguage),
            let language = AppLanguage(rawValue: rawValue) {
@@ -43,6 +53,9 @@ final class LocalizationManager: ObservableObject {
             self.language = AppDefaultSettings.General.appLanguage
             PreferencesStore.shared.set(AppDefaultSettings.General.appLanguage.rawValue, forKey: UserDefaultsKeys.appLanguage)
         }
+        launcherDefaultsToEnglishInput = PreferencesStore.shared.boolObject(
+            forKey: UserDefaultsKeys.launcherDefaultsToEnglishInput
+        ) ?? AppDefaultSettings.General.launcherDefaultsToEnglishInput
     }
 
     var bundle: Bundle {

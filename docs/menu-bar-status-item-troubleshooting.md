@@ -30,19 +30,13 @@ v1.1.3 起，诊断面板新增 `clockZone` 字段，自动检测状态项是否
 
 使用 Codex Computer Use、远程控制或屏幕录制工具调试时，macOS 可能在菜单栏显示“控制工具 App 图标 + 鼠标箭头”的胶囊指示器。点击后会出现“停止运行”或“停止控制”之类的系统操作。这个胶囊属于 Control Center 的隐私提示，不是 xxMac 的状态栏图标，也不能作为 xxMac 已恢复的验证信号。
 
-### 自动恢复机制（v1.2.0+）
+### 状态项注册方式（v1.2.0+）
 
-从 v1.2.0 开始，`reaffirmMenuBarItemIfNeeded` 会在检测到以下异常位置时自动清除保存的位置偏好并重建状态项：
+xxMac 参考 Thaw 的状态项注册顺序：创建前初始化稳定 `autosaveName` 对应的可见性偏好，使用长度 `0` 创建 `NSStatusItem`，立即绑定 `autosaveName`，最后再配置图标并展开到实际宽度。这样 AppKit 从状态项首次注册起就能使用稳定身份和保存位置。
 
-- `malpositioned`：按钮 x 坐标 < 100（明显在屏幕最左侧不可见区域）
-- `overlappingClock`：按钮与系统时钟区域重叠
+`reaffirmMenuBarItemIfNeeded` 只重新确认现有状态项可见并刷新图标，不会因为 `malpositioned` 或 `overlappingClock` 自动清除偏好、销毁并重建状态项。启动阶段自动重建曾造成 Control Center 场景重连期间辅助场景断开，因此已停用。
 
-此修复会在以下时机触发：
-- 应用启动后 0.5 秒（`trigger: "launch"`）
-- 应用激活时（`trigger: "appActive"`）
-- 用户点击诊断面板的刷新按钮（`trigger: "diagnostics"`）
-
-如果自动修复后仍无法正常显示，可尝试手动注销/重新登录 macOS 用户。
+如果重新启动 xxMac 后仍无法正常显示，可尝试注销并重新登录 macOS 用户。
 
 ## 已记录事故
 
@@ -91,7 +85,7 @@ defaults -currentHost delete -globalDomain NSStatusItemSelectionPadding
 
 若要恢复系统默认菜单栏行为，只针对上面两个全局间距键做最小清理即可，不要碰 `com.apple.controlcenter` 域。
 
-另外，`com.xiaomi318.xxMac` 域中不存在 `NSStatusItem Preferred Position` / `NSStatusItem Visible` 键，全系统搜索也没有 xxMac 对应的 `Preferred Position`。Control Center 中保存的排序值只涉及 Battery、Bluetooth、WiFi、Sound 等系统项，且那些数值是排序偏好，不是屏幕像素坐标。
+事故发生时，`com.xiaomi318.xxMac` 域中不存在 xxMac 对应的 `NSStatusItem Preferred Position` / `NSStatusItem Visible` 键。当前版本恢复使用稳定身份 `xxMac.statusItem`，不主动写入 `Preferred Position`，只维护对应的 `Visible` 和 `VisibleCC` 键。曾尝试使用本机会话中 Thaw 可见控制项的排序值 `395`，结果 xxMac 状态项从时钟区移动到屏幕左上边界外，证明其他 App 的排序值不能移植。这些值是排序偏好，不是屏幕像素坐标。
 
 ## 首先做什么
 
@@ -118,7 +112,7 @@ defaults -currentHost delete -globalDomain NSStatusItemSelectionPadding
 1. 在设置中反复切换"显示在右上角状态栏"，或点击刷新/重建。
 2. 重启 `ControlCenter` 或 `SystemUIServer`。
 3. 反复设置 `NSStatusItem.isVisible = true`、调整 `NSStatusItem` 固定/可变宽度，或更改日历图像。
-4. 修改 `autosaveName`、写入 `NSStatusItem Preferred Position` 私有偏好，或用状态栏管理 App 强行排序。
+4. 反复修改 `autosaveName`、写入 `NSStatusItem Preferred Position` 私有偏好，或用状态栏管理 App 强行排序。当前状态项身份为 `xxMac.statusItem`，不主动写入初始位置。
 5. 重写 `CalendarMenuBarController`，或仅为排查加入第二个 `NSStatusItem`。
 6. 在仓库目录和 `/Applications` 同时保留多个同 bundle ID 的 xxMac App。双副本应避免，但删除副本不能修复本次会话问题。
 7. 修改 App 显示名、`CFBundleIdentifier` 或反向域名。2026-07-11 已在重启后的会话中验证 `cc.xiaomi318.xxMac`：新身份仍会与时钟重叠；写入正常 App 的排序值后又落到另一块屏幕边界。改身份还会触发辅助功能和自动化权限重新授权，因此不能作为修复方案。
