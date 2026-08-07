@@ -10,6 +10,15 @@ enum LauncherMode {
     case snippets
 }
 
+enum LauncherSpaceKeyPolicy {
+    static func shouldOpenImagePreview(
+        modifiers: NSEvent.ModifierFlags,
+        hasMarkedText: Bool
+    ) -> Bool {
+        modifiers.isEmpty && !hasMarkedText
+    }
+}
+
 final class LauncherCommandDebouncer {
     private let delay: TimeInterval
     private var pendingWorkItem: DispatchWorkItem?

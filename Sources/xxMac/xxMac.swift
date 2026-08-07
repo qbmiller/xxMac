@@ -666,7 +666,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         switch event.keyCode {
         case 49: // Space
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            guard modifiers.isEmpty else {
+            let hasMarkedText = (launcherPanel.firstResponder as? NSTextView)?.hasMarkedText() == true
+            guard LauncherSpaceKeyPolicy.shouldOpenImagePreview(
+                modifiers: modifiers,
+                hasMarkedText: hasMarkedText
+            ) else {
                 return false
             }
             return showSelectedClipboardImagePreview()

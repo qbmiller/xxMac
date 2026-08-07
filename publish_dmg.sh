@@ -5,7 +5,7 @@ set -euo pipefail
 APP_NAME="${APP_NAME:-xxMac}"
 APP_BUNDLE="${APP_NAME}.app"
 SKIP_BUILD="${SKIP_BUILD:-0}"
-SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller-dev}"
+SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFO_PLIST="${SCRIPT_DIR}/Sources/xxMac/Info.plist"
@@ -26,7 +26,7 @@ fi
 
 if [[ -z "$SIGNING_IDENTITY" || "$SIGNING_IDENTITY" == "-" ]]; then
   echo "Missing fixed SIGNING_IDENTITY for DMG publishing."
-  echo 'Example: SIGNING_IDENTITY="qbmiller-dev" bash publish_dmg.sh'
+  echo 'Example: SIGNING_IDENTITY="qbmiller" bash publish_dmg.sh'
   exit 1
 fi
 

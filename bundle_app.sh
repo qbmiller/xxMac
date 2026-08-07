@@ -4,12 +4,12 @@ APP_NAME="xxMac"
 BUILD_DIR=".build/arm64-apple-macosx/debug"
 APP_BUNDLE="$APP_NAME.app"
 
-# Signing Identity (Default: "qbmiller-dev" for stable local signing)
+# Signing Identity (Default: "qbmiller" for stable local signing)
 # To use your Apple ID, create a certificate in Xcode (Settings > Accounts > Manage Certificates)
 # Then run: security find-identity -v -p codesigning
 # And set SIGNING_IDENTITY to the name of your certificate, e.g.:
 # SIGNING_IDENTITY="Apple Development: Your Name (XXXXXXXXXX)"
-SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller-dev}"
+SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller}"
 REQUIRE_SIGNING_IDENTITY="${REQUIRE_SIGNING_IDENTITY:-1}"
 
 if [ "$REQUIRE_SIGNING_IDENTITY" = "1" ] && [ "$SIGNING_IDENTITY" = "-" ]; then
@@ -64,3 +64,14 @@ echo "⚠️  IMPORTANT: On first run, macOS will prompt for permissions:"
 echo "   1. System Settings > Privacy & Security > Accessibility"
 echo "   2. Add 'xxMac' to the allowed apps list"
 echo "   3. Restart the app for global hotkeys to work"
+
+# Optional: Install to /Applications
+if [ "$INSTALL_TO_APPLICATIONS" = "1" ]; then
+    echo "Installing to /Applications..."
+    killall "$APP_NAME" 2>/dev/null || true
+    sleep 1
+    rm -rf "/Applications/$APP_BUNDLE"
+    cp -r "$APP_BUNDLE" /Applications/
+    echo "✅ Installed to /Applications/$APP_BUNDLE"
+    echo "Run: open /Applications/$APP_BUNDLE"
+fi

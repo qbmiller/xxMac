@@ -91,7 +91,7 @@ bash publish_dmg.sh
 
 The release script first prints the current version recorded in `Sources/xxMac/Info.plist`, then prompts for the release version. The version is written back to `CFBundleShortVersionString` and `CFBundleVersion`, the latest update date is written to `XXLastUpdated`, and the generated DMG is named `xxMac-version.dmg` by default.
 
-`bundle_app.sh` and `publish_dmg.sh` use the fixed signing identity `qbmiller-dev` by default and do not fall back to ad-hoc signing. This helps macOS associate Accessibility permission with a stable app identity and reduces the need to remove and re-add authorization after rebuilding. Set the `SIGNING_IDENTITY` environment variable to temporarily use another certificate.
+`bundle_app.sh` and `publish_dmg.sh` use the fixed signing identity `qbmiller` by default and do not fall back to ad-hoc signing. This helps macOS associate Accessibility permission with a stable app identity and reduces the need to remove and re-add authorization after rebuilding. Set the `SIGNING_IDENTITY` environment variable to temporarily use another certificate.
 
 If you do not have a developer account, macOS may mark the app as quarantined after it is copied to `/Applications`, preventing it from opening. Clear the quarantine attribute before launching:
 

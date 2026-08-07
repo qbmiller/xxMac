@@ -3,6 +3,33 @@ import AppKit
 @testable import xxMac
 
 final class LauncherViewModelTests: XCTestCase {
+    func testSpaceDoesNotOpenClipboardImagePreviewDuringMarkedTextInput() {
+        XCTAssertFalse(
+            LauncherSpaceKeyPolicy.shouldOpenImagePreview(
+                modifiers: [],
+                hasMarkedText: true
+            )
+        )
+    }
+
+    func testPlainSpaceStillOpensClipboardImagePreviewOutsideMarkedTextInput() {
+        XCTAssertTrue(
+            LauncherSpaceKeyPolicy.shouldOpenImagePreview(
+                modifiers: [],
+                hasMarkedText: false
+            )
+        )
+    }
+
+    func testModifiedSpaceDoesNotOpenClipboardImagePreview() {
+        XCTAssertFalse(
+            LauncherSpaceKeyPolicy.shouldOpenImagePreview(
+                modifiers: [.command],
+                hasMarkedText: false
+            )
+        )
+    }
+
     func testClipboardImagePreviewOpensOnlyForSelectedImage() {
         let viewModel = LauncherViewModel()
         viewModel.mode = .clipboard
