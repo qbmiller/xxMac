@@ -322,6 +322,8 @@
 "quick_shortcut.empty_list" = "还没有快捷指令，点击 + 新增。";
 "quick_shortcut.editor" = "编辑快捷指令";
 "quick_shortcut.delete" = "删除快捷指令";
+"quick_shortcut.delete_confirm_title" = "删除快捷指令？";
+"quick_shortcut.delete_confirm_message" = "删除后无法恢复。";
 "quick_shortcut.enabled" = "启用";
 "quick_shortcut.show_in_fallback" = "始终显示在启动器候选中";
 "quick_shortcut.show_in_fallback_desc" = "启动器搜索时始终用当前输入展示该快捷指令，适合 Google、Baidu 等搜索入口；不需要时可关闭。";

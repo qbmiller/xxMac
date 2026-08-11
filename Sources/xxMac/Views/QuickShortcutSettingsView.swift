@@ -4,6 +4,7 @@ import SwiftUI
 struct QuickShortcutItemsSidebar: View {
     @ObservedObject private var manager = QuickShortcutManager.shared
     @Binding var selection: QuickShortcut.ID?
+    @State private var showingDeleteConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,11 +34,13 @@ struct QuickShortcutItemsSidebar: View {
                 .menuStyle(.borderlessButton)
 
                 Button {
-                    deleteSelectedItem()
+                    showingDeleteConfirmation = true
                 } label: {
                     Image(systemName: "minus")
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
                 .disabled(selection == nil)
             }
             .padding(10)
@@ -66,21 +69,35 @@ struct QuickShortcutItemsSidebar: View {
             }
         }
         .background(Color.clear)
+        .alert(L10n.t("quick_shortcut.delete_confirm_title"), isPresented: $showingDeleteConfirmation) {
+            Button(L10n.t("general.cancel"), role: .cancel) {}
+            Button(L10n.t("quick_shortcut.delete"), role: .destructive) {
+                deleteSelectedItem()
+            }
+        } message: {
+            Text(L10n.t("quick_shortcut.delete_confirm_message"))
+        }
     }
 
     private func deleteSelectedItem() {
         guard let selection,
-              let selectedItem = manager.items.first(where: { $0.id == selection }) else {
+              let index = manager.items.firstIndex(where: { $0.id == selection }) else {
             return
         }
+        let selectedItem = manager.items[index]
         manager.removeItem(selectedItem)
-        self.selection = manager.items.first?.id
+        guard !manager.items.isEmpty else {
+            self.selection = nil
+            return
+        }
+        self.selection = manager.items[min(index, manager.items.count - 1)].id
     }
 }
 
 struct QuickShortcutDetailView: View {
     @ObservedObject private var manager = QuickShortcutManager.shared
     @Binding var selectedItemID: QuickShortcut.ID?
+    @State private var showingDeleteConfirmation = false
 
     private var selectedItemBinding: Binding<QuickShortcut>? {
         guard let selectedItemID else { return nil }
@@ -106,10 +123,7 @@ struct QuickShortcutDetailView: View {
                 QuickShortcutEditor(
                     item: itemBinding,
                     onDelete: {
-                        if let item = manager.items.first(where: { $0.id == selectedItemID }) {
-                            manager.removeItem(item)
-                        }
-                        selectedItemID = manager.items.first?.id
+                        showingDeleteConfirmation = true
                     }
                 )
             } else {
@@ -125,6 +139,21 @@ struct QuickShortcutDetailView: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.2), lineWidth: 1))
             }
         }
+        .alert(L10n.t("quick_shortcut.delete_confirm_title"), isPresented: $showingDeleteConfirmation) {
+            Button(L10n.t("general.cancel"), role: .cancel) {}
+            Button(L10n.t("quick_shortcut.delete"), role: .destructive) {
+                deleteSelectedItem()
+            }
+        } message: {
+            Text(L10n.t("quick_shortcut.delete_confirm_message"))
+        }
+    }
+
+    private func deleteSelectedItem() {
+        if let item = manager.items.first(where: { $0.id == selectedItemID }) {
+            manager.removeItem(item)
+        }
+        selectedItemID = manager.items.first?.id
     }
 }
 

@@ -322,6 +322,8 @@
 "quick_shortcut.empty_list" = "No quick shortcuts yet. Click + to add one.";
 "quick_shortcut.editor" = "Edit Shortcut";
 "quick_shortcut.delete" = "Delete Shortcut";
+"quick_shortcut.delete_confirm_title" = "Delete Shortcut?";
+"quick_shortcut.delete_confirm_message" = "This action cannot be undone.";
 "quick_shortcut.enabled" = "Enabled";
 "quick_shortcut.show_in_fallback" = "Always show in launcher results";
 "quick_shortcut.show_in_fallback_desc" = "Always show this shortcut with the current launcher input. Useful for Google, Baidu, and other search entries; turn it off when not needed.";
