@@ -41,6 +41,13 @@ final class UpdateManagerTests: XCTestCase {
         XCTAssertFalse(UpdateVersion.isNewer("1.1.9", than: "1.2.0"))
     }
 
+    func testReleasesURLUsesProjectHTTPSPage() {
+        XCTAssertEqual(
+            UpdateManager.releasesURL.absoluteString,
+            "https://github.com/qbmiller/xxMac/releases"
+        )
+    }
+
     func testNewManagerDefaultsToWeeklyChecks() {
         let manager = UpdateManager(
             store: TestUpdatePreferenceStore(),

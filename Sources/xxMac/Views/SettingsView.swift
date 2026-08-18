@@ -509,10 +509,14 @@ struct AboutSettingsView: View {
             
             // Update Section
             VStack(spacing: 12) {
-                Text(releaseURL.absoluteString)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .textSelection(.enabled)
+                Link(destination: releaseURL) {
+                    Text(releaseURL.absoluteString)
+                        .font(.caption)
+                        .foregroundColor(Color(nsColor: .linkColor))
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .help(releaseURL.absoluteString)
 
                 HStack(spacing: 12) {
                     Button(action: checkForUpdates) {

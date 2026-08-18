@@ -15,7 +15,7 @@ enum LauncherSpaceKeyPolicy {
         modifiers: NSEvent.ModifierFlags,
         hasMarkedText: Bool
     ) -> Bool {
-        modifiers.isEmpty && !hasMarkedText
+        modifiers == [.command] && !hasMarkedText
     }
 }
 

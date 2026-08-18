@@ -935,6 +935,16 @@ struct ClipboardImagePreview: View {
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(alignment: .bottomLeading) {
+                        Label(L10n.t("clipboard.image_preview_shortcut_hint"), systemImage: "viewfinder")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.82))
+                            .padding(.horizontal, 9)
+                            .frame(height: 26)
+                            .background(Color.black.opacity(0.28))
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .padding(12)
+                    }
                 }
                 .padding(16)
             } else {

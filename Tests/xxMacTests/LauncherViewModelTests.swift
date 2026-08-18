@@ -3,17 +3,17 @@ import AppKit
 @testable import xxMac
 
 final class LauncherViewModelTests: XCTestCase {
-    func testSpaceDoesNotOpenClipboardImagePreviewDuringMarkedTextInput() {
+    func testCommandSpaceDoesNotOpenClipboardImagePreviewDuringMarkedTextInput() {
         XCTAssertFalse(
             LauncherSpaceKeyPolicy.shouldOpenImagePreview(
-                modifiers: [],
+                modifiers: [.command],
                 hasMarkedText: true
             )
         )
     }
 
-    func testPlainSpaceStillOpensClipboardImagePreviewOutsideMarkedTextInput() {
-        XCTAssertTrue(
+    func testPlainSpaceDoesNotOpenClipboardImagePreview() {
+        XCTAssertFalse(
             LauncherSpaceKeyPolicy.shouldOpenImagePreview(
                 modifiers: [],
                 hasMarkedText: false
@@ -21,10 +21,19 @@ final class LauncherViewModelTests: XCTestCase {
         )
     }
 
-    func testModifiedSpaceDoesNotOpenClipboardImagePreview() {
-        XCTAssertFalse(
+    func testCommandSpaceOpensClipboardImagePreview() {
+        XCTAssertTrue(
             LauncherSpaceKeyPolicy.shouldOpenImagePreview(
                 modifiers: [.command],
+                hasMarkedText: false
+            )
+        )
+    }
+
+    func testCommandShiftSpaceDoesNotOpenClipboardImagePreview() {
+        XCTAssertFalse(
+            LauncherSpaceKeyPolicy.shouldOpenImagePreview(
+                modifiers: [.command, .shift],
                 hasMarkedText: false
             )
         )

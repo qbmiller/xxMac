@@ -656,9 +656,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     private func handleLauncherKeyDown(_ event: NSEvent) -> Bool {
         if clipboardImagePreviewController?.isVisible == true {
-            guard event.keyCode == 49 || event.keyCode == 53 else {
-                return false
+            if event.keyCode == 53 {
+                dismissClipboardImagePreview(refocusLauncher: true)
+                return true
             }
+
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard event.keyCode == 49, modifiers == [.command] else { return false }
             dismissClipboardImagePreview(refocusLauncher: true)
             return true
         }

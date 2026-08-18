@@ -156,6 +156,7 @@
 "clipboard.max_size_format" = "%d MB";
 "clipboard.font_size_format" = "%d pt";
 "clipboard.image_unavailable" = "Image unavailable";
+"clipboard.image_preview_shortcut_hint" = "⌘ Space to Preview";
 "clipboard.select_item_preview" = "Select a clipboard item to preview";
 "clipboard.preview_truncated" = "This item is large. Showing the first part only; pressing Return still pastes the full content.";
 "clipboard.indexing_apps" = "Indexing apps...";

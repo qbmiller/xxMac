@@ -56,9 +56,13 @@ final class ClipboardImagePreviewPanelController {
         ]
         panel.animationBehavior = .utilityWindow
         panel.keyDownHandler = { [weak self] event in
-            guard event.keyCode == 49 || event.keyCode == 53 else {
-                return false
+            if event.keyCode == 53 {
+                self?.onCloseRequested()
+                return true
             }
+
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard event.keyCode == 49, modifiers == [.command] else { return false }
             self?.onCloseRequested()
             return true
         }
