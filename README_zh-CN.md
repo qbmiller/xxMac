@@ -8,17 +8,6 @@ xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具�
 2. 全局热键唤起的浮动启动器面板。
 3. 双击打开 App 时显示三栏结构的设置窗口，窗口支持拉伸并可拖拽调整栏目宽度。
 
-## 产品截图
-
-<table>
-  <tr>
-    <td width="25%" align="center"><img src="docs/images/image.png" alt="xxMac 截图 1" width="100%"><br>1</td>
-    <td width="25%" align="center"><img src="docs/images/image2.png" alt="xxMac 截图 2" width="100%"><br>2</td>
-    <td width="25%" align="center"><img src="docs/images/image3.png" alt="xxMac 截图 3" width="100%"><br>3</td>
-    <td width="25%" align="center"><img src="docs/images/image4.png" alt="xxMac 截图 4" width="100%"><br>4</td>
-  </tr>
-</table>
-
 ## 功能概览
 
 | 能力 | 说明 | 类似/替代 |
@@ -38,6 +27,30 @@ xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具�
 | 更新检查 | 可在“关于”中手动检查，也可选择关闭、每天、每周或每月自动检查，默认每周。“关于”页显示的 GitHub Releases 地址可点击并由默认浏览器打开。自动检查不会弹窗；发现新版本后，启动器右侧显示红色更新按钮，点击打开 GitHub Releases。 | Sparkle |
 | LockJob | 一键遮住所有屏幕并阻止系统睡眠，Claude、Codex、构建、下载和 SSH 会话继续运行；显示时间和自定义状态文字，支持 Touch ID 或本机密码解锁。 | 锁屏遮罩 |
 | 多语言 | 已有简体中文、繁体中文、英文资源结构。 | - |
+
+<p align="center">
+  <img src="docs/images/003.png" width="49%" alt="">
+  <img src="docs/images/004.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/005.png" width="49%" alt="">
+  <img src="docs/images/006.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/007.png" width="49%" alt="">
+  <img src="docs/images/008.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/009.png" width="49%" alt="">
+  <img src="docs/images/010.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/image.png" width="45%" alt="">
+</p>
 
 ## 默认快捷键
 
