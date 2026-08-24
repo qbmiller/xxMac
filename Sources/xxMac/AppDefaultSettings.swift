@@ -33,6 +33,8 @@ enum AppDefaultSettings {
         static let imageOCRLanguages = ["zh-Hans", "en-US"]
         static let previewFontSizeRange = 12...28
         static let previewFontSize = 16
+        static let imagePasteToFileEnabled = false
+        static let textPasteToFileEnabled = false
     }
 
     enum LauncherAppearance {

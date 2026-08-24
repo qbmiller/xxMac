@@ -43,8 +43,7 @@ enum WindowAction: String, CaseIterable, Codable {
     ]
 
     static let commonShortcutCases: [WindowAction] = [
-        .toggleLauncher,
-        .pasteFinderPath
+        .toggleLauncher
     ]
 
     var displayName: String {
@@ -258,7 +257,7 @@ class HotKeyManager: ObservableObject {
             }
         case .pasteFinderPath:
             DispatchQueue.main.async {
-                FilePathPasteManager.shared.pasteFinderPaths()
+                FinderPasteOperationManager.shared.perform()
             }
         case .lockAI:
             DispatchQueue.main.async {

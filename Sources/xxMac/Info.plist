@@ -19,7 +19,7 @@
 	<key>NSAccessibilityUsageDescription</key>
 	<string>We need accessibility permissions to move and resize windows.</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>We need authorization to control windows and manage applications for window management features.</string>
+	<string>xxMac needs permission to control Finder to save clipboard images or text in the current folder, and to reopen managed applications.</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 	<key>XXLastUpdated</key>

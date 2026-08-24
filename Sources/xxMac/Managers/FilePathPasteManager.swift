@@ -5,17 +5,22 @@ final class FilePathPasteManager {
     static let shared = FilePathPasteManager()
 
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "FilePathPaste")
-    private static let legacyFilenamesType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
+    static let legacyFilenamesType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
 
     private init() {}
 
     func pasteFinderPaths() {
         let pasteboard = NSPasteboard.general
-        guard let urls = readFileURLs(from: pasteboard), !urls.isEmpty else {
+        guard let urls = Self.fileURLs(from: pasteboard), !urls.isEmpty else {
             Self.logger.notice("no file URLs on pasteboard")
             return
         }
 
+        pasteFinderPaths(urls)
+    }
+
+    func pasteFinderPaths(_ urls: [URL]) {
+        guard !urls.isEmpty else { return }
         let pathText = Self.pathText(for: urls)
         ClipboardManager.shared.recordText(pathText)
         typeTextAfterModifierRelease(pathText)
@@ -33,7 +38,7 @@ final class FilePathPasteManager {
             .joined(separator: " ")
     }
 
-    private func readFileURLs(from pasteboard: NSPasteboard) -> [URL]? {
+    static func fileURLs(from pasteboard: NSPasteboard) -> [URL]? {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
            !urls.isEmpty {
             return urls
@@ -63,7 +68,7 @@ final class FilePathPasteManager {
         return nil
     }
 
-    private func fileURL(from item: NSPasteboardItem) -> URL? {
+    private static func fileURL(from item: NSPasteboardItem) -> URL? {
         for type in [NSPasteboard.PasteboardType.fileURL, NSPasteboard.PasteboardType("public.file-url")] {
             guard let string = item.string(forType: type) else { continue }
             if let url = URL(string: string), url.isFileURL {

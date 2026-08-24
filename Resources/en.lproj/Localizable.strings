@@ -25,14 +25,13 @@
 "common.global_hotkey_desc" = "Set the hotkey to show or hide the main launcher window.";
 "common.toggle_launcher" = "Toggle Launcher";
 "common_shortcuts.desc" = "Manage global hotkeys for common actions.";
-"common_shortcuts.paste_finder_path_desc" = "After copying files or folders in Finder, use this shortcut to paste full paths into the current app; normal paste is unchanged.";
 "common.app_index" = "Application Index";
 "common.app_index_desc" = "The application list is cached and reused on next launch. Rebuild it manually after installing new apps.";
 "common.index_apps" = "Index Applications";
 "common.indexing_apps" = "Indexing applications...";
 "common.indexed_apps_format" = "%d applications indexed";
 "common.config_directory" = "Configuration Folder";
-"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, the clipboard database, and image cache. xxMac also creates quick/ here for complex quick shortcut scripts. Browser bookmarks and history are not stored or migrated here. This folder can be local or managed by a sync service that keeps files available offline.";
+"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, the clipboard database, and image cache. xxMac also creates quick/ here for complex quick shortcut scripts. Paste-operation switches and daily counters are stored in preferences, but generated files are written only to the target Finder folder. Browser bookmarks and history are not stored or migrated here. This folder can be local or managed by a sync service that keeps files available offline.";
 "common.set_config_directory" = "Set Preferences Folder...";
 "common.reveal_config_directory" = "Reveal in Finder";
 "common.reset_config_directory" = "Reset to Default";
@@ -54,6 +53,13 @@
 "permissions.accessibility_granted" = "Granted. xxMac can control windows, listen for global shortcuts, and restore input focus.";
 "permissions.accessibility_missing" = "Missing. Window management, global shortcuts, and some clipboard paste-back flows may not work.";
 "permissions.request_accessibility" = "Request Accessibility Permission";
+"permissions.finder_automation" = "Control Finder";
+"permissions.finder_automation_granted" = "Granted. xxMac can locate the current Finder folder and create image or text files there.";
+"permissions.finder_automation_not_determined" = "Not requested yet. Click below and macOS will ask whether xxMac may control Finder.";
+"permissions.finder_automation_denied" = "Denied. Allow xxMac to control Finder in System Settings > Privacy & Security > Automation.";
+"permissions.finder_automation_unavailable" = "The permission status is currently unavailable. Check the Automation section in System Settings.";
+"permissions.request_finder_automation" = "Request Finder Control";
+"permissions.open_automation_settings" = "Open Automation Settings";
 "permissions.refresh" = "Refresh Status";
 "general.cancel" = "Cancel";
 
@@ -234,6 +240,7 @@
 "function.window.behavior" = "Window Behavior";
 "function.shortcut.detective" = "Detective";
 "function.clipboard.general" = "Clipboard General";
+"function.clipboard.paste_operations" = "Paste Operations";
 "function.clipboard.history" = "History";
 "function.clipboard.ignored" = "Ignored Apps";
 "function.launcher.applications" = "Applications";
@@ -283,6 +290,22 @@
 "window_action.previous_screen" = "Previous Screen";
 "window_action.toggle_launcher" = "Toggle Launcher";
 "window_action.paste_finder_path" = "Paste Finder File Path";
+"clipboard_paste.desc" = "Use one hotkey to paste Finder file paths or save clipboard images and text as files in the current Finder folder.";
+"clipboard_paste.path_title" = "Paste Finder File Paths";
+"clipboard_paste.path_desc" = "After copying files or folders in Finder, press this hotkey in any app to paste their full paths.";
+"clipboard_paste.image_title" = "Image to File";
+"clipboard_paste.image_enabled" = "Enable image to file";
+"clipboard_paste.image_desc" = "In Finder, press the shared hotkey to save screenshots or raw clipboard images as PNG. Copied image files remain file paths.";
+"clipboard_paste.text_title" = "Text to File";
+"clipboard_paste.text_enabled" = "Enable text to file";
+"clipboard_paste.text_desc" = "In Finder, press the shared hotkey to save plain text as a UTF-8 file. JSON, plist, XML, YAML, TOML, INI, and ENV can be detected.";
+"clipboard_paste.next_number" = "Next number";
+"clipboard_paste.reset_counter" = "Reset";
+"clipboard_paste.saved_format" = "Saved: %@";
+"clipboard_paste.failed_format" = "Save failed: %@";
+"clipboard_paste.error.no_finder_directory" = "The current Finder folder could not be determined. Allow xxMac to control Finder in System Settings > Privacy & Security > Automation.";
+"clipboard_paste.error.image_conversion" = "The clipboard image could not be converted to PNG";
+"clipboard_paste.error.directory_not_writable" = "The current Finder folder is not writable";
 "window_action.lock_ai" = "LockJob";
 
 "key.space" = "Space";

@@ -25,14 +25,13 @@
 "common.global_hotkey_desc" = "設定用於顯示或隱藏主啟動器視窗的快速鍵。";
 "common.toggle_launcher" = "切換啟動器";
 "common_shortcuts.desc" = "管理通用功能的全域快速鍵。";
-"common_shortcuts.paste_finder_path_desc" = "複製 Finder 中的檔案或資料夾後，按此快速鍵在目前 App 貼上完整路徑；一般貼上不受影響。";
 "common.app_index" = "應用索引";
 "common.app_index_desc" = "應用列表會快取並在下次啟動時複用；安裝新應用後可手動重建索引。";
 "common.index_apps" = "索引應用";
 "common.indexing_apps" = "正在索引應用...";
 "common.indexed_apps_format" = "已索引 %d 個應用";
 "common.config_directory" = "設定目錄";
-"common.config_directory_desc" = "設定 xxMac 保存設定、應用索引快取、剪貼簿資料庫和圖片快取的位置，並自動建立 quick/ 用於放置複雜快捷指令腳本。瀏覽器書籤和歷史不會存入或遷移到此目錄。此目錄可以是本機目錄，也可以是同步服務中保持本機可用的目錄。";
+"common.config_directory_desc" = "設定 xxMac 保存設定、應用索引快取、剪貼簿資料庫和圖片快取的位置，並自動建立 quick/ 用於放置複雜快捷指令腳本。貼上操作的開關和每日計數保存在設定中，但產生的檔案只寫入 Finder 目標資料夾。瀏覽器書籤和歷史不會存入或遷移到此目錄。此目錄可以是本機目錄，也可以是同步服務中保持本機可用的目錄。";
 "common.set_config_directory" = "設定目錄...";
 "common.reveal_config_directory" = "在 Finder 中顯示";
 "common.reset_config_directory" = "還原預設目錄";
@@ -54,6 +53,13 @@
 "permissions.accessibility_granted" = "已授權，可以控制視窗、監聽全域快速鍵並恢復輸入焦點。";
 "permissions.accessibility_missing" = "未授權，視窗管理、全域快速鍵和部分剪貼簿回貼功能可能無法使用。";
 "permissions.request_accessibility" = "取得輔助使用權限";
+"permissions.finder_automation" = "控制 Finder";
+"permissions.finder_automation_granted" = "已授權，可以取得 Finder 目前資料夾並在其中產生圖片或文字檔案。";
+"permissions.finder_automation_not_determined" = "尚未授權，點擊下方按鈕後 macOS 將詢問是否允許 xxMac 控制 Finder。";
+"permissions.finder_automation_denied" = "已拒絕，請在「系統設定 > 隱私權與安全性 > 自動化」中允許 xxMac 控制 Finder。";
+"permissions.finder_automation_unavailable" = "暫時無法讀取授權狀態，請前往系統自動化設定檢查。";
+"permissions.request_finder_automation" = "取得控制 Finder 權限";
+"permissions.open_automation_settings" = "開啟自動化設定";
 "permissions.refresh" = "刷新狀態";
 "general.cancel" = "取消";
 
@@ -234,6 +240,7 @@
 "function.window.behavior" = "視窗行為";
 "function.shortcut.detective" = "偵測";
 "function.clipboard.general" = "剪貼簿通用";
+"function.clipboard.paste_operations" = "貼上操作";
 "function.clipboard.history" = "歷史記錄";
 "function.clipboard.ignored" = "忽略應用";
 "function.launcher.applications" = "應用清單";
@@ -283,6 +290,22 @@
 "window_action.previous_screen" = "上一螢幕";
 "window_action.toggle_launcher" = "切換啟動器";
 "window_action.paste_finder_path" = "貼上 Finder 檔案路徑";
+"clipboard_paste.desc" = "使用同一個快速鍵貼上 Finder 檔案路徑，或在 Finder 目前資料夾中將剪貼簿圖片和文字儲存為檔案。";
+"clipboard_paste.path_title" = "貼上 Finder 檔案路徑";
+"clipboard_paste.path_desc" = "複製 Finder 中的檔案或資料夾後，在任意 App 中按此快速鍵貼上完整路徑。";
+"clipboard_paste.image_title" = "圖片轉檔案";
+"clipboard_paste.image_enabled" = "啟用圖片轉檔案";
+"clipboard_paste.image_desc" = "在 Finder 中按共用快速鍵，將截圖或剪貼簿原始圖片儲存為 PNG；複製的圖片檔案仍按檔案路徑處理。";
+"clipboard_paste.text_title" = "文字轉檔案";
+"clipboard_paste.text_enabled" = "啟用文字轉檔案";
+"clipboard_paste.text_desc" = "在 Finder 中按共用快速鍵，將純文字儲存為 UTF-8 檔案；可識別 JSON、plist、XML、YAML、TOML、INI 和 ENV。";
+"clipboard_paste.next_number" = "下一個編號";
+"clipboard_paste.reset_counter" = "重設";
+"clipboard_paste.saved_format" = "已儲存：%@";
+"clipboard_paste.failed_format" = "儲存失敗：%@";
+"clipboard_paste.error.no_finder_directory" = "無法取得 Finder 目前資料夾，請在系統設定 > 隱私權與安全性 > 自動化中允許 xxMac 控制 Finder";
+"clipboard_paste.error.image_conversion" = "無法將剪貼簿圖片轉換為 PNG";
+"clipboard_paste.error.directory_not_writable" = "Finder 目前資料夾不可寫入";
 "window_action.lock_ai" = "LockJob";
 
 "key.space" = "空白鍵";

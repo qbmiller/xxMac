@@ -658,6 +658,8 @@ struct ConfigurationView: View {
             ShortcutDetectiveSettingsView()
         case .clipboardGeneral:
             ClipboardSettingsView()
+        case .clipboardPasteOperations:
+            ClipboardPasteOperationsSettingsView()
         case .snippetsLibrary:
             SnippetsSettingsView(selectedCollectionID: .constant(SnippetManager.shared.collections.first?.id))
         case .quickShortcutLibrary:
@@ -951,14 +953,7 @@ struct CommonShortcutSettingsView: View {
             VStack(spacing: 0) {
                 ForEach(WindowAction.commonShortcutCases, id: \.self) { action in
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(action.displayName)
-                            if action == .pasteFinderPath {
-                                Text(L10n.t("common_shortcuts.paste_finder_path_desc"))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                        Text(action.displayName)
 
                         Spacer()
 

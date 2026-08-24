@@ -42,7 +42,7 @@ chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 
 # 7. Code Sign the app (required for global hotkeys to work)
 echo "Code signing with identity: $SIGNING_IDENTITY"
-codesign --deep --force --verbose --sign "$SIGNING_IDENTITY" --options runtime "$APP_BUNDLE" 2>/dev/null || {
+codesign --deep --force --verbose --sign "$SIGNING_IDENTITY" "$APP_BUNDLE" 2>/dev/null || {
     echo "Warning: Code signing failed with identity: $SIGNING_IDENTITY"
     if [ "$REQUIRE_SIGNING_IDENTITY" = "1" ]; then
         echo "Fixed signing is required; refusing to fall back to ad-hoc signing."

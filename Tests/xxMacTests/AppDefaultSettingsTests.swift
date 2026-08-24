@@ -22,6 +22,8 @@ final class AppDefaultSettingsTests: XCTestCase {
         XCTAssertFalse(AppDefaultSettings.Clipboard.monitoringEnabled)
         XCTAssertTrue(AppDefaultSettings.Clipboard.manageImages)
         XCTAssertTrue(AppDefaultSettings.Clipboard.imageOCREnabled)
+        XCTAssertFalse(AppDefaultSettings.Clipboard.imagePasteToFileEnabled)
+        XCTAssertFalse(AppDefaultSettings.Clipboard.textPasteToFileEnabled)
         XCTAssertEqual(AppDefaultSettings.Clipboard.maxHistoryItems, 1000)
         XCTAssertEqual(AppDefaultSettings.Clipboard.maxImageStorageSizeMB, 500)
         XCTAssertEqual(AppDefaultSettings.Clipboard.previewFontSize, 16)
