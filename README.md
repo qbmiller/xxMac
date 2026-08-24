@@ -8,17 +8,6 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 2. A floating launcher panel opened by a global hotkey.
 3. A three-column settings window shown when opening the app directly, with a resizable window and draggable column widths.
 
-## Screenshots
-
-<table>
-  <tr>
-    <td width="25%" align="center"><img src="docs/images/image.png" alt="xxMac screenshot 1" width="100%"><br>1</td>
-    <td width="25%" align="center"><img src="docs/images/image2.png" alt="xxMac screenshot 2" width="100%"><br>2</td>
-    <td width="25%" align="center"><img src="docs/images/image3.png" alt="xxMac screenshot 3" width="100%"><br>3</td>
-    <td width="25%" align="center"><img src="docs/images/image4.png" alt="xxMac screenshot 4" width="100%"><br>4</td>
-  </tr>
-</table>
-
 ## Feature Overview
 
 | Capability | Description | Similar / Alternative |
@@ -38,6 +27,30 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 | Update Checks | Check GitHub Releases manually or automatically on a daily, weekly, or monthly schedule from About. The GitHub Releases URL shown in About is clickable and opens in the default browser. Automatic checks default to weekly and stay silent; when an update is available, a red update button appears on the right side of the launcher and opens the Releases page. | Sparkle |
 | LockJob | Cover all displays and prevent system sleep while Claude, Codex, builds, downloads, and SSH sessions continue running. Shows the time and custom status text, and supports Touch ID or local password unlock. | Screen cover |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
+
+<p align="center">
+  <img src="docs/images/003.png" width="49%" alt="">
+  <img src="docs/images/004.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/005.png" width="49%" alt="">
+  <img src="docs/images/006.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/007.png" width="49%" alt="">
+  <img src="docs/images/008.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/009.png" width="49%" alt="">
+  <img src="docs/images/010.png" width="49%" alt="">
+</p>
+
+<p align="center">
+  <img src="docs/images/image.png" width="45%" alt="">
+</p>
 
 ## Default Hotkeys
 
