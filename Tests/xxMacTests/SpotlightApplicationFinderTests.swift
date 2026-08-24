@@ -2,6 +2,26 @@ import XCTest
 @testable import xxMac
 
 final class SpotlightApplicationFinderTests: XCTestCase {
+    func testApplicationPathInsideExcludedDirectoryIsNotIndexed() {
+        XCTAssertFalse(
+            AppSearchManager.shouldIndexApplicationPath(
+                "/Applications/Utilities/Terminal.app",
+                roots: ["/Applications"],
+                excludedPaths: ["/Applications/Utilities"]
+            )
+        )
+    }
+
+    func testApplicationPathInSiblingDirectoryWithSamePrefixIsIndexed() {
+        XCTAssertTrue(
+            AppSearchManager.shouldIndexApplicationPath(
+                "/Applications/Utilities Plus/Example.app",
+                roots: ["/Applications"],
+                excludedPaths: ["/Applications/Utilities"]
+            )
+        )
+    }
+
     func testFilteredApplicationPathsKeepsOnlyTopLevelAppsInsideSearchRoots() {
         let paths = [
             "/Applications/Safari.app",

@@ -73,6 +73,10 @@
 "searchpaths.description" = "Add directories where the launcher should look for applications.";
 "searchpaths.add_path" = "Add Path...";
 "searchpaths.reset_defaults" = "Reset to Defaults";
+"searchpaths.remove_path" = "Remove Path";
+"excludedpaths.description" = "Add directories whose applications should not appear in launcher search results. All subdirectories are excluded too.";
+"excludedpaths.empty" = "No excluded paths have been added.";
+"excludedpaths.clear_all" = "Clear All";
 
 "hotkey.restore_defaults" = "Restore defaults";
 "hotkey.type_hotkey" = "Type Hotkey...";

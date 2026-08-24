@@ -650,6 +650,8 @@ struct ConfigurationView: View {
             BrowserSearchSettingsView()
         case .searchPaths:
             SearchPathsSettingsView()
+        case .searchExcluded:
+            ExcludedSearchPathsSettingsView()
         case .wmShortcuts:
             HotKeySettingsView()
         case .shortcutDetectiveGeneral:
@@ -777,16 +779,63 @@ struct SearchGeneralSettingsView: View {
 
 struct SearchPathsSettingsView: View {
     @ObservedObject var appSearchManager = AppSearchManager.shared
-    @State private var newPath: String = ""
-    
+
+    var body: some View {
+        SearchPathListSettingsContent(
+            descriptionKey: "searchpaths.description",
+            emptyStateKey: nil,
+            paths: appSearchManager.searchPaths,
+            resetTitleKey: "searchpaths.reset_defaults",
+            disableResetWhenEmpty: false,
+            onAdd: appSearchManager.addPath,
+            onRemove: appSearchManager.removePath,
+            onReset: appSearchManager.resetPaths
+        )
+    }
+}
+
+struct ExcludedSearchPathsSettingsView: View {
+    @ObservedObject var appSearchManager = AppSearchManager.shared
+
+    var body: some View {
+        SearchPathListSettingsContent(
+            descriptionKey: "excludedpaths.description",
+            emptyStateKey: "excludedpaths.empty",
+            paths: appSearchManager.excludedPaths,
+            resetTitleKey: "excludedpaths.clear_all",
+            disableResetWhenEmpty: true,
+            onAdd: appSearchManager.addExcludedPath,
+            onRemove: appSearchManager.removeExcludedPath,
+            onReset: appSearchManager.resetExcludedPaths
+        )
+    }
+}
+
+private struct SearchPathListSettingsContent: View {
+    let descriptionKey: String
+    let emptyStateKey: String?
+    let paths: [String]
+    let resetTitleKey: String
+    let disableResetWhenEmpty: Bool
+    let onAdd: (String) -> Void
+    let onRemove: (String) -> Void
+    let onReset: () -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.t("searchpaths.description"))
+            Text(L10n.t(descriptionKey))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
+
             VStack(spacing: 0) {
-                ForEach(appSearchManager.searchPaths, id: \.self) { path in
+                if paths.isEmpty, let emptyStateKey {
+                    Text(L10n.t(emptyStateKey))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                }
+
+                ForEach(paths, id: \.self) { path in
                     HStack {
                         Image(systemName: "folder")
                             .foregroundColor(.blue)
@@ -794,16 +843,18 @@ struct SearchPathsSettingsView: View {
                             .font(.system(.body, design: .monospaced))
                         Spacer()
                         Button(action: {
-                            appSearchManager.removePath(path)
+                            onRemove(path)
                         }) {
                             Image(systemName: "trash")
                                 .foregroundColor(.red)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .help(L10n.t("searchpaths.remove_path"))
+                        .accessibilityLabel(L10n.t("searchpaths.remove_path"))
                     }
                     .padding(12)
                     .background(Color(NSColor.controlBackgroundColor))
-                    
+
                     Divider()
                 }
             }
@@ -819,10 +870,10 @@ struct SearchPathsSettingsView: View {
                     panel.canChooseFiles = false
                     panel.canChooseDirectories = true
                     panel.allowsMultipleSelection = false
-                    
+
                     if panel.runModal() == .OK {
                         if let url = panel.url {
-                            appSearchManager.addPath(url.path)
+                            onAdd(url.path)
                         }
                     }
                 }) {
@@ -830,11 +881,12 @@ struct SearchPathsSettingsView: View {
                 }
                 .controlSize(.large)
                 
-                Button(L10n.t("searchpaths.reset_defaults")) {
-                    appSearchManager.resetPaths()
+                Button(L10n.t(resetTitleKey)) {
+                    onReset()
                 }
                 .controlSize(.large)
-                
+                .disabled(disableResetWhenEmpty && paths.isEmpty)
+
                 Spacer()
             }
             .padding(.top, 8)

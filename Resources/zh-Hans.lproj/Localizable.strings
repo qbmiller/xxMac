@@ -73,6 +73,10 @@
 "searchpaths.description" = "添加启动器搜索应用的目录。";
 "searchpaths.add_path" = "添加路径...";
 "searchpaths.reset_defaults" = "恢复默认";
+"searchpaths.remove_path" = "移除路径";
+"excludedpaths.description" = "添加不需要出现在启动器应用搜索结果中的目录；目录内的所有子目录也会被排除。";
+"excludedpaths.empty" = "尚未添加排除路径。";
+"excludedpaths.clear_all" = "清空全部";
 
 "hotkey.restore_defaults" = "恢复默认";
 "hotkey.type_hotkey" = "请输入快捷键...";

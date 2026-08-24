@@ -377,6 +377,7 @@ struct CommonSettingsView: View {
         let appLanguage: String?
         let launcherDefaultsToEnglishInput: Bool?
         let searchPaths: [String]?
+        let excludedSearchPaths: [String]?
         let hotKeyConfigurations: Data?
         let clearedHotKeyActions: [String]?
         let launcherAppearanceBackgroundHex: String?
@@ -408,6 +409,7 @@ struct CommonSettingsView: View {
             appLanguage: store.string(forKey: UserDefaultsKeys.appLanguage),
             launcherDefaultsToEnglishInput: store.boolObject(forKey: UserDefaultsKeys.launcherDefaultsToEnglishInput),
             searchPaths: store.stringArray(forKey: "AppSearchPaths"),
+            excludedSearchPaths: store.stringArray(forKey: "AppSearchExcludedPaths"),
             hotKeyConfigurations: store.data(forKey: "HotKeyConfigurations"),
             clearedHotKeyActions: store.stringArray(forKey: "ClearedHotKeyActions"),
             launcherAppearanceBackgroundHex: store.string(forKey: "LauncherAppearanceBackgroundHex"),
@@ -451,6 +453,10 @@ struct CommonSettingsView: View {
         if let paths = config.searchPaths {
             // AppSearchManager handles saving when property is set
             AppSearchManager.shared.searchPaths = paths
+        }
+
+        if let excludedPaths = config.excludedSearchPaths {
+            AppSearchManager.shared.excludedPaths = excludedPaths
         }
         
         if let hotKeys = config.hotKeyConfigurations {

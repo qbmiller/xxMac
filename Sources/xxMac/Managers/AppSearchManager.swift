@@ -16,13 +16,22 @@ class AppSearchManager: ObservableObject {
             scanApplications()
         }
     }
+    @Published var excludedPaths: [String] = [] {
+        didSet {
+            saveExcludedPaths()
+            guard !isLoadingExcludedPaths else { return }
+            scanApplications()
+        }
+    }
 
     private let requiredSystemPaths = AppDefaultSettings.General.appSearchPaths
     private let userDefaultsKey = "AppSearchPaths"
+    private let excludedPathsDefaultsKey = "AppSearchExcludedPaths"
     private let cacheDefaultsKey = "AppSearchIndexCacheV2"
     private var appEntries: [AppEntry] = []
     private var scanGeneration = 0
     private var isLoadingSearchPaths = false
+    private var isLoadingExcludedPaths = false
     private var appDirectoryMonitors: [AppDirectoryMonitor] = []
     private var appendWorkItem: DispatchWorkItem?
     private let spotlightApplicationFinder = SpotlightApplicationFinder()
@@ -47,10 +56,18 @@ class AppSearchManager: ObservableObject {
         let nameCompactKeys: [String]?
     }
 
-    static func shouldIndexApplicationPath(_ path: String, roots: [String]) -> Bool {
+    static func shouldIndexApplicationPath(
+        _ path: String,
+        roots: [String],
+        excludedPaths: [String] = []
+    ) -> Bool {
         let normalizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
+        let normalizedExcludedPaths = excludedPaths.map {
+            URL(fileURLWithPath: $0).standardizedFileURL.path
+        }
         guard normalizedPath.hasSuffix(".app"),
               roots.contains(where: { isPath(normalizedPath, inside: $0) }),
+              !normalizedExcludedPaths.contains(where: { isPath(normalizedPath, inside: $0) }),
               !containsNestedApplicationOrInstaller(normalizedPath, relativeTo: roots) else {
             return false
         }
@@ -64,6 +81,7 @@ class AppSearchManager: ObservableObject {
 
     private init() {
         loadSearchPaths()
+        loadExcludedPaths()
         configureAppDirectoryMonitors()
         if !loadCachedIndex() {
             scanApplications()
@@ -90,6 +108,17 @@ class AppSearchManager: ObservableObject {
         PreferencesStore.shared.set(searchPaths, forKey: userDefaultsKey)
     }
 
+    private func loadExcludedPaths() {
+        isLoadingExcludedPaths = true
+        defer { isLoadingExcludedPaths = false }
+        excludedPaths = PreferencesStore.shared.stringArray(forKey: excludedPathsDefaultsKey)
+            ?? AppDefaultSettings.General.appSearchExcludedPaths
+    }
+
+    private func saveExcludedPaths() {
+        PreferencesStore.shared.set(excludedPaths, forKey: excludedPathsDefaultsKey)
+    }
+
     @discardableResult
     private func loadCachedIndex() -> Bool {
         guard
@@ -103,7 +132,7 @@ class AppSearchManager: ObservableObject {
         let entries = cached
             .map(makeEntry(fromCached:))
             .filter { entry in
-                Self.shouldIndexApplicationPath(entry.path, roots: roots) &&
+                Self.shouldIndexApplicationPath(entry.path, roots: roots, excludedPaths: excludedPaths) &&
                 Self.applicationExists(at: entry.path)
             }
         appEntries = entries
@@ -146,6 +175,21 @@ class AppSearchManager: ObservableObject {
 
     func resetPaths() {
         searchPaths = requiredSystemPaths
+    }
+
+    func addExcludedPath(_ path: String) {
+        let normalizedPath = URL(fileURLWithPath: path).standardizedFileURL.path
+        if !excludedPaths.contains(normalizedPath) {
+            excludedPaths.append(normalizedPath)
+        }
+    }
+
+    func removeExcludedPath(_ path: String) {
+        excludedPaths.removeAll { $0 == path }
+    }
+
+    func resetExcludedPaths() {
+        excludedPaths = AppDefaultSettings.General.appSearchExcludedPaths
     }
 
     private func configureAppDirectoryMonitors() {
@@ -257,6 +301,7 @@ class AppSearchManager: ObservableObject {
     func scanApplications() {
         configureAppDirectoryMonitors()
         let pathsToScan = prioritizedPaths(searchPaths)
+        let pathsToExclude = excludedPaths
         scanGeneration += 1
         let generation = scanGeneration
         isIndexing = true
@@ -265,23 +310,43 @@ class AppSearchManager: ObservableObject {
             guard let self, generation == self.scanGeneration else { return }
             switch result {
             case .success(let paths) where !paths.isEmpty:
-                self.buildIndex(from: paths, roots: pathsToScan, generation: generation, source: "spotlight")
+                self.buildIndex(
+                    from: paths,
+                    roots: pathsToScan,
+                    excludedPaths: pathsToExclude,
+                    generation: generation,
+                    source: "spotlight"
+                )
             case .success:
                 Self.logger.debug("spotlight roots='\(pathsToScan.joined(separator: ","), privacy: .public)' returned no applications; using directory scan")
-                self.scanApplicationDirectories(pathsToScan, generation: generation)
+                self.scanApplicationDirectories(
+                    pathsToScan,
+                    excludedPaths: pathsToExclude,
+                    generation: generation
+                )
             case .failure(let error):
                 Self.logger.debug("spotlight roots='\(pathsToScan.joined(separator: ","), privacy: .public)' failed='\(error.localizedDescription, privacy: .public)'; using directory scan")
-                self.scanApplicationDirectories(pathsToScan, generation: generation)
+                self.scanApplicationDirectories(
+                    pathsToScan,
+                    excludedPaths: pathsToExclude,
+                    generation: generation
+                )
             }
         }
     }
 
-    private func buildIndex(from paths: [String], roots: [String], generation: Int, source: String) {
+    private func buildIndex(
+        from paths: [String],
+        roots: [String],
+        excludedPaths: [String],
+        generation: Int,
+        source: String
+    ) {
         DispatchQueue.global(qos: .userInitiated).async {
             let fileManager = FileManager.default
             var foundByPath: [String: AppEntry] = [:]
             for path in paths {
-                guard Self.shouldIndexApplicationPath(path, roots: roots),
+                guard Self.shouldIndexApplicationPath(path, roots: roots, excludedPaths: excludedPaths),
                       Self.applicationExists(at: path, fileManager: fileManager) else { continue }
                 foundByPath[path] = self.makeEntry(fromPath: path, fileManager: fileManager)
             }
@@ -301,7 +366,11 @@ class AppSearchManager: ObservableObject {
         }
     }
 
-    private func scanApplicationDirectories(_ pathsToScan: [String], generation: Int) {
+    private func scanApplicationDirectories(
+        _ pathsToScan: [String],
+        excludedPaths: [String],
+        generation: Int
+    ) {
         DispatchQueue.global(qos: .userInitiated).async {
             let fileManager = FileManager.default
             var paths: [String] = []
@@ -315,23 +384,38 @@ class AppSearchManager: ObservableObject {
                 paths.append(contentsOf: subpaths.compactMap { subpath in
                     guard subpath.hasSuffix(".app"), !subpath.contains(".app/") else { return nil }
                     let fullPath = (rootPath as NSString).appendingPathComponent(subpath)
-                    guard Self.shouldIndexApplicationPath(fullPath, roots: pathsToScan) else { return nil }
+                    guard Self.shouldIndexApplicationPath(
+                        fullPath,
+                        roots: pathsToScan,
+                        excludedPaths: excludedPaths
+                    ) else { return nil }
                     return fullPath
                 })
             }
 
-            self.buildIndex(from: paths, roots: pathsToScan, generation: generation, source: "directory scan")
+            self.buildIndex(
+                from: paths,
+                roots: pathsToScan,
+                excludedPaths: excludedPaths,
+                generation: generation,
+                source: "directory scan"
+            )
         }
     }
 
     private func appendNewApplications() {
         let pathsToScan = prioritizedPaths(searchPaths)
+        let pathsToExclude = excludedPaths
         let currentEntries = appEntries
 
         DispatchQueue.global(qos: .utility).async {
             let fileManager = FileManager.default
             let existingEntries = currentEntries.filter { entry in
-                Self.shouldIndexApplicationPath(entry.path, roots: pathsToScan) &&
+                Self.shouldIndexApplicationPath(
+                    entry.path,
+                    roots: pathsToScan,
+                    excludedPaths: pathsToExclude
+                ) &&
                 Self.applicationExists(at: entry.path, fileManager: fileManager)
             }
             let existingPaths = Set(existingEntries.map(\.path))
@@ -347,7 +431,11 @@ class AppSearchManager: ObservableObject {
                 for subpath in subpaths where subpath.hasSuffix(".app") && !subpath.contains(".app/") {
                     let fullPath = (rootPath as NSString).appendingPathComponent(subpath)
                     guard !seenPaths.contains(fullPath),
-                          Self.shouldIndexApplicationPath(fullPath, roots: pathsToScan),
+                          Self.shouldIndexApplicationPath(
+                              fullPath,
+                              roots: pathsToScan,
+                              excludedPaths: pathsToExclude
+                          ),
                           Self.applicationExists(at: fullPath, fileManager: fileManager) else { continue }
                     seenPaths.insert(fullPath)
                     newEntries.append(self.makeEntry(fromPath: fullPath, fileManager: fileManager))
@@ -378,7 +466,11 @@ class AppSearchManager: ObservableObject {
         }
 
         let matched = appEntries.compactMap { entry -> (entry: AppEntry, rank: Int)? in
-            guard Self.applicationExists(at: entry.path) else { return nil }
+            guard Self.shouldIndexApplicationPath(
+                entry.path,
+                roots: searchPaths,
+                excludedPaths: excludedPaths
+            ), Self.applicationExists(at: entry.path) else { return nil }
             var bestRank: Int?
 
             if !compactQuery.isEmpty {

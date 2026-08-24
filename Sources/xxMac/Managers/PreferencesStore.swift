@@ -153,6 +153,7 @@ final class PreferencesStore {
 
     private static let stringArrayKeys = [
         "AppSearchPaths",
+        "AppSearchExcludedPaths",
         "ClearedHotKeyActions"
     ]
 

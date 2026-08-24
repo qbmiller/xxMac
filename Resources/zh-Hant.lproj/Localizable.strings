@@ -73,6 +73,10 @@
 "searchpaths.description" = "新增啟動器搜尋應用的目錄。";
 "searchpaths.add_path" = "新增路徑...";
 "searchpaths.reset_defaults" = "還原預設";
+"searchpaths.remove_path" = "移除路徑";
+"excludedpaths.description" = "新增不需要出現在啟動器應用搜尋結果中的目錄；目錄內的所有子目錄也會被排除。";
+"excludedpaths.empty" = "尚未新增排除路徑。";
+"excludedpaths.clear_all" = "全部清除";
 
 "hotkey.restore_defaults" = "還原預設";
 "hotkey.type_hotkey" = "請輸入快速鍵...";

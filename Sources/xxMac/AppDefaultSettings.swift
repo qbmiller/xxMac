@@ -15,6 +15,7 @@ enum AppDefaultSettings {
         /// Whether opening the launcher selects the macOS English input source.
         static let launcherDefaultsToEnglishInput = false
         static let appSearchPaths = ["/Applications", "/System/Applications", "/System/Library/CoreServices"]
+        static let appSearchExcludedPaths: [String] = []
         static let shortcutDetectiveEnabled = false
     }
 
