@@ -61,7 +61,7 @@ final class ClipboardModelsTests: XCTestCase {
         XCTAssertEqual(payload, .imagePending)
     }
 
-    func testClipboardCapturePrioritizesFileURLsOverAdvertisedImageData() {
+    func testClipboardCapturePrioritizesImageDataOverFileURLs() {
         let fileURL = URL(fileURLWithPath: "/tmp/WebGLPipeline.7z")
 
         let payload = ClipboardCaptureDecision.payload(
@@ -69,6 +69,19 @@ final class ClipboardModelsTests: XCTestCase {
             imageData: Data([0x49, 0x49, 0x2A, 0x00]),
             fileURLs: [fileURL],
             text: "WebGLPipeline.7z"
+        )
+
+        XCTAssertEqual(payload, .image(Data([0x49, 0x49, 0x2A, 0x00])))
+    }
+
+    func testClipboardCaptureUsesFileURLsWhenImageDataIsUnavailable() {
+        let fileURL = URL(fileURLWithPath: "/tmp/WebGLPipeline.png")
+
+        let payload = ClipboardCaptureDecision.payload(
+            hasImage: true,
+            imageData: nil,
+            fileURLs: [fileURL],
+            text: "WebGLPipeline.png"
         )
 
         XCTAssertEqual(payload, .fileURLs([fileURL]))

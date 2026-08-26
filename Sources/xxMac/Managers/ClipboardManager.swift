@@ -99,11 +99,20 @@ enum ClipboardCaptureDecision {
         fileURLs: [URL],
         text: String?
     ) -> ClipboardCapturePayload {
+        if hasImage {
+            if let imageData {
+                return .image(imageData)
+            }
+            // Some providers advertise both a file URL and an image type while
+            // publishing the image bytes asynchronously. Keep real file copies
+            // usable when no image bytes are available yet.
+            if !fileURLs.isEmpty {
+                return .fileURLs(fileURLs)
+            }
+            return .imagePending
+        }
         if !fileURLs.isEmpty {
             return .fileURLs(fileURLs)
-        }
-        if hasImage {
-            return imageData.map(ClipboardCapturePayload.image) ?? .imagePending
         }
         if let text, ClipboardManager.shouldRecordText(text) {
             return .text(text)
@@ -135,18 +144,12 @@ private struct ClipboardCaptureSnapshot {
 
         let fileURLs = FilePathPasteManager.fileURLs(from: pasteboard) ?? []
         guard pasteboard.changeCount == expectedChangeCount else { return nil }
-        if !fileURLs.isEmpty {
-            return ClipboardCaptureSnapshot(
-                changeCount: expectedChangeCount,
-                payload: .fileURLs(fileURLs)
-            )
-        }
 
         let pasteboardTypes = pasteboard.types ?? []
-        let hasImage = manageImages && pasteboardTypes.contains {
+        let advertisedImage = pasteboardTypes.contains {
             preferredImageTypes.contains($0) || isImageType($0)
         }
-        let imageData = hasImage ? imageData(from: pasteboard, types: pasteboardTypes) : nil
+        let imageData = manageImages ? imageData(from: pasteboard, types: pasteboardTypes) : nil
         let text = pasteboard.string(forType: .string)
 
         guard pasteboard.changeCount == expectedChangeCount else { return nil }
@@ -154,7 +157,7 @@ private struct ClipboardCaptureSnapshot {
         return ClipboardCaptureSnapshot(
             changeCount: expectedChangeCount,
             payload: ClipboardCaptureDecision.payload(
-                hasImage: hasImage,
+                hasImage: manageImages && (advertisedImage || imageData != nil),
                 imageData: imageData,
                 fileURLs: fileURLs,
                 text: text
@@ -164,7 +167,15 @@ private struct ClipboardCaptureSnapshot {
 
     private static func imageData(from pasteboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Data? {
         for type in preferredImageTypes + types where isImageType(type) || preferredImageTypes.contains(type) {
-            if let data = pasteboard.data(forType: type) {
+            if let data = pasteboard.data(forType: type), NSImage(data: data) != nil {
+                return data
+            }
+        }
+
+        // Apps such as WeChat may publish image bytes under a private UTI.
+        // Decode unknown data instead of relying only on UTType conformance.
+        for type in types where !preferredImageTypes.contains(type) && !isImageType(type) {
+            if let data = pasteboard.data(forType: type), NSImage(data: data) != nil {
                 return data
             }
         }
