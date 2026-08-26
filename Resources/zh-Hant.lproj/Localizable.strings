@@ -290,12 +290,12 @@
 "window_action.previous_screen" = "上一螢幕";
 "window_action.toggle_launcher" = "切換啟動器";
 "window_action.paste_finder_path" = "貼上 Finder 檔案路徑";
-"clipboard_paste.desc" = "使用同一個快速鍵貼上 Finder 檔案路徑，或在 Finder 目前資料夾中將剪貼簿圖片和文字儲存為檔案。";
+"clipboard_paste.desc" = "在 Finder 外貼上已複製檔案的路徑；在 Finder 內將剪貼簿圖片和文字儲存到目前資料夾。";
 "clipboard_paste.path_title" = "貼上 Finder 檔案路徑";
-"clipboard_paste.path_desc" = "複製 Finder 中的檔案或資料夾後，在任意 App 中按此快速鍵貼上完整路徑。";
+"clipboard_paste.path_desc" = "複製 Finder 中的檔案或資料夾後，在 Finder 以外的 App 中按此快速鍵貼上完整路徑；Finder 位於最前方時會忽略檔案剪貼簿。";
 "clipboard_paste.image_title" = "圖片轉檔案";
 "clipboard_paste.image_enabled" = "啟用圖片轉檔案";
-"clipboard_paste.image_desc" = "在 Finder 中按共用快速鍵，將截圖或剪貼簿原始圖片儲存為 PNG；複製的圖片檔案仍按檔案路徑處理。";
+"clipboard_paste.image_desc" = "在 Finder 中按共用快速鍵，將截圖或剪貼簿原始圖片儲存為 PNG；複製的圖片檔案會被忽略。";
 "clipboard_paste.text_title" = "文字轉檔案";
 "clipboard_paste.text_enabled" = "啟用文字轉檔案";
 "clipboard_paste.text_desc" = "在 Finder 中按共用快速鍵，將純文字儲存為 UTF-8 檔案；可識別 JSON、plist、XML、YAML、TOML、INI 和 ENV。";

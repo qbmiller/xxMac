@@ -42,7 +42,7 @@ final class FinderPasteOperationModelsTests: XCTestCase {
         XCTAssertEqual(settings.textCounter.nextNumber(on: date, calendar: calendar), 4)
     }
 
-    func testFilesAlwaysRouteToPathPaste() {
+    func testFilesRouteToPathPasteOutsideFinder() {
         let urls = [URL(fileURLWithPath: "/tmp/a.png")]
 
         XCTAssertEqual(
@@ -52,6 +52,19 @@ final class FinderPasteOperationModelsTests: XCTestCase {
                 settings: .init(imageEnabled: true, textEnabled: true)
             ),
             .pastePaths(urls)
+        )
+    }
+
+    func testFilesDoNothingInsideFinder() {
+        let urls = [URL(fileURLWithPath: "/tmp/WebGLPipeline.7z")]
+
+        XCTAssertEqual(
+            FinderPasteRoutingPolicy.route(
+                payload: .fileURLs(urls),
+                isFinderFrontmost: true,
+                settings: .init(imageEnabled: true, textEnabled: true)
+            ),
+            .none
         )
     }
 

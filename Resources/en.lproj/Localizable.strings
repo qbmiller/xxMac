@@ -290,12 +290,12 @@
 "window_action.previous_screen" = "Previous Screen";
 "window_action.toggle_launcher" = "Toggle Launcher";
 "window_action.paste_finder_path" = "Paste Finder File Path";
-"clipboard_paste.desc" = "Use one hotkey to paste Finder file paths or save clipboard images and text as files in the current Finder folder.";
+"clipboard_paste.desc" = "Outside Finder, paste copied file paths. In Finder, save clipboard images and text as files in the current folder.";
 "clipboard_paste.path_title" = "Paste Finder File Paths";
-"clipboard_paste.path_desc" = "After copying files or folders in Finder, press this hotkey in any app to paste their full paths.";
+"clipboard_paste.path_desc" = "After copying files or folders in Finder, press this hotkey outside Finder to paste their full paths. File clipboard content is ignored while Finder is frontmost.";
 "clipboard_paste.image_title" = "Image to File";
 "clipboard_paste.image_enabled" = "Enable image to file";
-"clipboard_paste.image_desc" = "In Finder, press the shared hotkey to save screenshots or raw clipboard images as PNG. Copied image files remain file paths.";
+"clipboard_paste.image_desc" = "In Finder, press the shared hotkey to save screenshots or raw clipboard images as PNG. Copied image files are ignored.";
 "clipboard_paste.text_title" = "Text to File";
 "clipboard_paste.text_enabled" = "Enable text to file";
 "clipboard_paste.text_desc" = "In Finder, press the shared hotkey to save plain text as a UTF-8 file. JSON, plist, XML, YAML, TOML, INI, and ENV can be detected.";

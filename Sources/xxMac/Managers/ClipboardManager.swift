@@ -99,11 +99,11 @@ enum ClipboardCaptureDecision {
         fileURLs: [URL],
         text: String?
     ) -> ClipboardCapturePayload {
-        if hasImage {
-            return imageData.map(ClipboardCapturePayload.image) ?? .imagePending
-        }
         if !fileURLs.isEmpty {
             return .fileURLs(fileURLs)
+        }
+        if hasImage {
+            return imageData.map(ClipboardCapturePayload.image) ?? .imagePending
         }
         if let text, ClipboardManager.shouldRecordText(text) {
             return .text(text)
@@ -133,15 +133,20 @@ private struct ClipboardCaptureSnapshot {
     ) -> ClipboardCaptureSnapshot? {
         guard pasteboard.changeCount == expectedChangeCount else { return nil }
 
+        let fileURLs = FilePathPasteManager.fileURLs(from: pasteboard) ?? []
+        guard pasteboard.changeCount == expectedChangeCount else { return nil }
+        if !fileURLs.isEmpty {
+            return ClipboardCaptureSnapshot(
+                changeCount: expectedChangeCount,
+                payload: .fileURLs(fileURLs)
+            )
+        }
+
         let pasteboardTypes = pasteboard.types ?? []
         let hasImage = manageImages && pasteboardTypes.contains {
             preferredImageTypes.contains($0) || isImageType($0)
         }
         let imageData = hasImage ? imageData(from: pasteboard, types: pasteboardTypes) : nil
-        let fileURLs = pasteboard.readObjects(
-            forClasses: [NSURL.self],
-            options: [.urlReadingFileURLsOnly: true]
-        ) as? [URL] ?? []
         let text = pasteboard.string(forType: .string)
 
         guard pasteboard.changeCount == expectedChangeCount else { return nil }

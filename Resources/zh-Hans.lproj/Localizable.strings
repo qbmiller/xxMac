@@ -290,12 +290,12 @@
 "window_action.previous_screen" = "上一屏";
 "window_action.toggle_launcher" = "切换启动器";
 "window_action.paste_finder_path" = "粘贴 Finder 文件路径";
-"clipboard_paste.desc" = "使用同一个快捷键粘贴 Finder 文件路径，或在 Finder 当前文件夹中将剪贴板图片和文本保存为文件。";
+"clipboard_paste.desc" = "在 Finder 外粘贴已复制文件的路径；在 Finder 内将剪贴板图片和文本保存到当前文件夹。";
 "clipboard_paste.path_title" = "粘贴 Finder 文件路径";
-"clipboard_paste.path_desc" = "复制 Finder 中的文件或文件夹后，在任意应用中按此快捷键粘贴完整路径。";
+"clipboard_paste.path_desc" = "复制 Finder 中的文件或文件夹后，在 Finder 以外的应用中按此快捷键粘贴完整路径；Finder 位于前台时会忽略文件剪贴板。";
 "clipboard_paste.image_title" = "图片转文件";
 "clipboard_paste.image_enabled" = "启用图片转文件";
-"clipboard_paste.image_desc" = "在 Finder 中按共用快捷键，将截图或剪贴板原始图片保存为 PNG；复制的图片文件仍按文件路径处理。";
+"clipboard_paste.image_desc" = "在 Finder 中按共用快捷键，将截图或剪贴板原始图片保存为 PNG；复制的图片文件会被忽略。";
 "clipboard_paste.text_title" = "文本转文件";
 "clipboard_paste.text_enabled" = "启用文本转文件";
 "clipboard_paste.text_desc" = "在 Finder 中按共用快捷键，将纯文本保存为 UTF-8 文件；可识别 JSON、plist、XML、YAML、TOML、INI 和 ENV。";

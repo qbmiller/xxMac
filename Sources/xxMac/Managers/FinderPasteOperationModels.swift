@@ -83,7 +83,8 @@ enum FinderPasteRoutingPolicy {
     ) -> FinderPasteRoute {
         switch payload {
         case .fileURLs(let urls):
-            return urls.isEmpty ? .none : .pastePaths(urls)
+            guard !isFinderFrontmost, !urls.isEmpty else { return .none }
+            return .pastePaths(urls)
         case .image(let data):
             guard isFinderFrontmost, settings.imageEnabled else { return .none }
             return .saveImage(data)

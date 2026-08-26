@@ -560,8 +560,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         launcherPanel.isOpaque = false
         launcherPanel.hasShadow = true
         launcherPanel.level = launcherRestingLevel
-        launcherPanel.center()
-        launcherPanel.isMovableByWindowBackground = false
+        launcherPanel.setFrameAutosaveName("LauncherPanel")
+        if !launcherPanel.setFrameUsingName("LauncherPanel") {
+            launcherPanel.center()
+        }
+        launcherPanel.isMovable = true
+        launcherPanel.isMovableByWindowBackground = true
         launcherPanel.becomesKeyOnlyIfNeeded = false
         launcherPanel.hidesOnDeactivate = false
         launcherPanel.isReleasedWhenClosed = false
@@ -1097,7 +1101,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         logLauncherState("bringLauncherToFront.before")
         prepareLauncherPanelForPresentation()
         updateLauncherPanelFrame(keepingCenter: false)
-        launcherPanel.center()
         launcherPanel.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         launcherPanel.makeKeyAndOrderFront(nil)
