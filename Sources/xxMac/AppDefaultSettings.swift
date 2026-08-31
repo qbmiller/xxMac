@@ -17,6 +17,8 @@ enum AppDefaultSettings {
         static let appSearchPaths = ["/Applications", "/System/Applications", "/System/Library/CoreServices"]
         static let appSearchExcludedPaths: [String] = []
         static let shortcutDetectiveEnabled = false
+        /// Whether Keymap listens for a double Command press and shows app menus.
+        static let keymapEnabled = false
     }
 
     enum Clipboard {

@@ -181,6 +181,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
 
     // Shortcut Detective
     case shortcutDetectiveGeneral = "function.shortcut.detective"
+    case keymap = "function.shortcut.keymap"
     
     // Clipboard
     case clipboardPasteOperations = "function.clipboard.paste_operations"
@@ -222,6 +223,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
         case .browserSearch: return "safari"
         case .wmShortcuts: return "keyboard"
         case .shortcutDetectiveGeneral: return "eye"
+        case .keymap: return "command.square"
         case .clipboardPasteOperations: return "doc.on.doc"
         case .clipboardHistory: return "clock"
         case .snippetsLibrary: return "text.quote"
@@ -272,7 +274,8 @@ struct ToolOption: Identifiable, Hashable {
             ToolFunction(type: .wmGeneral)
         ]),
         ToolOption(type: .shortcutDetective, functions: [
-            ToolFunction(type: .shortcutDetectiveGeneral)
+            ToolFunction(type: .shortcutDetectiveGeneral),
+            ToolFunction(type: .keymap)
         ]),
         ToolOption(type: .clipboard, functions: [
             ToolFunction(type: .clipboardPasteOperations),

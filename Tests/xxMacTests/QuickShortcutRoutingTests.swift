@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 @testable import xxMac
 
 final class QuickShortcutRoutingTests: XCTestCase {
@@ -61,6 +62,22 @@ final class QuickShortcutRoutingTests: XCTestCase {
         }
     }
 
+    func testWebSearchExecutionSchedulesBrowserOpenWithoutBlockingCaller() {
+        let opened = expectation(description: "browser URL opened")
+        var openedURL: URL?
+        let manager = QuickShortcutManager(openURLHandler: { url in
+            openedURL = url
+            opened.fulfill()
+        })
+        let item = makeShortcut(actionType: .webSearch)
+
+        manager.execute(item: item, query: "cebian")
+
+        XCTAssertNil(openedURL)
+        wait(for: [opened], timeout: 1)
+        XCTAssertEqual(openedURL?.absoluteString, "https://example.com/search?q=cebian")
+    }
+
     private func makeShortcut(
         actionType: QuickShortcutActionType,
         commandInputMode: QuickShortcutCommandInputMode = .queryPlaceholder
@@ -69,7 +86,7 @@ final class QuickShortcutRoutingTests: XCTestCase {
             title: "Test Shortcut",
             keyword: "db",
             actionType: actionType,
-            payload: "",
+            payload: actionType == .webSearch ? "https://example.com/search?q={query}" : "",
             commandInputMode: commandInputMode
         )
     }

@@ -106,6 +106,17 @@
 "shortcut.detected_shortcut" = "偵測到快速鍵";
 "shortcut.unknown_app" = "未知應用";
 "shortcut.unknown_bundle" = "未知 Bundle ID";
+"function.shortcut.keymap" = "Keymap";
+"keymap.enable" = "啟用 Keymap";
+"keymap.desc" = "雙按 Command 顯示目前應用程式的選單快速鍵，無需手動設定。";
+"keymap.trigger" = "觸發方式：雙按 ⌘";
+"keymap.no_app" = "目前應用程式";
+"keymap.subtitle" = "目前應用程式選單快速鍵";
+"keymap.refresh" = "重新整理";
+"keymap.search" = "搜尋選單或快速鍵";
+"keymap.empty" = "找不到選單快速鍵";
+"keymap.accessibility_required" = "Keymap 需要「輔助功能」存取權限才能讀取應用程式選單。";
+"keymap.accessibility_granted" = "已取得輔助功能存取權限。";
 
 "about.author_label" = "作者";
 "about.version_label" = "版本";

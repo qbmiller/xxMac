@@ -390,6 +390,7 @@ struct CommonSettingsView: View {
         let quickShortcutItems: Data?
         let clipboardSettings: Data?
         let shortcutDetectiveEnabled: Bool?
+        let keymapEnabled: Bool?
         let snippetSettings: Data?
         let snippetCollections: Data?
         let snippetEntries: Data?
@@ -422,6 +423,7 @@ struct CommonSettingsView: View {
             quickShortcutItems: store.data(forKey: "QuickShortcutItems"),
             clipboardSettings: store.data(forKey: "ClipboardSettings"),
             shortcutDetectiveEnabled: store.boolObject(forKey: "ShortcutDetectiveEnabled"),
+            keymapEnabled: store.boolObject(forKey: "KeymapEnabled"),
             snippetSettings: store.data(forKey: "SnippetSettings"),
             snippetCollections: store.data(forKey: "SnippetCollections"),
             snippetEntries: store.data(forKey: "SnippetEntries"),
@@ -510,6 +512,10 @@ struct CommonSettingsView: View {
 
         if let shortcutDetectiveEnabled = config.shortcutDetectiveEnabled {
             ShortcutDetectiveManager.shared.isEnabled = shortcutDetectiveEnabled
+        }
+
+        if let keymapEnabled = config.keymapEnabled {
+            KeymapManager.shared.isEnabled = keymapEnabled
         }
 
         if let snippetSettingsData = config.snippetSettings,

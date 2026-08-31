@@ -138,6 +138,21 @@ class FloatingPanel: NSPanel {
     }
 }
 
+enum LauncherPanelFramePolicy {
+    static func resizedFrame(
+        currentFrame: NSRect,
+        newSize: NSSize,
+        preserveVisiblePosition: Bool
+    ) -> NSRect {
+        var frame = NSRect(origin: currentFrame.origin, size: newSize)
+        guard preserveVisiblePosition else { return frame }
+
+        frame.origin.x = currentFrame.midX - newSize.width / 2
+        frame.origin.y = currentFrame.maxY - newSize.height
+        return frame
+    }
+}
+
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     private static let launcherLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherPanel")
@@ -166,6 +181,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private var previousFrontmostApp: NSRunningApplication?
     private var lastOpenFallbackAtByBundleID: [String: Date] = [:]
     private let openFallbackCooldown: TimeInterval = 3
+    private var restoresAccessoryPolicyAfterSettingsClose = false
     private let launcherRestingLevel: NSWindow.Level = .floating
     private let launcherPresentationLevel: NSWindow.Level = .statusBar
 
@@ -242,6 +258,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
         // Request accessibility permissions (critical for hotkeys to work)
         _ = AccessibilityManager.shared.checkAccessibilityPermissions()
+        _ = KeymapManager.shared
         // if !hasAccessibility {
         //     let alert = NSAlert()
         //     alert.messageText = "Accessibility Permission Required"
@@ -583,7 +600,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         }
 
         bindLauncherPanelSizing()
-        updateLauncherPanelFrame(keepingCenter: false)
+        updateLauncherPanelFrame(preserveVisiblePosition: false)
     }
 
     private func bindLauncherPanelSizing() {
@@ -602,12 +619,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         Publishers.MergeMany(updates)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.updateLauncherPanelFrame(keepingCenter: self?.launcherPanel.isVisible == true)
+                self?.updateLauncherPanelFrame(preserveVisiblePosition: self?.launcherPanel.isVisible == true)
             }
             .store(in: &launcherPanelCancellables)
     }
 
-    private func updateLauncherPanelFrame(keepingCenter: Bool) {
+    private func updateLauncherPanelFrame(preserveVisiblePosition: Bool) {
         guard launcherPanel != nil else { return }
 
         let appearance = LauncherAppearanceManager.shared
@@ -646,15 +663,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             height = CGFloat(contentHeight)
         }
 
-        let currentFrame = launcherPanel.frame
-        let center = NSPoint(x: currentFrame.midX, y: currentFrame.midY)
-        var newFrame = NSRect(origin: currentFrame.origin, size: NSSize(width: width, height: height))
-
-        if keepingCenter {
-            newFrame.origin.x = center.x - width / 2
-            newFrame.origin.y = center.y - height / 2
-        }
-
+        let newFrame = LauncherPanelFramePolicy.resizedFrame(
+            currentFrame: launcherPanel.frame,
+            newSize: NSSize(width: width, height: height),
+            preserveVisiblePosition: preserveVisiblePosition
+        )
         launcherPanel.setFrame(newFrame, display: true)
     }
 
@@ -799,6 +812,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private func openSettingsWindow(initialTool: ToolType?) {
         dismissLauncherBeforeOpeningSettings()
 
+        // LSUIElement keeps xxMac as a menu-bar-only app. Temporarily use a
+        // regular activation policy while Settings is visible so macOS builds
+        // the standard application menu next to the Apple menu.
+        if NSApp.activationPolicy() != .regular {
+            restoresAccessoryPolicyAfterSettingsClose = true
+            NSApp.setActivationPolicy(.regular)
+        }
+
         if settingsWindow == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 1180, height: 720),
@@ -810,6 +831,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             window.title = L10n.t("window.settings")
             window.contentView = NSHostingView(rootView: SettingsView(initialTool: initialTool))
             configureSettingsWindow(window)
+            window.delegate = self
             window.setFrameAutosaveName("SettingsWindow")
             window.isReleasedWhenClosed = false
             settingsWindow = window
@@ -833,6 +855,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     private func configureSettingsWindow(_ window: NSWindow) {
         SettingsWindowConfiguration.apply(to: window)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === settingsWindow else { return }
+        guard restoresAccessoryPolicyAfterSettingsClose else { return }
+
+        restoresAccessoryPolicyAfterSettingsClose = false
+        // Defer until AppKit finishes removing the window, otherwise the menu
+        // can briefly disappear before the close animation completes.
+        DispatchQueue.main.async {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     @objc func lockAI() {
@@ -1100,7 +1134,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
               launcherPanel.isVisible.description)
         logLauncherState("bringLauncherToFront.before")
         prepareLauncherPanelForPresentation()
-        updateLauncherPanelFrame(keepingCenter: false)
+        updateLauncherPanelFrame(preserveVisiblePosition: false)
         launcherPanel.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         launcherPanel.makeKeyAndOrderFront(nil)

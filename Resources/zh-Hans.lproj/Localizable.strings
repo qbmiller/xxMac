@@ -106,6 +106,17 @@
 "shortcut.detected_shortcut" = "检测到快捷键";
 "shortcut.unknown_app" = "未知应用";
 "shortcut.unknown_bundle" = "未知 Bundle ID";
+"function.shortcut.keymap" = "Keymap";
+"keymap.enable" = "启用 Keymap";
+"keymap.desc" = "双按 Command 呼出当前应用的菜单快捷键，无需手动设置。";
+"keymap.trigger" = "触发方式：双按 ⌘";
+"keymap.no_app" = "当前应用";
+"keymap.subtitle" = "当前应用菜单快捷键";
+"keymap.refresh" = "刷新";
+"keymap.search" = "搜索菜单或快捷键";
+"keymap.empty" = "未找到菜单快捷键";
+"keymap.accessibility_required" = "Keymap 需要“辅助功能”访问权限才能读取应用菜单。";
+"keymap.accessibility_granted" = "已获得辅助功能访问权限。";
 
 "about.author_label" = "作者";
 "about.version_label" = "版本";

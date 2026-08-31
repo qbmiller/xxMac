@@ -17,6 +17,7 @@ final class QuickShortcutManager: ObservableObject {
     private let storageKey = "QuickShortcutItems"
     private let iconCache = QuickShortcutIconCacheManager.shared
     private var registeredKeywordIDs = Set<UUID>()
+    private let openURLHandler: (URL) -> Void
 
     struct Match {
         let item: QuickShortcut
@@ -45,7 +46,8 @@ final class QuickShortcutManager: ObservableObject {
         let isExplicit: Bool
     }
 
-    private init() {
+    init(openURLHandler: @escaping (URL) -> Void = { NSWorkspace.shared.open($0) }) {
+        self.openURLHandler = openURLHandler
         loadItems()
     }
 
@@ -278,7 +280,11 @@ final class QuickShortcutManager: ObservableObject {
             Self.logger.error("Invalid web shortcut URL template: \(urlString, privacy: .public)")
             return
         }
-        NSWorkspace.shared.open(url)
+        // Let the launcher finish closing and return control to the active app before
+        // Launch Services resolves or wakes the browser, which may block briefly.
+        DispatchQueue.main.async { [openURLHandler] in
+            openURLHandler(url)
+        }
     }
 
     func runCommandScript(item: QuickShortcut, query: String, completion: @escaping (String) -> Void) {

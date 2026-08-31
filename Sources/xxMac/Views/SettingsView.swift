@@ -656,6 +656,8 @@ struct ConfigurationView: View {
             HotKeySettingsView()
         case .shortcutDetectiveGeneral:
             ShortcutDetectiveSettingsView()
+        case .keymap:
+            KeymapSettingsView()
         case .clipboardGeneral:
             ClipboardSettingsView()
         case .clipboardPasteOperations:

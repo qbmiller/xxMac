@@ -106,6 +106,17 @@
 "shortcut.detected_shortcut" = "Detected Shortcut";
 "shortcut.unknown_app" = "Unknown App";
 "shortcut.unknown_bundle" = "Unknown Bundle ID";
+"function.shortcut.keymap" = "Keymap";
+"keymap.enable" = "Enable Keymap";
+"keymap.desc" = "Double-press Command to show the current app's menu shortcuts. No manual setup required.";
+"keymap.trigger" = "Trigger: double-press ⌘";
+"keymap.no_app" = "Current App";
+"keymap.subtitle" = "Menu shortcuts in the current app";
+"keymap.refresh" = "Refresh";
+"keymap.search" = "Search menus or shortcuts";
+"keymap.empty" = "No menu shortcuts found";
+"keymap.accessibility_required" = "Keymap requires Accessibility access to read application menus.";
+"keymap.accessibility_granted" = "Accessibility access is granted.";
 
 "about.author_label" = "Author";
 "about.version_label" = "Version";

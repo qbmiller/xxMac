@@ -172,6 +172,7 @@ final class PreferencesStore {
         "GeneralShowMenuBarItem",
         "LauncherDefaultsToEnglishInput",
         "ShortcutDetectiveEnabled",
+        "KeymapEnabled",
         "CalendarShowLunar",
         "CalendarShowWeekNumbers",
         "BrowserSearchEnabled"
