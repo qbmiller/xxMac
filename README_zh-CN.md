@@ -93,8 +93,9 @@ swift run xxMac
 
 ```bash
 bash bundle_app.sh
-open xxMac.app
 ```
+
+打包完成后脚本会询问是否覆盖 `/Applications/xxMac.app`，默认不覆盖。输入 `y` 或 `yes` 后，脚本会自动关闭当前运行的 xxMac，复制新应用覆盖旧应用，并重新打开；也可以使用 `INSTALL_TO_APPLICATIONS=1 bash bundle_app.sh` 跳过确认并自动覆盖。
 
 发布为 `.dmg`：
 

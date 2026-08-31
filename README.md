@@ -93,8 +93,9 @@ Bundle as an `.app`:
 
 ```bash
 bash bundle_app.sh
-open xxMac.app
 ```
+
+After bundling, the script asks whether to replace `/Applications/xxMac.app`; the default is no. Enter `y` or `yes` to close the running xxMac, replace the installed app, and reopen it automatically. Use `INSTALL_TO_APPLICATIONS=1 bash bundle_app.sh` to explicitly skip the prompt and replace it automatically.
 
 Build a `.dmg` release:
 
