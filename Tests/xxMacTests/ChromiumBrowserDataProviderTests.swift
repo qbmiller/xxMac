@@ -37,6 +37,17 @@ final class ChromiumBrowserDataProviderTests: XCTestCase {
         XCTAssertEqual(records.first?.url.absoluteString, "https://github.com")
     }
 
+    func testSearchesAccountBookmarksWhenBookmarksFileIsUnavailable() throws {
+        let profileURL = userDataURL.appendingPathComponent("Default")
+        try FileManager.default.createDirectory(at: profileURL, withIntermediateDirectories: true)
+        let accountBookmarks = #"{"roots":{"bookmark_bar":{"children":[{"type":"url","name":"Account Swift","url":"https://swift.org"}]}}}"#
+        try Data(accountBookmarks.utf8).write(to: profileURL.appendingPathComponent("AccountBookmarks"))
+
+        let records = try makeProvider().searchBookmarks(query: "account", limit: 10)
+
+        XCTAssertEqual(records.map(\.title), ["Account Swift"])
+    }
+
     func testSearchesHistoryInRecentOrderAndCleansTemporaryCopy() throws {
         let profileURL = try writeProfileFiles(bookmarks: #"{"roots":{}}"#)
         try createHistoryDatabase(at: profileURL.appendingPathComponent("History"))

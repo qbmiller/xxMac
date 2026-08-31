@@ -27,8 +27,8 @@ final class ChromiumBrowserDataProvider: BrowserDataProvider {
     }
 
     func searchBookmarks(query: String, limit: Int) throws -> [BrowserRecord] {
-        let bookmarksURL = currentProfileDirectory().appendingPathComponent("Bookmarks")
-        guard fileManager.fileExists(atPath: bookmarksURL.path) else {
+        let profileDirectory = currentProfileDirectory()
+        guard let bookmarksURL = bookmarksFileURL(in: profileDirectory) else {
             throw BrowserDataError.bookmarksUnavailable
         }
 
@@ -122,6 +122,13 @@ final class ChromiumBrowserDataProvider: BrowserDataProvider {
             ))
         }
         return records
+    }
+
+    private func bookmarksFileURL(in profileDirectory: URL) -> URL? {
+        // Newer Chrome profiles may store synced bookmarks in AccountBookmarks.
+        ["Bookmarks", "AccountBookmarks", "Bookmarks.bak"]
+            .map { profileDirectory.appendingPathComponent($0) }
+            .first { fileManager.fileExists(atPath: $0.path) }
     }
 
     private func lastUsedProfileName() -> String {

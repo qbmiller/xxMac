@@ -142,13 +142,36 @@ enum LauncherPanelFramePolicy {
     static func resizedFrame(
         currentFrame: NSRect,
         newSize: NSSize,
-        preserveVisiblePosition: Bool
+        preserveVisiblePosition: Bool,
+        visibleFrame: NSRect? = nil
     ) -> NSRect {
         var frame = NSRect(origin: currentFrame.origin, size: newSize)
-        guard preserveVisiblePosition else { return frame }
 
-        frame.origin.x = currentFrame.midX - newSize.width / 2
-        frame.origin.y = currentFrame.maxY - newSize.height
+        if preserveVisiblePosition {
+            frame.origin.x = currentFrame.midX - newSize.width / 2
+            frame.origin.y = currentFrame.maxY - newSize.height
+        }
+
+        guard let visibleFrame else { return frame }
+
+        if frame.width <= visibleFrame.width {
+            frame.origin.x = min(
+                max(frame.origin.x, visibleFrame.minX),
+                visibleFrame.maxX - frame.width
+            )
+        } else {
+            frame.origin.x = visibleFrame.minX
+        }
+
+        if frame.height <= visibleFrame.height {
+            frame.origin.y = min(
+                max(frame.origin.y, visibleFrame.minY),
+                visibleFrame.maxY - frame.height
+            )
+        } else {
+            frame.origin.y = visibleFrame.minY
+        }
+
         return frame
     }
 }
@@ -157,6 +180,8 @@ enum LauncherPanelFramePolicy {
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     private static let launcherLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "LauncherPanel")
     private static let menuBarLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "MenuBar")
+    private static let launcherPanelAnchorDefaultsKey = "LauncherPanelAnchor"
+    private static let launcherPanelPositionDefaultsKey = "LauncherPanelPosition"
 
     var statusItem: NSStatusItem?
     var launcherPanel: NSPanel!
@@ -182,6 +207,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private var lastOpenFallbackAtByBundleID: [String: Date] = [:]
     private let openFallbackCooldown: TimeInterval = 3
     private var restoresAccessoryPolicyAfterSettingsClose = false
+    private var isUpdatingLauncherPanelFrame = false
+    private var launcherPanelAnchor: NSPoint?
     private let launcherRestingLevel: NSWindow.Level = .floating
     private let launcherPresentationLevel: NSWindow.Level = .statusBar
 
@@ -577,9 +604,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         launcherPanel.isOpaque = false
         launcherPanel.hasShadow = true
         launcherPanel.level = launcherRestingLevel
-        launcherPanel.setFrameAutosaveName("LauncherPanel")
-        if !launcherPanel.setFrameUsingName("LauncherPanel") {
+        let restoredLegacyFrame = launcherPanel.setFrameUsingName("LauncherPanel")
+        if !restoredLegacyFrame {
             launcherPanel.center()
+        }
+        launcherPanelAnchor = loadLauncherPanelAnchor()
+        if launcherPanelAnchor == nil, restoredLegacyFrame {
+            launcherPanelAnchor = launcherPanelAnchor(for: launcherPanel.frame)
         }
         launcherPanel.isMovable = true
         launcherPanel.isMovableByWindowBackground = true
@@ -601,6 +632,51 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
         bindLauncherPanelSizing()
         updateLauncherPanelFrame(preserveVisiblePosition: false)
+    }
+
+    private func loadLauncherPanelAnchor() -> NSPoint? {
+        let defaults = UserDefaults.standard
+        if let anchor = point(from: defaults.object(forKey: Self.launcherPanelAnchorDefaultsKey)) {
+            return anchor
+        }
+
+        if let position = point(from: defaults.object(forKey: Self.launcherPanelPositionDefaultsKey)) {
+            let legacyFrame = launcherPanel?.frame ?? .zero
+            return NSPoint(
+                x: position.x + legacyFrame.width / 2,
+                y: position.y + legacyFrame.height
+            )
+        }
+
+        return nil
+    }
+
+    private func point(from value: Any?) -> NSPoint? {
+        guard let values = value as? [NSNumber], values.count >= 2 else {
+            return nil
+        }
+        return NSPoint(x: CGFloat(values[0].doubleValue), y: CGFloat(values[1].doubleValue))
+    }
+
+    private func launcherPanelAnchor(for frame: NSRect) -> NSPoint {
+        NSPoint(x: frame.midX, y: frame.maxY)
+    }
+
+    private func saveLauncherPanelAnchor(_ anchor: NSPoint) {
+        UserDefaults.standard.set([anchor.x, anchor.y], forKey: Self.launcherPanelAnchorDefaultsKey)
+    }
+
+    private func launcherVisibleFrame() -> NSRect? {
+        if let screen = launcherPanel.screen {
+            return screen.visibleFrame
+        }
+
+        if let anchor = launcherPanelAnchor,
+           let screen = NSScreen.screens.first(where: { $0.frame.contains(anchor) }) {
+            return screen.visibleFrame
+        }
+
+        return NSScreen.main?.visibleFrame
     }
 
     private func bindLauncherPanelSizing() {
@@ -663,12 +739,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             height = CGFloat(contentHeight)
         }
 
+        let currentFrame: NSRect
+        if let anchor = launcherPanelAnchor {
+            currentFrame = NSRect(
+                x: anchor.x - width / 2,
+                y: anchor.y - height,
+                width: width,
+                height: height
+            )
+        } else {
+            currentFrame = launcherPanel.frame
+        }
+
         let newFrame = LauncherPanelFramePolicy.resizedFrame(
-            currentFrame: launcherPanel.frame,
+            currentFrame: currentFrame,
             newSize: NSSize(width: width, height: height),
-            preserveVisiblePosition: preserveVisiblePosition
+            preserveVisiblePosition: launcherPanelAnchor != nil || preserveVisiblePosition,
+            visibleFrame: launcherVisibleFrame()
         )
+        isUpdatingLauncherPanelFrame = true
         launcherPanel.setFrame(newFrame, display: true)
+        isUpdatingLauncherPanelFrame = false
+        let newAnchor = launcherPanelAnchor(for: newFrame)
+        launcherPanelAnchor = newAnchor
+        saveLauncherPanelAnchor(newAnchor)
     }
 
     private func handleLauncherKeyDown(_ event: NSEvent) -> Bool {
@@ -1134,7 +1228,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
               launcherPanel.isVisible.description)
         logLauncherState("bringLauncherToFront.before")
         prepareLauncherPanelForPresentation()
-        updateLauncherPanelFrame(preserveVisiblePosition: false)
+        updateLauncherPanelFrame(preserveVisiblePosition: launcherPanel.isVisible)
         launcherPanel.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
         launcherPanel.makeKeyAndOrderFront(nil)
@@ -1251,6 +1345,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
                 NotificationCenter.default.post(name: NSNotification.Name("FocusLauncherSearch"), object: nil)
             }
         }
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow,
+              window == launcherPanel,
+              !isUpdatingLauncherPanelFrame,
+              !isOpeningLauncher else {
+            return
+        }
+
+        let anchor = launcherPanelAnchor(for: window.frame)
+        launcherPanelAnchor = anchor
+        saveLauncherPanelAnchor(anchor)
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
