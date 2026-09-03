@@ -52,6 +52,9 @@ xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具�
   <img src="docs/images/image.png" width="45%" alt="">
 </p>
 
+## 友情链接
+- [亚洲规模最大的大模型 API 网关之一，全球规模仅次于 OpenRouter](https://www.orcarouter.ai/ref/ref_d47b119eebf4f9e2efd8)也长期提供免费模型使用
+
 ## 默认快捷键
 
 | 快捷键 | 动作 |
