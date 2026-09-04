@@ -6,6 +6,13 @@ APP_NAME="${APP_NAME:-xxMac}"
 APP_BUNDLE="${APP_NAME}.app"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:-qbmiller}"
+GH_BIN="${GH_BIN:-gh}"
+PUBLISH_GITHUB_RELEASE="${PUBLISH_GITHUB_RELEASE:-}"
+GITHUB_RELEASE_TITLE="${GITHUB_RELEASE_TITLE:-}"
+GITHUB_RELEASE_NOTES="${GITHUB_RELEASE_NOTES:-}"
+GITHUB_RELEASE_CONFIRM="${GITHUB_RELEASE_CONFIRM:-}"
+RELEASE_TAG="${RELEASE_TAG:-}"
+RELEASE_NOTES_FILE=""
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFO_PLIST="${SCRIPT_DIR}/Sources/xxMac/Info.plist"
@@ -14,6 +21,9 @@ STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/${APP_NAME}.dmg.XXXXXX")"
 
 cleanup() {
   rm -rf "$STAGING_DIR"
+  if [[ -n "$RELEASE_NOTES_FILE" ]]; then
+    rm -f "$RELEASE_NOTES_FILE"
+  fi
 }
 trap cleanup EXIT
 
@@ -48,6 +58,56 @@ if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
   echo "Invalid version: $RELEASE_VERSION"
   echo "Use numeric versions like 0.0.1 or 1.2.3."
   exit 1
+fi
+
+if [[ -z "$PUBLISH_GITHUB_RELEASE" ]]; then
+  read -r -p "Create GitHub Release after DMG verification? [y/N] " PUBLISH_GITHUB_RELEASE
+fi
+
+case "$PUBLISH_GITHUB_RELEASE" in
+  y|Y|yes|Yes|YES|1|true|TRUE)
+    PUBLISH_GITHUB_RELEASE=1
+    ;;
+  *)
+    PUBLISH_GITHUB_RELEASE=0
+    ;;
+esac
+
+if [[ "$PUBLISH_GITHUB_RELEASE" == "1" ]]; then
+  if ! command -v "$GH_BIN" >/dev/null 2>&1; then
+    echo "GitHub CLI not found: $GH_BIN"
+    echo "Install gh first, then run: gh auth login -h github.com"
+    exit 1
+  fi
+
+  if ! "$GH_BIN" auth status >/dev/null 2>&1; then
+    echo "GitHub CLI is not authenticated."
+    echo "Run: gh auth login -h github.com"
+    exit 1
+  fi
+
+  RELEASE_TAG="${RELEASE_TAG:-$RELEASE_VERSION}"
+  DEFAULT_RELEASE_TITLE="${APP_NAME} ${RELEASE_VERSION}"
+  if [[ -z "$GITHUB_RELEASE_TITLE" ]]; then
+    read -r -p "Release title [${DEFAULT_RELEASE_TITLE}]: " GITHUB_RELEASE_TITLE
+    GITHUB_RELEASE_TITLE="${GITHUB_RELEASE_TITLE:-$DEFAULT_RELEASE_TITLE}"
+  fi
+
+  RELEASE_NOTES_FILE="$(mktemp "${TMPDIR:-/tmp}/${APP_NAME}.release-notes.XXXXXX")"
+  if [[ -n "$GITHUB_RELEASE_NOTES" ]]; then
+    printf "%s\n" "$GITHUB_RELEASE_NOTES" > "$RELEASE_NOTES_FILE"
+  else
+    echo "Enter release notes. Finish with 'exist' on its own line:"
+    while IFS= read -r RELEASE_NOTE_LINE; do
+      RELEASE_NOTE_COMMAND="$RELEASE_NOTE_LINE"
+      RELEASE_NOTE_COMMAND="${RELEASE_NOTE_COMMAND#"${RELEASE_NOTE_COMMAND%%[![:space:]]*}"}"
+      RELEASE_NOTE_COMMAND="${RELEASE_NOTE_COMMAND%"${RELEASE_NOTE_COMMAND##*[![:space:]]}"}"
+      if [[ "$RELEASE_NOTE_COMMAND" == "exist" || "$RELEASE_NOTE_COMMAND" == "." ]]; then
+        break
+      fi
+      printf "%s\n" "$RELEASE_NOTE_LINE" >> "$RELEASE_NOTES_FILE"
+    done
+  fi
 fi
 
 DMG_NAME="${DMG_NAME:-${APP_NAME}-${RELEASE_VERSION}.dmg}"
@@ -118,3 +178,32 @@ echo "Version: $RELEASE_VERSION"
 echo ""
 echo "Install note for locally signed builds:"
 echo "  xattr -cr /Applications/${APP_BUNDLE}"
+
+if [[ "$PUBLISH_GITHUB_RELEASE" == "1" ]]; then
+  echo ""
+  echo "GitHub Release summary:"
+  echo "  Tag: $RELEASE_TAG"
+  echo "  Title: $GITHUB_RELEASE_TITLE"
+  echo "  Asset: $DMG_PATH"
+  echo "  Notes:"
+  sed 's/^/    /' "$RELEASE_NOTES_FILE"
+  echo "  Source tag: existing tag, or the latest default branch when the tag does not exist"
+  echo "  Git commit/push: not performed by this script"
+
+  if [[ -z "$GITHUB_RELEASE_CONFIRM" ]]; then
+    read -r -p "Publish this GitHub Release now? [y/N] " GITHUB_RELEASE_CONFIRM
+  fi
+
+  case "$GITHUB_RELEASE_CONFIRM" in
+    y|Y|yes|Yes|YES|1|true|TRUE)
+      echo "5) Create GitHub Release and upload DMG..."
+      "$GH_BIN" release create "$RELEASE_TAG" "$DMG_PATH" \
+        --title "$GITHUB_RELEASE_TITLE" \
+        --notes-file "$RELEASE_NOTES_FILE"
+      echo "GitHub Release published: $RELEASE_TAG"
+      ;;
+    *)
+      echo "GitHub Release skipped. DMG remains at: $DMG_PATH"
+      ;;
+  esac
+fi
