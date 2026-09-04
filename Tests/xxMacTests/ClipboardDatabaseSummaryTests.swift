@@ -82,6 +82,19 @@ final class ClipboardDatabaseSummaryTests: XCTestCase {
         }
     }
 
+    func testHistorySearchResultsSortNewestFirstInsteadOfByRelevance() throws {
+        let root = makeTemporaryDirectory()
+        let storage = ClipboardStorageManager(storageDirectory: root)
+
+        storage.saveItem(type: .text, content: "rule", size: 4)
+        Thread.sleep(forTimeInterval: 0.01)
+        storage.saveItem(type: .text, content: "erm_risk_rule", size: 13)
+
+        let results = storage.searchHistoryAndFavoriteListItems(query: "rule")
+
+        XCTAssertEqual(results.map(\.previewContent), ["erm_risk_rule", "rule"])
+    }
+
     func testSearchPreservesMultiTermMatchingAcrossSeparatedWords() throws {
         let root = makeTemporaryDirectory()
         let storage = ClipboardStorageManager(storageDirectory: root)

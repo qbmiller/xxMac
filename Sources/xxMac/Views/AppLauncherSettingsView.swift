@@ -134,6 +134,7 @@ struct AppShortcutRecorderView: View {
     @ObservedObject var manager = AppLauncherManager.shared
     @State private var isRecording = false
     @State private var monitor: Any?
+    @State private var pauseToken: UUID?
     @State private var hasConflict = false
     
     var body: some View {
@@ -171,11 +172,17 @@ struct AppShortcutRecorderView: View {
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .onDisappear {
+            if isRecording {
+                stopRecording()
+            }
+        }
         .help(hasConflict ? L10n.t("shortcut.internal_conflict") : "")
     }
     
     func startRecording() {
         isRecording = true
+        pauseToken = manager.pauseHotKeys()
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             if isRecording {
                 if event.keyCode == 53 { // ESC
@@ -206,5 +213,7 @@ struct AppShortcutRecorderView: View {
             NSEvent.removeMonitor(monitor)
             self.monitor = nil
         }
+        manager.resumeHotKeys(pauseToken)
+        pauseToken = nil
     }
 }

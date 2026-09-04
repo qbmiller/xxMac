@@ -219,6 +219,19 @@ enum ClipboardPanelTab: CaseIterable, Hashable {
     }
 }
 
+struct ClipboardSearchRequestTracker {
+    private var generation = 0
+
+    mutating func beginRequest() -> Int {
+        generation &+= 1
+        return generation
+    }
+
+    func isCurrent(_ request: Int) -> Bool {
+        request == generation
+    }
+}
+
 class ClipboardManager: ObservableObject {
     static let shared = ClipboardManager()
     private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "xxMac", category: "ClipboardFlow")
@@ -236,6 +249,7 @@ class ClipboardManager: ObservableObject {
     
     private var clipboardItems: [ClipboardListItem] = []
     private var currentQuery = ""
+    private var searchRequestTracker = ClipboardSearchRequestTracker()
     private var changeCount: Int
     private var timer: Timer?
     private var hotKey: CarbonHotKeyRegistration?
@@ -437,15 +451,21 @@ class ClipboardManager: ObservableObject {
     }
     
     func refreshHistory() {
+        let request = searchRequestTracker.beginRequest()
         if activeTab == .snippets {
             publishSnippetHistory(query: currentQuery)
             return
         }
 
+        let requestedTab = activeTab
+        let requestedQuery = currentQuery
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             guard let self else { return }
-            let items = self.items(for: self.activeTab, query: self.currentQuery)
+            let items = self.items(for: requestedTab, query: requestedQuery)
             DispatchQueue.main.async {
+                guard self.searchRequestTracker.isCurrent(request),
+                      self.activeTab == requestedTab,
+                      self.currentQuery == requestedQuery else { return }
                 self.clipboardItems = items
                 self.updatePublishedHistory()
             }
@@ -455,17 +475,22 @@ class ClipboardManager: ObservableObject {
     func searchClipboard(query: String) {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         currentQuery = trimmedQuery
+        let request = searchRequestTracker.beginRequest()
 
         if activeTab == .snippets {
             publishSnippetHistory(query: trimmedQuery)
             return
         }
 
+        let requestedTab = activeTab
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             guard let self = self else { return }
-            let listItems = self.items(for: self.activeTab, query: trimmedQuery)
+            let listItems = self.items(for: requestedTab, query: trimmedQuery)
 
             DispatchQueue.main.async {
+                guard self.searchRequestTracker.isCurrent(request),
+                      self.activeTab == requestedTab,
+                      self.currentQuery == trimmedQuery else { return }
                 self.clipboardItems = listItems
                 self.updatePublishedHistory()
             }

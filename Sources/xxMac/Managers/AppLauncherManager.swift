@@ -2,6 +2,25 @@ import Foundation
 import AppKit
 import HotKey
 
+struct AppLauncherHotKeyPauseState {
+    private var tokens = Set<UUID>()
+
+    var isPaused: Bool {
+        !tokens.isEmpty
+    }
+
+    mutating func pause() -> UUID {
+        let token = UUID()
+        tokens.insert(token)
+        return token
+    }
+
+    mutating func resume(_ token: UUID?) {
+        guard let token else { return }
+        tokens.remove(token)
+    }
+}
+
 class AppLauncherManager: ObservableObject {
     static let shared = AppLauncherManager()
     
@@ -16,6 +35,7 @@ class AppLauncherManager: ObservableObject {
     private var registeredShortcutIDs = Set<UUID>()
     private let userDefaultsKey = "AppLauncherShortcuts"
     private var lastOpenFallbackAtByBundleID: [String: Date] = [:]
+    private var pauseState = AppLauncherHotKeyPauseState()
     private let openFallbackCooldown: TimeInterval = 3
     
     private init() {
@@ -78,11 +98,26 @@ class AppLauncherManager: ObservableObject {
         }
         return nil
     }
+
+    func pauseHotKeys() -> UUID {
+        let wasPaused = pauseState.isPaused
+        let token = pauseState.pause()
+        if !wasPaused {
+            deactivateSystemHotKeys()
+        }
+        return token
+    }
+
+    func resumeHotKeys(_ token: UUID?) {
+        let wasPaused = pauseState.isPaused
+        pauseState.resume(token)
+        if wasPaused && !pauseState.isPaused {
+            refreshHotKeys()
+        }
+    }
     
     private func refreshHotKeys() {
-        // Clear existing hotkeys
-        hotKeys.values.forEach { $0.keyDownHandler = nil }
-        hotKeys.removeAll()
+        deactivateSystemHotKeys()
         registeredShortcutIDs.forEach {
             ShortcutRegistryStore.shared.unregister(action: .appLauncher($0))
         }
@@ -97,13 +132,20 @@ class AppLauncherManager: ObservableObject {
             ) == nil else {
                 continue
             }
+            registeredShortcutIDs.insert(shortcut.id)
+
+            guard !pauseState.isPaused else { continue }
             let hotKey = HotKey(key: shortcut.key, modifiers: shortcut.modifiers)
             hotKey.keyDownHandler = { [weak self] in
                 self?.launchOrActivateApp(path: shortcut.appPath)
             }
             hotKeys[shortcut.id] = hotKey
-            registeredShortcutIDs.insert(shortcut.id)
         }
+    }
+
+    private func deactivateSystemHotKeys() {
+        hotKeys.values.forEach { $0.keyDownHandler = nil }
+        hotKeys.removeAll()
     }
 
     func conflict(for shortcut: AppShortcut) -> ShortcutConflict? {

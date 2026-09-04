@@ -578,7 +578,7 @@ class DatabaseManager {
             JOIN clipboard_fts f ON i.id = f.id
             JOIN ranked_matches m ON f.rowid = m.rowid
             WHERE i.is_history_visible = 1
-            ORDER BY m.search_rank, i.timestamp DESC
+            ORDER BY i.timestamp DESC
             LIMIT ?;
             """
 
@@ -631,7 +631,7 @@ class DatabaseManager {
             JOIN clipboard_fts f ON i.id = f.id
             JOIN ranked_matches m ON f.rowid = m.rowid
             WHERE i.is_favorite = 1
-            ORDER BY i.is_pinned DESC, m.search_rank, i.timestamp DESC
+            ORDER BY i.is_pinned DESC, i.timestamp DESC
             LIMIT ?;
             """
 
