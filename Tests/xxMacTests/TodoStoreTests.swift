@@ -92,6 +92,32 @@ final class TodoStoreTests: XCTestCase {
         XCTAssertLessThan(statusMoved.statusRank, statusNeighbor.statusRank)
     }
 
+    func testDirectoryMigrationReopensNewDatabasePath() throws {
+        let persistence = TodoPersistenceFake(tasks: [makeTask(title: "Stored")])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+        let oldURL = URL(fileURLWithPath: "/tmp/old-todo.db")
+        let newURL = URL(fileURLWithPath: "/tmp/new-todo.db")
+
+        store.prepareForDirectoryMigration(currentDatabaseURL: oldURL)
+        try store.reloadStorageDirectory(newURL)
+
+        XCTAssertEqual(persistence.checkpointCount, 1)
+        XCTAssertEqual(persistence.reopenedURLs, [newURL])
+        XCTAssertEqual(store.tasks.map(\.title), ["Stored"])
+    }
+
+    func testFailedDirectoryMigrationReopensPreviousDatabasePath() throws {
+        let persistence = TodoPersistenceFake(tasks: [makeTask(title: "Stored")])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+        let oldURL = URL(fileURLWithPath: "/tmp/old-todo.db")
+
+        store.prepareForDirectoryMigration(currentDatabaseURL: oldURL)
+        try store.resumeAfterDirectoryMigration()
+
+        XCTAssertEqual(persistence.checkpointCount, 1)
+        XCTAssertEqual(persistence.reopenedURLs, [oldURL])
+    }
+
     func testArchiveRestoreAndDeletePublishPersistedLifecycle() async throws {
         let task = makeTask(title: "Lifecycle")
         let persistence = TodoPersistenceFake(tasks: [task])
@@ -167,6 +193,8 @@ private final class TodoPersistenceFake: TodoPersisting {
     private var storage: [TodoTask]
     var onInsert: (() -> Void)?
     var updateError: Error?
+    private(set) var checkpointCount = 0
+    private(set) var reopenedURLs: [URL] = []
 
     init(tasks: [TodoTask] = []) {
         storage = tasks
@@ -215,8 +243,17 @@ private final class TodoPersistenceFake: TodoPersisting {
         lock.unlock()
     }
 
-    func checkpointAndClose() {}
-    func reopen(at url: URL) throws {}
+    func checkpointAndClose() {
+        lock.lock()
+        checkpointCount += 1
+        lock.unlock()
+    }
+
+    func reopen(at url: URL) throws {
+        lock.lock()
+        reopenedURLs.append(url)
+        lock.unlock()
+    }
 }
 
 private final class TodoNotificationSpy: TodoNotificationScheduling {

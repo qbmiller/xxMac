@@ -3,6 +3,11 @@ import Foundation
 
 @MainActor
 final class TodoStore: ObservableObject {
+    static let shared: TodoStore = {
+        let database = try! TodoDatabase(url: ConfigDirectoryManager.shared.todoDatabaseURL)
+        return TodoStore(persistence: database)
+    }()
+
     @Published private(set) var tasks: [TodoTask]
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
@@ -10,6 +15,7 @@ final class TodoStore: ObservableObject {
     private let worker: TodoStoreWorker
     private let notifications: TodoNotificationScheduling
     private let now: () -> Date
+    private var migrationSourceURL: URL?
 
     init(
         persistence: TodoPersisting,
@@ -37,6 +43,27 @@ final class TodoStore: ObservableObject {
                 self.errorMessage = error.localizedDescription
             }
         }
+    }
+
+    func prepareForDirectoryMigration(
+        currentDatabaseURL: URL = ConfigDirectoryManager.shared.todoDatabaseURL
+    ) {
+        migrationSourceURL = currentDatabaseURL.standardizedFileURL
+        worker.checkpointAndClose()
+    }
+
+    func reloadStorageDirectory(
+        _ databaseURL: URL = ConfigDirectoryManager.shared.todoDatabaseURL
+    ) throws {
+        tasks = try worker.reopen(at: databaseURL.standardizedFileURL)
+        errorMessage = nil
+    }
+
+    func resumeAfterDirectoryMigration() throws {
+        guard let migrationSourceURL else { return }
+        tasks = try worker.reopen(at: migrationSourceURL)
+        self.migrationSourceURL = nil
+        errorMessage = nil
     }
 
     func create(
@@ -289,6 +316,21 @@ private final class TodoStoreWorker {
             Task { @MainActor in
                 completion(result)
             }
+        }
+    }
+
+    func checkpointAndClose() {
+        queue.sync {
+            persistence.checkpointAndClose()
+        }
+    }
+
+    func reopen(at url: URL) throws -> [TodoTask] {
+        try queue.sync {
+            try persistence.reopen(at: url)
+            let reloaded = try persistence.fetchTasks(includeArchived: true)
+            tasks = reloaded
+            return reloaded
         }
     }
 

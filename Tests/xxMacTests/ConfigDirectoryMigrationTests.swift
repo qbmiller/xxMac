@@ -25,6 +25,9 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         try Data("index".utf8).write(to: manager.appSearchIndexURL)
         try Data("db".utf8).write(to: manager.clipboardDatabaseURL)
         try Data("wal".utf8).write(to: manager.currentDirectory.appendingPathComponent("clipboard.db-wal"))
+        try Data("todo-db".utf8).write(to: manager.currentDirectory.appendingPathComponent("todo.db"))
+        try Data("todo-wal".utf8).write(to: manager.currentDirectory.appendingPathComponent("todo.db-wal"))
+        try Data("todo-shm".utf8).write(to: manager.currentDirectory.appendingPathComponent("todo.db-shm"))
         let imageURL = manager.clipboardImagesDirectoryURL.appendingPathComponent("a.png")
         try Data("image".utf8).write(to: imageURL)
         let thumbnailURL = manager.clipboardThumbnailsDirectoryURL.appendingPathComponent("a-thumb.png")
@@ -43,6 +46,15 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         XCTAssertEqual(
             try String(contentsOf: manager.currentDirectory.appendingPathComponent("clipboard.db-wal"), encoding: .utf8),
             "wal"
+        )
+        XCTAssertEqual(try String(contentsOf: manager.todoDatabaseURL, encoding: .utf8), "todo-db")
+        XCTAssertEqual(
+            try String(contentsOf: manager.currentDirectory.appendingPathComponent("todo.db-wal"), encoding: .utf8),
+            "todo-wal"
+        )
+        XCTAssertEqual(
+            try String(contentsOf: manager.currentDirectory.appendingPathComponent("todo.db-shm"), encoding: .utf8),
+            "todo-shm"
         )
         XCTAssertEqual(
             try String(contentsOf: manager.clipboardImagesDirectoryURL.appendingPathComponent("a.png"), encoding: .utf8),

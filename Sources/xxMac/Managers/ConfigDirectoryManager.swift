@@ -59,6 +59,10 @@ final class ConfigDirectoryManager: ObservableObject {
         currentDirectory.appendingPathComponent("clipboard.db")
     }
 
+    var todoDatabaseURL: URL {
+        currentDirectory.appendingPathComponent("todo.db")
+    }
+
     var clipboardImagesDirectoryURL: URL {
         currentDirectory.appendingPathComponent("clipboard_images", isDirectory: true)
     }
@@ -163,16 +167,20 @@ final class ConfigDirectoryManager: ObservableObject {
         try ensureDirectoryReady()
     }
 
+    @MainActor
     func migrateRuntimeDirectory(to url: URL) throws {
         try PreferencesStore.shared.flush()
         AppSearchManager.shared.flushIndexCacheIfNeeded()
+        TodoStore.shared.prepareForDirectoryMigration()
         ClipboardStorageManager.shared.prepareForDirectoryMigration()
         do {
             try changeDirectory(to: url)
             try PreferencesStore.shared.reload()
+            try TodoStore.shared.reloadStorageDirectory()
             ClipboardStorageManager.shared.reloadStorageDirectory()
             NotificationCenter.default.post(name: .configDirectoryDidChange, object: self)
         } catch {
+            try? TodoStore.shared.resumeAfterDirectoryMigration()
             ClipboardStorageManager.shared.resumeAfterDirectoryMigration()
             throw error
         }
@@ -211,7 +219,10 @@ final class ConfigDirectoryManager: ObservableObject {
             "app-search-index.json",
             "clipboard.db",
             "clipboard.db-wal",
-            "clipboard.db-shm"
+            "clipboard.db-shm",
+            "todo.db",
+            "todo.db-wal",
+            "todo.db-shm"
         ]
 
         for fileName in fileNames {
