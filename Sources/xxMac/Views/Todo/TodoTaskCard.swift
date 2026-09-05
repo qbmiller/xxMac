@@ -232,6 +232,15 @@ extension TodoView {
         case .completed: return L10n.t("todo.status.completed")
         }
     }
+
+    var statusFilter: TodoStatus? {
+        switch self {
+        case .todo: return .todo
+        case .inProgress: return .inProgress
+        case .completed: return .completed
+        case .quadrants, .all, .today: return nil
+        }
+    }
 }
 
 extension TodoSort {

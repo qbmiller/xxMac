@@ -1,102 +1,96 @@
 import SwiftUI
 
-struct TodoQuadrantView: View {
+struct TodoStatusBoardView: View {
     let tasks: [TodoTask]
     let selectedTaskID: TodoTask.ID?
     let actions: (TodoTask) -> TodoTaskCardActions
-    let onMove: (UUID, TodoQuadrant, UUID?) -> Void
-
-    private let columns = [
-        GridItem(.flexible(minimum: 240), spacing: 10),
-        GridItem(.flexible(minimum: 240), spacing: 10)
-    ]
+    let onMove: (UUID, TodoStatus, UUID?) -> Void
 
     var body: some View {
         GeometryReader { proxy in
-            let cellHeight = max(170, (proxy.size.height - 34) / 2)
-            ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 10) {
-                    ForEach(TodoQuadrant.allCases) { quadrant in
-                        TodoQuadrantCell(
-                            quadrant: quadrant,
-                            tasks: tasksForQuadrant(quadrant),
+            let columnWidth = max(320, (proxy.size.width - 44) / 3)
+            ScrollView(.horizontal, showsIndicators: true) {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(TodoStatus.allCases) { status in
+                        TodoStatusColumn(
+                            status: status,
+                            tasks: tasksForStatus(status),
                             selectedTaskID: selectedTaskID,
                             actions: actions,
                             onMove: onMove
                         )
-                        .frame(height: cellHeight)
+                        .frame(width: columnWidth)
                     }
                 }
-                .frame(minWidth: max(500, proxy.size.width - 24))
                 .padding(12)
+                .frame(minHeight: proxy.size.height, alignment: .top)
             }
         }
     }
 
-    private func tasksForQuadrant(_ quadrant: TodoQuadrant) -> [TodoTask] {
+    private func tasksForStatus(_ status: TodoStatus) -> [TodoTask] {
         tasks
-            .filter { $0.quadrant == quadrant }
+            .filter { $0.status == status }
             .sorted { left, right in
-                left.quadrantRank == right.quadrantRank
+                left.statusRank == right.statusRank
                     ? left.updatedAt > right.updatedAt
-                    : left.quadrantRank < right.quadrantRank
+                    : left.statusRank < right.statusRank
             }
     }
 }
 
-private struct TodoQuadrantCell: View {
-    let quadrant: TodoQuadrant
+private struct TodoStatusColumn: View {
+    let status: TodoStatus
     let tasks: [TodoTask]
     let selectedTaskID: TodoTask.ID?
     let actions: (TodoTask) -> TodoTaskCardActions
-    let onMove: (UUID, TodoQuadrant, UUID?) -> Void
+    let onMove: (UUID, TodoStatus, UUID?) -> Void
 
     var body: some View {
         TodoLaneDropTarget(
-            destination: TodoDropDestination(kind: .quadrant(quadrant), beforeID: nil),
+            destination: TodoDropDestination(kind: .status(status), beforeID: nil),
             onMove: handleMove
         ) {
             VStack(spacing: 0) {
                 HStack(spacing: 7) {
-                    Image(systemName: quadrant.systemImage)
-                        .foregroundStyle(quadrant.tintColor)
-                    Text(quadrant.localizedTitle)
+                    Image(systemName: status.systemImage)
+                        .foregroundStyle(status.tintColor)
+                    Text(status.localizedTitle)
                         .font(.headline)
-                        .lineLimit(1)
                     Text("\(tasks.count)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Spacer()
                 }
                 .padding(.horizontal, 11)
-                .padding(.vertical, 9)
+                .padding(.vertical, 10)
 
                 Divider()
 
                 if tasks.isEmpty {
-                    VStack(spacing: 6) {
+                    VStack(spacing: 7) {
                         Image(systemName: "tray")
                             .foregroundStyle(.tertiary)
-                        Text(L10n.t("todo.quadrant.empty"))
+                        Text(L10n.t("todo.board.empty"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
-                        LazyVStack(spacing: 7) {
+                        LazyVStack(spacing: 8) {
                             ForEach(tasks) { task in
                                 let taskActions = actions(task)
                                 TodoDraggableTaskCard(
-                                    payload: TodoDragPayload(taskID: task.id, source: .quadrant(quadrant)),
-                                    destination: TodoDropDestination(kind: .quadrant(quadrant), beforeID: task.id),
+                                    payload: TodoDragPayload(taskID: task.id, source: .status(status)),
+                                    destination: TodoDropDestination(kind: .status(status), beforeID: task.id),
                                     onMove: handleMove
                                 ) {
                                     TodoTaskCard(
                                         task: task,
                                         density: .compact,
                                         isSelected: selectedTaskID == task.id,
-                                        showsQuadrant: false,
+                                        showsQuadrant: true,
                                         onSelect: taskActions.onSelect,
                                         onToggleCompletion: taskActions.onToggleCompletion,
                                         onSetStatus: taskActions.onSetStatus,
@@ -116,13 +110,13 @@ private struct TodoQuadrantCell: View {
             .clipShape(.rect(cornerRadius: 7))
             .overlay {
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(quadrant.tintColor.opacity(0.3), lineWidth: 1)
+                    .stroke(status.tintColor.opacity(0.28), lineWidth: 1)
             }
         }
     }
 
     private func handleMove(_ payload: TodoDragPayload, _ destination: TodoDropDestination) {
-        guard case .quadrant(let targetQuadrant) = destination.kind else { return }
-        onMove(payload.taskID, targetQuadrant, destination.beforeID)
+        guard case .status(let targetStatus) = destination.kind else { return }
+        onMove(payload.taskID, targetStatus, destination.beforeID)
     }
 }

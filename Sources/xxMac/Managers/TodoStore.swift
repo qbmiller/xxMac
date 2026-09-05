@@ -163,9 +163,16 @@ final class TodoStore: ObservableObject {
             let siblings = tasks
                 .filter { $0.id != id && $0.archivedAt == nil && $0.quadrant == quadrant }
                 .sorted { $0.quadrantRank < $1.quadrantRank }
-            let rank = Self.insertionRank(in: siblings, beforeID: beforeID, keyPath: \.quadrantRank)
-            let updated = old.moving(to: quadrant, quadrantRank: rank, at: timestamp)
-            try persistence.update(updated)
+            let plan = Self.insertionPlan(in: siblings, beforeID: beforeID, keyPath: \.quadrantRank)
+            if plan.didNormalize {
+                Self.applyNormalizedRanks(plan.siblings, to: &tasks, keyPath: \.quadrantRank)
+            }
+            let updated = old.moving(to: quadrant, quadrantRank: plan.rank, at: timestamp)
+            if plan.didNormalize {
+                try persistence.update(updated, normalizingRanks: plan.siblings)
+            } else {
+                try persistence.update(updated)
+            }
             tasks[index] = updated
             return TodoStoreChange(old: old, new: updated)
         }
@@ -179,15 +186,22 @@ final class TodoStore: ObservableObject {
             let siblings = tasks
                 .filter { $0.id != id && $0.archivedAt == nil && $0.status == status }
                 .sorted { $0.statusRank < $1.statusRank }
-            let rank = Self.insertionRank(in: siblings, beforeID: beforeID, keyPath: \.statusRank)
+            let plan = Self.insertionPlan(in: siblings, beforeID: beforeID, keyPath: \.statusRank)
+            if plan.didNormalize {
+                Self.applyNormalizedRanks(plan.siblings, to: &tasks, keyPath: \.statusRank)
+            }
             var updated = old
             if old.status != status {
                 updated = old.transitioned(to: status, at: timestamp)
             } else {
                 updated.updatedAt = timestamp
             }
-            updated.statusRank = rank
-            try persistence.update(updated)
+            updated.statusRank = plan.rank
+            if plan.didNormalize {
+                try persistence.update(updated, normalizingRanks: plan.siblings)
+            } else {
+                try persistence.update(updated)
+            }
             tasks[index] = updated
             return TodoStoreChange(old: old, new: updated)
         }
@@ -253,19 +267,60 @@ final class TodoStore: ObservableObject {
         TodoRankPolicy.rank(before: ranks.max(), after: nil)
     }
 
-    private static func insertionRank(
+    private static func insertionPlan(
+        in siblings: [TodoTask],
+        beforeID: UUID?,
+        keyPath: WritableKeyPath<TodoTask, Double>
+    ) -> TodoRankInsertionPlan {
+        var ordered = siblings
+        var neighbors = insertionNeighbors(in: ordered, beforeID: beforeID, keyPath: keyPath)
+        var didNormalize = false
+
+        if TodoRankPolicy.needsNormalization(before: neighbors.before, after: neighbors.after) {
+            let normalized = TodoRankPolicy.normalizedRanks(count: ordered.count)
+            for index in ordered.indices {
+                ordered[index][keyPath: keyPath] = normalized[index]
+            }
+            neighbors = insertionNeighbors(in: ordered, beforeID: beforeID, keyPath: keyPath)
+            didNormalize = true
+        }
+
+        return TodoRankInsertionPlan(
+            siblings: ordered,
+            rank: TodoRankPolicy.rank(before: neighbors.before, after: neighbors.after),
+            didNormalize: didNormalize
+        )
+    }
+
+    private static func insertionNeighbors(
         in siblings: [TodoTask],
         beforeID: UUID?,
         keyPath: KeyPath<TodoTask, Double>
-    ) -> Double {
+    ) -> (before: Double?, after: Double?) {
         guard let beforeID,
               let targetIndex = siblings.firstIndex(where: { $0.id == beforeID }) else {
-            return TodoRankPolicy.rank(before: siblings.last?[keyPath: keyPath], after: nil)
+            return (siblings.last?[keyPath: keyPath], nil)
         }
         let beforeRank = targetIndex > 0 ? siblings[targetIndex - 1][keyPath: keyPath] : nil
-        let afterRank = siblings[targetIndex][keyPath: keyPath]
-        return TodoRankPolicy.rank(before: beforeRank, after: afterRank)
+        return (beforeRank, siblings[targetIndex][keyPath: keyPath])
     }
+
+    private static func applyNormalizedRanks(
+        _ normalized: [TodoTask],
+        to tasks: inout [TodoTask],
+        keyPath: WritableKeyPath<TodoTask, Double>
+    ) {
+        for task in normalized {
+            guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { continue }
+            tasks[index][keyPath: keyPath] = task[keyPath: keyPath]
+        }
+    }
+}
+
+private struct TodoRankInsertionPlan {
+    let siblings: [TodoTask]
+    let rank: Double
+    let didNormalize: Bool
 }
 
 private struct TodoStoreChange {

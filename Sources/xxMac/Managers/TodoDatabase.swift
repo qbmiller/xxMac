@@ -5,6 +5,7 @@ protocol TodoPersisting: AnyObject {
     func fetchTasks(includeArchived: Bool) throws -> [TodoTask]
     func insert(_ task: TodoTask) throws
     func update(_ task: TodoTask) throws
+    func update(_ task: TodoTask, normalizingRanks tasks: [TodoTask]) throws
     func updateRanks(_ tasks: [TodoTask]) throws
     func delete(id: UUID) throws
     func checkpointAndClose()
@@ -93,28 +94,21 @@ final class TodoDatabase: TodoPersisting {
 
     func update(_ task: TodoTask) throws {
         try queue.sync {
-            let sql = """
-            UPDATE todo_tasks SET
-                title = ?, notes = ?, status = ?, quadrant = ?, due_at = ?,
-                created_at = ?, updated_at = ?, completed_at = ?, archived_at = ?,
-                quadrant_rank = ?, status_rank = ?
-            WHERE id = ?;
-            """
-            let statement = try prepare(sql, operation: "prepare update")
-            defer { sqlite3_finalize(statement) }
-            bindText(task.title, to: statement, index: 1)
-            bindText(task.notes, to: statement, index: 2)
-            bindText(task.status.rawValue, to: statement, index: 3)
-            bindText(task.quadrant.rawValue, to: statement, index: 4)
-            bindDate(task.dueAt, to: statement, index: 5)
-            sqlite3_bind_double(statement, 6, task.createdAt.timeIntervalSince1970)
-            sqlite3_bind_double(statement, 7, task.updatedAt.timeIntervalSince1970)
-            bindDate(task.completedAt, to: statement, index: 8)
-            bindDate(task.archivedAt, to: statement, index: 9)
-            sqlite3_bind_double(statement, 10, task.quadrantRank)
-            sqlite3_bind_double(statement, 11, task.statusRank)
-            bindText(task.id.uuidString, to: statement, index: 12)
-            try finish(statement, operation: "update task")
+            try updateUnlocked(task)
+        }
+    }
+
+    func update(_ task: TodoTask, normalizingRanks tasks: [TodoTask]) throws {
+        try queue.sync {
+            try execute("BEGIN IMMEDIATE TRANSACTION;", operation: "begin normalized move")
+            do {
+                try updateRanksUnlocked(tasks)
+                try updateUnlocked(task)
+                try execute("COMMIT;", operation: "commit normalized move")
+            } catch {
+                try? execute("ROLLBACK;", operation: "rollback normalized move")
+                throw error
+            }
         }
     }
 
@@ -123,20 +117,7 @@ final class TodoDatabase: TodoPersisting {
         try queue.sync {
             try execute("BEGIN IMMEDIATE TRANSACTION;", operation: "begin rank update")
             do {
-                let statement = try prepare(
-                    "UPDATE todo_tasks SET quadrant_rank = ?, status_rank = ? WHERE id = ?;",
-                    operation: "prepare rank update"
-                )
-                defer { sqlite3_finalize(statement) }
-
-                for task in tasks {
-                    sqlite3_reset(statement)
-                    sqlite3_clear_bindings(statement)
-                    sqlite3_bind_double(statement, 1, task.quadrantRank)
-                    sqlite3_bind_double(statement, 2, task.statusRank)
-                    bindText(task.id.uuidString, to: statement, index: 3)
-                    try finish(statement, operation: "update task ranks")
-                }
+                try updateRanksUnlocked(tasks)
                 try execute("COMMIT;", operation: "commit rank update")
             } catch {
                 try? execute("ROLLBACK;", operation: "rollback rank update")
@@ -172,6 +153,49 @@ final class TodoDatabase: TodoPersisting {
             )
             databaseURL = url
             try openAndPrepareUnlocked()
+        }
+    }
+
+    private func updateUnlocked(_ task: TodoTask) throws {
+        let sql = """
+        UPDATE todo_tasks SET
+            title = ?, notes = ?, status = ?, quadrant = ?, due_at = ?,
+            created_at = ?, updated_at = ?, completed_at = ?, archived_at = ?,
+            quadrant_rank = ?, status_rank = ?
+        WHERE id = ?;
+        """
+        let statement = try prepare(sql, operation: "prepare update")
+        defer { sqlite3_finalize(statement) }
+        bindText(task.title, to: statement, index: 1)
+        bindText(task.notes, to: statement, index: 2)
+        bindText(task.status.rawValue, to: statement, index: 3)
+        bindText(task.quadrant.rawValue, to: statement, index: 4)
+        bindDate(task.dueAt, to: statement, index: 5)
+        sqlite3_bind_double(statement, 6, task.createdAt.timeIntervalSince1970)
+        sqlite3_bind_double(statement, 7, task.updatedAt.timeIntervalSince1970)
+        bindDate(task.completedAt, to: statement, index: 8)
+        bindDate(task.archivedAt, to: statement, index: 9)
+        sqlite3_bind_double(statement, 10, task.quadrantRank)
+        sqlite3_bind_double(statement, 11, task.statusRank)
+        bindText(task.id.uuidString, to: statement, index: 12)
+        try finish(statement, operation: "update task")
+    }
+
+    private func updateRanksUnlocked(_ tasks: [TodoTask]) throws {
+        guard !tasks.isEmpty else { return }
+        let statement = try prepare(
+            "UPDATE todo_tasks SET quadrant_rank = ?, status_rank = ? WHERE id = ?;",
+            operation: "prepare rank update"
+        )
+        defer { sqlite3_finalize(statement) }
+
+        for task in tasks {
+            sqlite3_reset(statement)
+            sqlite3_clear_bindings(statement)
+            sqlite3_bind_double(statement, 1, task.quadrantRank)
+            sqlite3_bind_double(statement, 2, task.statusRank)
+            bindText(task.id.uuidString, to: statement, index: 3)
+            try finish(statement, operation: "update task ranks")
         }
     }
 

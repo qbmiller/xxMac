@@ -6,13 +6,30 @@ struct TodoCollectionView: View {
     let layout: TodoListLayout
     let selectedTaskID: TodoTask.ID?
     let showsQuadrant: Bool
+    let reorderStatus: TodoStatus?
     let actions: (TodoTask) -> TodoTaskCardActions
+    let onMoveToStatus: (UUID, TodoStatus, UUID?) -> Void
 
     private let cardColumns = [
         GridItem(.adaptive(minimum: 280, maximum: 420), spacing: 10, alignment: .top)
     ]
 
+    @ViewBuilder
     var body: some View {
+        if let reorderStatus {
+            TodoLaneDropTarget(
+                destination: TodoDropDestination(kind: .status(reorderStatus), beforeID: nil),
+                onMove: handleMove
+            ) {
+                collectionContent
+            }
+        } else {
+            collectionContent
+        }
+    }
+
+    @ViewBuilder
+    private var collectionContent: some View {
         if tasks.isEmpty {
             TodoEmptyStateView(
                 systemImage: "checklist",
@@ -50,9 +67,10 @@ struct TodoCollectionView: View {
         }
     }
 
+    @ViewBuilder
     private func card(_ task: TodoTask, density: TodoTaskCardDensity) -> some View {
         let taskActions = actions(task)
-        return TodoTaskCard(
+        let card = TodoTaskCard(
             task: task,
             density: density,
             isSelected: selectedTaskID == task.id,
@@ -65,6 +83,23 @@ struct TodoCollectionView: View {
             onArchive: taskActions.onArchive,
             onDelete: taskActions.onDelete
         )
+
+        if let reorderStatus {
+            TodoDraggableTaskCard(
+                payload: TodoDragPayload(taskID: task.id, source: .status(reorderStatus)),
+                destination: TodoDropDestination(kind: .status(reorderStatus), beforeID: task.id),
+                onMove: handleMove
+            ) {
+                card
+            }
+        } else {
+            card
+        }
+    }
+
+    private func handleMove(_ payload: TodoDragPayload, _ destination: TodoDropDestination) {
+        guard case .status(let status) = destination.kind else { return }
+        onMoveToStatus(payload.taskID, status, destination.beforeID)
     }
 }
 

@@ -92,6 +92,86 @@ final class TodoStoreTests: XCTestCase {
         XCTAssertLessThan(statusMoved.statusRank, statusNeighbor.statusRank)
     }
 
+    func testMoveToQuadrantSupportsStartMiddleAndEndPlacement() async throws {
+        let first = makeTask(title: "First", quadrant: .importantUrgent, quadrantRank: 1_024)
+        let second = makeTask(title: "Second", quadrant: .importantUrgent, quadrantRank: 2_048)
+        let third = makeTask(title: "Third", quadrant: .importantUrgent, quadrantRank: 3_072)
+        let target = makeTask(title: "Target", quadrant: .notImportantNotUrgent, quadrantRank: 1_024)
+        let persistence = TodoPersistenceFake(tasks: [first, second, third, target])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.moveToQuadrant(id: target.id, quadrant: .importantUrgent, beforeID: first.id)
+        try await waitUntil { self.quadrantOrder(in: store).first == target.id }
+        XCTAssertEqual(quadrantOrder(in: store), [target.id, first.id, second.id, third.id])
+
+        store.moveToQuadrant(id: target.id, quadrant: .importantUrgent, beforeID: third.id)
+        try await waitUntil { self.quadrantOrder(in: store) == [first.id, second.id, target.id, third.id] }
+
+        store.moveToQuadrant(id: target.id, quadrant: .importantUrgent, beforeID: nil)
+        try await waitUntil { self.quadrantOrder(in: store).last == target.id }
+        XCTAssertEqual(quadrantOrder(in: store), [first.id, second.id, third.id, target.id])
+    }
+
+    func testMoveToStatusSupportsStartMiddleAndEndPlacement() async throws {
+        let first = makeTask(title: "First", status: .inProgress, statusRank: 1_024)
+        let second = makeTask(title: "Second", status: .inProgress, statusRank: 2_048)
+        let third = makeTask(title: "Third", status: .inProgress, statusRank: 3_072)
+        let target = makeTask(title: "Target", status: .todo, statusRank: 1_024)
+        let persistence = TodoPersistenceFake(tasks: [first, second, third, target])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.moveToStatus(id: target.id, status: .inProgress, beforeID: first.id)
+        try await waitUntil { self.statusOrder(in: store).first == target.id }
+        XCTAssertEqual(statusOrder(in: store), [target.id, first.id, second.id, third.id])
+
+        store.moveToStatus(id: target.id, status: .inProgress, beforeID: third.id)
+        try await waitUntil { self.statusOrder(in: store) == [first.id, second.id, target.id, third.id] }
+
+        store.moveToStatus(id: target.id, status: .inProgress, beforeID: nil)
+        try await waitUntil { self.statusOrder(in: store).last == target.id }
+        XCTAssertEqual(statusOrder(in: store), [first.id, second.id, third.id, target.id])
+    }
+
+    func testMoveUsesHiddenSiblingsWhenCalculatingInsertionRank() async throws {
+        let first = makeTask(title: "Visible first", quadrant: .importantUrgent, quadrantRank: 1_024)
+        let hidden = makeTask(title: "Hidden by search", quadrant: .importantUrgent, quadrantRank: 2_048)
+        let visibleTarget = makeTask(title: "Visible target", quadrant: .importantUrgent, quadrantRank: 3_072)
+        let moving = makeTask(title: "Moving", quadrant: .notImportantNotUrgent, quadrantRank: 1_024)
+        let persistence = TodoPersistenceFake(tasks: [first, hidden, visibleTarget, moving])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.moveToQuadrant(id: moving.id, quadrant: .importantUrgent, beforeID: visibleTarget.id)
+        try await waitUntil { self.quadrantOrder(in: store).contains(moving.id) }
+
+        XCTAssertEqual(quadrantOrder(in: store), [first.id, hidden.id, moving.id, visibleTarget.id])
+    }
+
+    func testMoveNormalizesOnlyTargetLaneWhenRanksHaveNoGap() async throws {
+        let first = makeTask(title: "First", quadrant: .importantUrgent, quadrantRank: 1_024, statusRank: 9_000)
+        let second = makeTask(
+            title: "Second",
+            quadrant: .importantUrgent,
+            quadrantRank: Double(1_024).nextUp,
+            statusRank: 8_000
+        )
+        let unrelated = makeTask(title: "Unrelated", quadrant: .notImportantUrgent, quadrantRank: 77, statusRank: 7_000)
+        let moving = makeTask(title: "Moving", quadrant: .notImportantNotUrgent, quadrantRank: 1_024, statusRank: 6_000)
+        let persistence = TodoPersistenceFake(tasks: [first, second, unrelated, moving])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.moveToQuadrant(id: moving.id, quadrant: .importantUrgent, beforeID: second.id)
+        try await waitUntil { self.quadrantOrder(in: store) == [first.id, moving.id, second.id] }
+
+        let ordered = store.tasks
+            .filter { $0.quadrant == .importantUrgent }
+            .sorted { $0.quadrantRank < $1.quadrantRank }
+        XCTAssertEqual(ordered.map(\.id), [first.id, moving.id, second.id])
+        XCTAssertEqual(Set(ordered.map(\.quadrantRank)).count, 3)
+        XCTAssertEqual(store.tasks.first(where: { $0.id == unrelated.id })?.quadrantRank, 77)
+        XCTAssertEqual(store.tasks.first(where: { $0.id == first.id })?.statusRank, 9_000)
+        XCTAssertEqual(persistence.tasks, store.tasks)
+    }
+
     func testDirectoryMigrationReopensNewDatabasePath() throws {
         let persistence = TodoPersistenceFake(tasks: [makeTask(title: "Stored")])
         let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
@@ -150,6 +230,20 @@ final class TodoStoreTests: XCTestCase {
         task.status = status
         task.quadrant = quadrant
         return task
+    }
+
+    private func quadrantOrder(in store: TodoStore) -> [UUID] {
+        store.tasks
+            .filter { $0.archivedAt == nil && $0.quadrant == .importantUrgent }
+            .sorted { $0.quadrantRank < $1.quadrantRank }
+            .map(\.id)
+    }
+
+    private func statusOrder(in store: TodoStore) -> [UUID] {
+        store.tasks
+            .filter { $0.archivedAt == nil && $0.status == .inProgress }
+            .sorted { $0.statusRank < $1.statusRank }
+            .map(\.id)
     }
 
     private func waitUntil(
@@ -223,6 +317,19 @@ private final class TodoPersistenceFake: TodoPersisting {
         if let updateError { throw updateError }
         lock.lock()
         defer { lock.unlock() }
+        guard let index = storage.firstIndex(where: { $0.id == task.id }) else { return }
+        storage[index] = task
+    }
+
+    func update(_ task: TodoTask, normalizingRanks tasks: [TodoTask]) throws {
+        if let updateError { throw updateError }
+        lock.lock()
+        defer { lock.unlock() }
+        for normalized in tasks {
+            guard let index = storage.firstIndex(where: { $0.id == normalized.id }) else { continue }
+            storage[index].quadrantRank = normalized.quadrantRank
+            storage[index].statusRank = normalized.statusRank
+        }
         guard let index = storage.firstIndex(where: { $0.id == task.id }) else { return }
         storage[index] = task
     }

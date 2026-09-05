@@ -86,38 +86,52 @@ struct TodoRootView: View {
 
     @ViewBuilder
     private func content(now: Date) -> some View {
-        switch selectedView {
-        case .quadrants:
-            TodoQuadrantView(
-                tasks: visibleTasks(now: now),
-                selectedTaskID: selectedTaskID,
-                actions: actions(for:)
-            )
-        case .today:
-            TodoTodayView(
+        if windowController.mode == .board {
+            TodoStatusBoardView(
                 tasks: searchedActiveTasks,
-                now: now,
                 selectedTaskID: selectedTaskID,
-                actions: actions(for:)
+                actions: actions(for:),
+                onMove: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
             )
-        case .all:
-            TodoCollectionView(
-                title: selectedView.localizedTitle,
-                tasks: visibleTasks(now: now),
-                layout: listLayout,
-                selectedTaskID: selectedTaskID,
-                showsQuadrant: true,
-                actions: actions(for:)
-            )
-        case .todo, .inProgress, .completed:
-            TodoCollectionView(
-                title: selectedView.localizedTitle,
-                tasks: visibleTasks(now: now),
-                layout: .list,
-                selectedTaskID: selectedTaskID,
-                showsQuadrant: true,
-                actions: actions(for:)
-            )
+        } else {
+            switch selectedView {
+            case .quadrants:
+                TodoQuadrantView(
+                    tasks: visibleTasks(now: now),
+                    selectedTaskID: selectedTaskID,
+                    actions: actions(for:),
+                    onMove: { store.moveToQuadrant(id: $0, quadrant: $1, beforeID: $2) }
+                )
+            case .today:
+                TodoTodayView(
+                    tasks: searchedActiveTasks,
+                    now: now,
+                    selectedTaskID: selectedTaskID,
+                    actions: actions(for:)
+                )
+            case .all:
+                TodoCollectionView(
+                    title: selectedView.localizedTitle,
+                    tasks: visibleTasks(now: now),
+                    layout: listLayout,
+                    selectedTaskID: selectedTaskID,
+                    showsQuadrant: true,
+                    reorderStatus: nil,
+                    actions: actions(for:),
+                    onMoveToStatus: { _, _, _ in }
+                )
+            case .todo, .inProgress, .completed:
+                TodoCollectionView(
+                    title: selectedView.localizedTitle,
+                    tasks: visibleTasks(now: now),
+                    layout: .list,
+                    selectedTaskID: selectedTaskID,
+                    showsQuadrant: true,
+                    reorderStatus: selectedView.statusFilter,
+                    actions: actions(for:),
+                    onMoveToStatus: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
+                )
+            }
         }
     }
 
@@ -221,7 +235,7 @@ private struct TodoHeaderView: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(minWidth: 150, idealWidth: 220, maxWidth: 260)
 
-                if selectedView == .all {
+                if mode == .compact && selectedView == .all {
                     Picker(L10n.t("todo.layout.title"), selection: $listLayout) {
                         Image(systemName: "rectangle.grid.1x2").tag(TodoListLayout.cards)
                         Image(systemName: "list.bullet").tag(TodoListLayout.list)
@@ -248,7 +262,7 @@ private struct TodoHeaderView: View {
                     .help(L10n.t("todo.sort.title"))
                 }
 
-                if selectedView == .quadrants {
+                if mode == .compact && selectedView == .quadrants {
                     Toggle(isOn: $hideCompletedInQuadrants) {
                         Image(systemName: hideCompletedInQuadrants ? "eye.slash" : "eye")
                     }
@@ -279,22 +293,24 @@ private struct TodoHeaderView: View {
                 .accessibilityLabel(L10n.t("todo.action.new"))
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 4) {
-                    ForEach(TodoView.allCases) { item in
-                        Button {
-                            selectedView = item
-                        } label: {
-                            Text(item.localizedTitle)
-                                .font(.subheadline.weight(selectedView == item ? .semibold : .regular))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(
-                                    selectedView == item ? Color.accentColor.opacity(0.14) : Color.clear,
-                                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                )
+            if mode == .compact {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(TodoView.allCases) { item in
+                            Button {
+                                selectedView = item
+                            } label: {
+                                Text(item.localizedTitle)
+                                    .font(.subheadline.weight(selectedView == item ? .semibold : .regular))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        selectedView == item ? Color.accentColor.opacity(0.14) : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                    )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

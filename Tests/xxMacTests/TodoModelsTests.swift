@@ -167,6 +167,19 @@ final class TodoModelsTests: XCTestCase {
         XCTAssertEqual(updated.statusRank, original.statusRank)
     }
 
+    func testDragPayloadRoundTripsTaskAndSourceContext() throws {
+        let taskID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let quadrantPayload = TodoDragPayload(taskID: taskID, source: .quadrant(.importantUrgent))
+        let statusPayload = TodoDragPayload(taskID: taskID, source: .status(.inProgress))
+
+        XCTAssertEqual(try TodoDragPayload.decode(quadrantPayload.encoded()), quadrantPayload)
+        XCTAssertEqual(try TodoDragPayload.decode(statusPayload.encoded()), statusPayload)
+    }
+
+    func testDragPayloadRejectsInvalidData() {
+        XCTAssertThrowsError(try TodoDragPayload.decode(Data("not-json".utf8)))
+    }
+
     private func task(_ title: String, due: Date, status: TodoStatus = .todo, now: Date) -> TodoTask {
         var value = TodoTask.makeNew(title: title, now: now)
         value.dueAt = due
