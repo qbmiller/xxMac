@@ -109,6 +109,64 @@ final class TodoModelsTests: XCTestCase {
         XCTAssertEqual(movedStatus.status, .inProgress)
     }
 
+    func testTaskDraftUsesNewTaskDefaultsAndValidatesTrimmedTitle() {
+        var draft = TodoTaskDraft()
+
+        XCTAssertEqual(draft.status, .todo)
+        XCTAssertEqual(draft.quadrant, .notImportantNotUrgent)
+        XCTAssertNil(draft.dueAt)
+        XCTAssertFalse(draft.canSave)
+
+        draft.title = "  Prepare demo  "
+
+        XCTAssertTrue(draft.canSave)
+        XCTAssertEqual(draft.normalizedTitle, "Prepare demo")
+    }
+
+    func testTaskDraftAppliesEditableFieldsAndNormalizesDeadlineToMinute() {
+        let createdAt = date(2026, 9, 5, 8, 0)
+        var original = TodoTask.makeNew(
+            id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!,
+            title: "Original",
+            notes: "Old note",
+            now: createdAt,
+            quadrantRank: 4_096,
+            statusRank: 8_192
+        )
+        original.archivedAt = date(2026, 9, 5, 9, 0)
+
+        var deadlineComponents = DateComponents()
+        deadlineComponents.calendar = calendar
+        deadlineComponents.timeZone = calendar.timeZone
+        deadlineComponents.year = 2026
+        deadlineComponents.month = 9
+        deadlineComponents.day = 6
+        deadlineComponents.hour = 14
+        deadlineComponents.minute = 35
+        deadlineComponents.second = 42
+
+        var draft = TodoTaskDraft(task: original)
+        draft.title = "  Updated  "
+        draft.notes = "New note"
+        draft.status = .inProgress
+        draft.quadrant = .importantUrgent
+        draft.dueAt = deadlineComponents.date
+
+        let updated = draft.applying(to: original, calendar: calendar)
+
+        XCTAssertEqual(updated.id, original.id)
+        XCTAssertEqual(updated.title, "Updated")
+        XCTAssertEqual(updated.notes, "New note")
+        XCTAssertEqual(updated.status, .inProgress)
+        XCTAssertEqual(updated.quadrant, .importantUrgent)
+        XCTAssertEqual(calendar.component(.second, from: updated.dueAt!), 0)
+        XCTAssertEqual(updated.createdAt, original.createdAt)
+        XCTAssertEqual(updated.updatedAt, original.updatedAt)
+        XCTAssertEqual(updated.archivedAt, original.archivedAt)
+        XCTAssertEqual(updated.quadrantRank, original.quadrantRank)
+        XCTAssertEqual(updated.statusRank, original.statusRank)
+    }
+
     private func task(_ title: String, due: Date, status: TodoStatus = .todo, now: Date) -> TodoTask {
         var value = TodoTask.makeNew(title: title, now: now)
         value.dueAt = due

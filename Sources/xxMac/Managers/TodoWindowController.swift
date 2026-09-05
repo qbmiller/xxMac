@@ -115,7 +115,7 @@ final class TodoWindowController: NSWindowController, NSWindowDelegate, Observab
         panel.isReleasedWhenClosed = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
-        panel.contentView = NSHostingView(rootView: TodoWindowPlaceholderView(store: store))
+        panel.contentView = NSHostingView(rootView: TodoRootView(store: store, windowController: self))
         window = panel
 
         toggleObserver = NotificationCenter.default.addObserver(
@@ -225,25 +225,5 @@ final class TodoWindowController: NSWindowController, NSWindowDelegate, Observab
             return screen.visibleFrame
         }
         return NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1_440, height: 900)
-    }
-}
-
-private struct TodoWindowPlaceholderView: View {
-    @ObservedObject var store: TodoStore
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "checklist")
-                .font(.system(size: 32))
-                .foregroundStyle(.secondary)
-            Text("Todo")
-                .font(.title2)
-            if let errorMessage = store.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -144,12 +144,54 @@ struct TodoTaskDraft: Equatable {
     var quadrant: TodoQuadrant
     var dueAt: Date?
 
+    init(
+        title: String = "",
+        notes: String = "",
+        status: TodoStatus = .todo,
+        quadrant: TodoQuadrant = .notImportantNotUrgent,
+        dueAt: Date? = nil
+    ) {
+        self.title = title
+        self.notes = notes
+        self.status = status
+        self.quadrant = quadrant
+        self.dueAt = dueAt
+    }
+
     init(task: TodoTask) {
-        title = task.title
-        notes = task.notes
-        status = task.status
-        quadrant = task.quadrant
-        dueAt = task.dueAt
+        self.init(
+            title: task.title,
+            notes: task.notes,
+            status: task.status,
+            quadrant: task.quadrant,
+            dueAt: task.dueAt
+        )
+    }
+
+    var normalizedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var canSave: Bool {
+        !normalizedTitle.isEmpty
+    }
+
+    func normalizedDueAt(calendar: Calendar = .current) -> Date? {
+        guard let dueAt else { return nil }
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: dueAt)
+        components.calendar = calendar
+        components.timeZone = calendar.timeZone
+        return components.date
+    }
+
+    func applying(to task: TodoTask, calendar: Calendar = .current) -> TodoTask {
+        var updated = task
+        updated.title = normalizedTitle
+        updated.notes = notes
+        updated.status = status
+        updated.quadrant = quadrant
+        updated.dueAt = normalizedDueAt(calendar: calendar)
+        return updated
     }
 }
 
