@@ -44,6 +44,9 @@ final class PreferencesStoreMigrationTests: XCTestCase {
         defaults.set("monthDay", forKey: "CalendarMenuBarIconStyle")
         defaults.set("appIcon", forKey: "CalendarMenuBarDisplayMode")
         defaults.set("Working", forKey: "LockAIStatusText")
+        defaults.set("today", forKey: "TodoSelectedView")
+        defaults.set("list", forKey: "TodoListLayout")
+        defaults.set(true, forKey: "TodoHideCompletedInQuadrants")
         defaults.set(Data([10]), forKey: "AppSearchIndexCacheV1")
 
         let store = try PreferencesStore(
@@ -79,6 +82,9 @@ final class PreferencesStoreMigrationTests: XCTestCase {
         XCTAssertEqual(store.string(forKey: "CalendarMenuBarIconStyle"), "monthDay")
         XCTAssertEqual(store.string(forKey: "CalendarMenuBarDisplayMode"), "appIcon")
         XCTAssertEqual(store.string(forKey: "LockAIStatusText"), "Working")
+        XCTAssertEqual(store.string(forKey: "TodoSelectedView"), "today")
+        XCTAssertEqual(store.string(forKey: "TodoListLayout"), "list")
+        XCTAssertEqual(store.boolObject(forKey: "TodoHideCompletedInQuadrants"), true)
         XCTAssertEqual(try Data(contentsOf: configManager.appSearchIndexURL), Data([10]))
     }
 

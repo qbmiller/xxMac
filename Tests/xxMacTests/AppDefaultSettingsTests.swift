@@ -46,6 +46,15 @@ final class AppDefaultSettingsTests: XCTestCase {
         XCTAssertFalse(AppDefaultSettings.General.shortcutDetectiveEnabled)
     }
 
+    func testTodoDefaultsAndSettingsNavigationAreRegistered() {
+        XCTAssertEqual(AppDefaultSettings.Todo.selectedView, .quadrants)
+        XCTAssertEqual(AppDefaultSettings.Todo.listLayout, .cards)
+        XCTAssertFalse(AppDefaultSettings.Todo.hideCompletedInQuadrants)
+
+        let todoTool = ToolOption.allTools.first { $0.type == .todo }
+        XCTAssertEqual(todoTool?.functions.map(\.type), [.todoGeneral])
+    }
+
     func testShortcutDefaults() {
         let pastePath = AppDefaultSettings.HotKeys.configurations[.pasteFinderPath]
         XCTAssertEqual(pastePath?.key, .v)

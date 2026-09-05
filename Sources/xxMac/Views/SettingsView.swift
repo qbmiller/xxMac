@@ -346,6 +346,7 @@ private extension ToolType {
         case .snippets: return .pink
         case .quickShortcut: return .yellow
         case .launcher: return .purple
+        case .todo: return .mint
         case .calendar: return .red
         case .lockAI: return .green
         case .about: return .cyan
@@ -670,6 +671,8 @@ struct ConfigurationView: View {
             AppLauncherSettingsView()
         case .launcherAppearance:
             LauncherAppearanceSettingsView()
+        case .todoGeneral:
+            TodoSettingsView()
         case .calendarGeneral:
             CalendarFeatureView(showsSettings: true)
         case .lockAIGeneral:

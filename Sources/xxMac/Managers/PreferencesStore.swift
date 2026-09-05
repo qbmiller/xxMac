@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 final class PreferencesStore {
@@ -148,7 +149,9 @@ final class PreferencesStore {
         "BrowserSearchBookmarkKeyword",
         "BrowserSearchHistoryKeyword",
         "UpdateCheckFrequency",
-        "UpdateAvailableVersion"
+        "UpdateAvailableVersion",
+        "TodoSelectedView",
+        "TodoListLayout"
     ]
 
     private static let stringArrayKeys = [
@@ -175,7 +178,8 @@ final class PreferencesStore {
         "KeymapEnabled",
         "CalendarShowLunar",
         "CalendarShowWeekNumbers",
-        "BrowserSearchEnabled"
+        "BrowserSearchEnabled",
+        "TodoHideCompletedInQuadrants"
     ]
 
     private static let intKeys = [
@@ -191,4 +195,38 @@ final class PreferencesStore {
         "LauncherAppearanceHeight",
         "UpdateLastSuccessfulCheck"
     ]
+}
+
+final class TodoPreferencesStore: ObservableObject {
+    static let shared = TodoPreferencesStore()
+
+    private enum Key {
+        static let selectedView = "TodoSelectedView"
+        static let listLayout = "TodoListLayout"
+        static let hideCompleted = "TodoHideCompletedInQuadrants"
+    }
+
+    @Published var selectedView: TodoView {
+        didSet { preferences.set(selectedView.rawValue, forKey: Key.selectedView) }
+    }
+
+    @Published var listLayout: TodoListLayout {
+        didSet { preferences.set(listLayout.rawValue, forKey: Key.listLayout) }
+    }
+
+    @Published var hideCompletedInQuadrants: Bool {
+        didSet { preferences.set(hideCompletedInQuadrants, forKey: Key.hideCompleted) }
+    }
+
+    private let preferences: PreferencesStore
+
+    init(preferences: PreferencesStore = .shared) {
+        self.preferences = preferences
+        selectedView = preferences.string(forKey: Key.selectedView)
+            .flatMap(TodoView.init(rawValue:)) ?? AppDefaultSettings.Todo.selectedView
+        listLayout = preferences.string(forKey: Key.listLayout)
+            .flatMap(TodoListLayout.init(rawValue:)) ?? AppDefaultSettings.Todo.listLayout
+        hideCompletedInQuadrants = preferences.boolObject(forKey: Key.hideCompleted)
+            ?? AppDefaultSettings.Todo.hideCompletedInQuadrants
+    }
 }

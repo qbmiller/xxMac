@@ -133,6 +133,7 @@ enum ToolType: String, CaseIterable, Identifiable {
     case snippets = "tool.snippets"
     case quickShortcut = "tool.quick_shortcut"
     case launcher = "tool.launcher"
+    case todo = "tool.todo"
     case calendar = "tool.calendar"
     case lockAI = "tool.lock_ai"
     case about = "tool.about"
@@ -151,6 +152,7 @@ enum ToolType: String, CaseIterable, Identifiable {
         case .snippets: return "text.quote"
         case .quickShortcut: return "bolt.circle"
         case .launcher: return "command"
+        case .todo: return "checklist"
         case .calendar: return "calendar"
         case .lockAI: return "lock.shield"
         case .about: return "info.circle"
@@ -198,6 +200,9 @@ enum FunctionType: String, CaseIterable, Identifiable {
     // App Launcher
     case launcherApps = "function.launcher.applications"
 
+    // Todo
+    case todoGeneral = "function.todo.general"
+
     // Calendar
     case calendarGeneral = "function.calendar.general"
 
@@ -229,6 +234,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
         case .snippetsLibrary: return "text.quote"
         case .quickShortcutLibrary: return "bolt.circle"
         case .launcherApps: return "command.square"
+        case .todoGeneral: return "checklist"
         case .calendarGeneral: return "calendar"
         case .lockAIGeneral: return "lock.shield"
         case .lockAIScreen: return "display"
@@ -291,6 +297,9 @@ struct ToolOption: Identifiable, Hashable {
         ]),
         ToolOption(type: .launcher, functions: [
             ToolFunction(type: .launcherApps)
+        ]),
+        ToolOption(type: .todo, functions: [
+            ToolFunction(type: .todoGeneral)
         ]),
         ToolOption(type: .calendar, functions: [
             ToolFunction(type: .calendarGeneral)

@@ -81,6 +81,12 @@ enum AppDefaultSettings {
         ]
     }
 
+    enum Todo {
+        static let selectedView = TodoView.quadrants
+        static let listLayout = TodoListLayout.cards
+        static let hideCompletedInQuadrants = false
+    }
+
     enum Snippets {
         static let hotKey = HotKeyConfiguration(key: .x, modifiers: [.control, .option, .command])
     }

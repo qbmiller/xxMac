@@ -105,7 +105,7 @@ final class TodoNotificationManager: TodoNotificationScheduling {
         guard let dueAt = task.dueAt, dueAt > Date() else { return }
         let content = UNMutableNotificationContent()
         content.title = task.title
-        content.body = NSLocalizedString("todo.notification.due", comment: "Todo deadline notification body")
+        content.body = L10n.t("todo.notification.due")
         content.sound = .default
 
         let components = Calendar.current.dateComponents(

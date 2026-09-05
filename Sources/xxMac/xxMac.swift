@@ -192,6 +192,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     var launcherMouseMonitor: Any?
     private var toggleLauncherMenuItem: NSMenuItem?
     private var showClipboardHistoryMenuItem: NSMenuItem?
+    private var todoMenuItem: NSMenuItem?
     private var lockAIMenuItem: NSMenuItem?
     private var settingsMenuItem: NSMenuItem?
     private var quitMenuItem: NSMenuItem?
@@ -374,6 +375,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         clipboardItem.target = self
         showClipboardHistoryMenuItem = clipboardItem
         menu.addItem(clipboardItem)
+
+        let todoItem = NSMenuItem(title: L10n.t("menu.todo"), action: #selector(toggleTodoFromMenu), keyEquivalent: "")
+        todoItem.target = self
+        todoMenuItem = todoItem
+        menu.addItem(todoItem)
 
         let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "")
         lockAIItem.target = self
@@ -876,6 +882,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         ClipboardManager.shared.showClipboardHistory()
     }
     
+    @MainActor
+    @objc func toggleTodoFromMenu() {
+        TodoWindowController.shared.toggle()
+    }
+
     @objc func toggleLauncher() {
         NSLog("=== toggleLauncher === isVisible:%@ isMiniaturized:%@ isKeyWindow:%@ appActive:%@",
               launcherPanel.isVisible.description,
@@ -1021,6 +1032,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private func updateMenuTitles() {
         toggleLauncherMenuItem?.title = L10n.t("menu.toggle_launcher")
         showClipboardHistoryMenuItem?.title = L10n.t("menu.clipboard_history")
+        todoMenuItem?.title = L10n.t("menu.todo")
         lockAIMenuItem?.title = L10n.t("menu.lock_ai")
         settingsMenuItem?.title = L10n.t("menu.settings")
         quitMenuItem?.title = L10n.t("menu.quit")
@@ -1031,6 +1043,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     @MainActor
     @objc private func updateMenuShortcuts() {
         applyMenuShortcut(for: .toggleLauncher, to: toggleLauncherMenuItem)
+        applyMenuShortcut(for: .toggleTodo, to: todoMenuItem)
         applyMenuShortcut(for: .lockAI, to: lockAIMenuItem)
     }
 

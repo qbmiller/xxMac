@@ -51,6 +51,21 @@ final class ShortcutRegistryTests: XCTestCase {
         XCTAssertEqual(conflict?.action, .window(.toggleLauncher))
     }
 
+    func testTodoShortcutParticipatesInCrossFeatureConflictDetection() {
+        let configuration = HotKeyConfiguration(key: .t, modifiers: [.command, .option])
+        let registrations = [
+            ShortcutRegistration(action: .window(.toggleTodo), trigger: .keyboard(configuration))
+        ]
+
+        let conflict = ShortcutRegistry.conflict(
+            for: .keyboard(configuration),
+            action: .clipboard,
+            in: registrations
+        )
+
+        XCTAssertEqual(conflict?.action, .window(.toggleTodo))
+    }
+
     func testKeyboardAndLauncherKeywordDoNotConflict() {
         let registrations = [
             ShortcutRegistration(

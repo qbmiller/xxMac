@@ -4,13 +4,11 @@ struct TodoRootView: View {
     @ObservedObject var store: TodoStore
     @ObservedObject var windowController: TodoWindowController
 
-    @State private var selectedView: TodoView = .quadrants
+    @ObservedObject private var preferences = TodoPreferencesStore.shared
     @State private var searchText = ""
     @State private var selectedTaskID: TodoTask.ID?
     @State private var sheet: Sheet?
     @State private var deleteCandidate: TodoTask?
-    @State private var hideCompletedInQuadrants = false
-    @State private var listLayout: TodoListLayout = .cards
     @State private var sort: TodoSort = .updatedAt
 
     private enum Sheet: Identifiable {
@@ -28,11 +26,11 @@ struct TodoRootView: View {
     var body: some View {
         VStack(spacing: 0) {
             TodoHeaderView(
-                selectedView: $selectedView,
+                selectedView: $preferences.selectedView,
                 searchText: $searchText,
-                listLayout: $listLayout,
+                listLayout: $preferences.listLayout,
                 sort: $sort,
-                hideCompletedInQuadrants: $hideCompletedInQuadrants,
+                hideCompletedInQuadrants: $preferences.hideCompletedInQuadrants,
                 mode: windowController.mode,
                 onCreate: createTask,
                 onOpenArchive: { sheet = .archive },
@@ -94,7 +92,7 @@ struct TodoRootView: View {
                 onMove: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
             )
         } else {
-            switch selectedView {
+            switch preferences.selectedView {
             case .quadrants:
                 TodoQuadrantView(
                     tasks: visibleTasks(now: now),
@@ -111,9 +109,9 @@ struct TodoRootView: View {
                 )
             case .all:
                 TodoCollectionView(
-                    title: selectedView.localizedTitle,
+                    title: preferences.selectedView.localizedTitle,
                     tasks: visibleTasks(now: now),
-                    layout: listLayout,
+                    layout: preferences.listLayout,
                     selectedTaskID: selectedTaskID,
                     showsQuadrant: true,
                     reorderStatus: nil,
@@ -122,12 +120,12 @@ struct TodoRootView: View {
                 )
             case .todo, .inProgress, .completed:
                 TodoCollectionView(
-                    title: selectedView.localizedTitle,
+                    title: preferences.selectedView.localizedTitle,
                     tasks: visibleTasks(now: now),
                     layout: .list,
                     selectedTaskID: selectedTaskID,
                     showsQuadrant: true,
-                    reorderStatus: selectedView.statusFilter,
+                    reorderStatus: preferences.selectedView.statusFilter,
                     actions: actions(for:),
                     onMoveToStatus: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
                 )
@@ -149,10 +147,10 @@ struct TodoRootView: View {
     private func visibleTasks(now: Date) -> [TodoTask] {
         TodoTaskQuery.tasks(
             store.tasks,
-            for: selectedView,
+            for: preferences.selectedView,
             searchText: searchText,
             now: now,
-            hideCompletedInQuadrants: hideCompletedInQuadrants,
+            hideCompletedInQuadrants: preferences.hideCompletedInQuadrants,
             sort: sort
         )
     }
