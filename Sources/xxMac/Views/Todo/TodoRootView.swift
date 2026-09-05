@@ -45,14 +45,9 @@ struct TodoRootView: View {
                 TodoErrorBanner(message: errorMessage, onRetry: store.reload)
             }
 
-            TodoTaskCollectionPlaceholder(
-                title: selectedView.localizedTitle,
-                tasks: visibleTasks,
-                selectedTaskID: selectedTaskID,
-                showsQuadrant: selectedView != .quadrants,
-                density: listLayout == .list ? .compact : .comfortable,
-                actions: actions(for:)
-            )
+            TimelineView(.periodic(from: Date(), by: 60)) { context in
+                content(now: context.date)
+            }
         }
         .background(.regularMaterial)
         .sheet(item: $sheet) { sheet in
@@ -65,10 +60,12 @@ struct TodoRootView: View {
                     onCancel: { self.sheet = nil }
                 )
             case .archive:
-                TodoArchivePlaceholderView(
+                TodoArchiveView(
                     tasks: TodoTaskQuery.archived(store.tasks),
+                    onEdit: edit,
                     onRestore: store.restore,
-                    onDelete: { deleteCandidate = $0 }
+                    onDelete: { deleteCandidate = $0 },
+                    onClose: { self.sheet = nil }
                 )
             }
         }
@@ -87,20 +84,62 @@ struct TodoRootView: View {
         }
     }
 
-    private var visibleTasks: [TodoTask] {
-        TodoTaskQuery.tasks(
-            store.tasks,
-            for: selectedView,
-            searchText: searchText,
-            hideCompletedInQuadrants: hideCompletedInQuadrants,
-            sort: sort
-        )
+    @ViewBuilder
+    private func content(now: Date) -> some View {
+        switch selectedView {
+        case .quadrants:
+            TodoQuadrantView(
+                tasks: visibleTasks(now: now),
+                selectedTaskID: selectedTaskID,
+                actions: actions(for:)
+            )
+        case .today:
+            TodoTodayView(
+                tasks: searchedActiveTasks,
+                now: now,
+                selectedTaskID: selectedTaskID,
+                actions: actions(for:)
+            )
+        case .all:
+            TodoCollectionView(
+                title: selectedView.localizedTitle,
+                tasks: visibleTasks(now: now),
+                layout: listLayout,
+                selectedTaskID: selectedTaskID,
+                showsQuadrant: true,
+                actions: actions(for:)
+            )
+        case .todo, .inProgress, .completed:
+            TodoCollectionView(
+                title: selectedView.localizedTitle,
+                tasks: visibleTasks(now: now),
+                layout: .list,
+                selectedTaskID: selectedTaskID,
+                showsQuadrant: true,
+                actions: actions(for:)
+            )
+        }
+    }
+
+    private var searchedActiveTasks: [TodoTask] {
+        TodoTaskQuery.search(TodoTaskQuery.active(store.tasks), text: searchText)
     }
 
     private var deleteAlertBinding: Binding<Bool> {
         Binding(
             get: { deleteCandidate != nil },
             set: { if !$0 { deleteCandidate = nil } }
+        )
+    }
+
+    private func visibleTasks(now: Date) -> [TodoTask] {
+        TodoTaskQuery.tasks(
+            store.tasks,
+            for: selectedView,
+            searchText: searchText,
+            now: now,
+            hideCompletedInQuadrants: hideCompletedInQuadrants,
+            sort: sort
         )
     }
 
@@ -262,128 +301,6 @@ private struct TodoHeaderView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-    }
-}
-
-private struct TodoTaskCardActions {
-    let onSelect: () -> Void
-    let onToggleCompletion: () -> Void
-    let onSetStatus: (TodoStatus) -> Void
-    let onRollback: () -> Void
-    let onEdit: () -> Void
-    let onArchive: () -> Void
-    let onDelete: () -> Void
-}
-
-private struct TodoTaskCollectionPlaceholder: View {
-    let title: String
-    let tasks: [TodoTask]
-    let selectedTaskID: TodoTask.ID?
-    let showsQuadrant: Bool
-    let density: TodoTaskCardDensity
-    let actions: (TodoTask) -> TodoTaskCardActions
-
-    var body: some View {
-        if tasks.isEmpty {
-            VStack(spacing: 10) {
-                Image(systemName: "checklist")
-                    .font(.system(size: 30))
-                    .foregroundStyle(.secondary)
-                Text(L10n.t("todo.empty.title"))
-                    .font(.headline)
-                Text(L10n.t("todo.empty.message"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text(title)
-                            .font(.headline)
-                        Text("\(tasks.count)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
-                    .padding(.bottom, 2)
-
-                    ForEach(tasks) { task in
-                        let taskActions = actions(task)
-                        TodoTaskCard(
-                            task: task,
-                            density: density,
-                            isSelected: selectedTaskID == task.id,
-                            showsQuadrant: showsQuadrant,
-                            onSelect: taskActions.onSelect,
-                            onToggleCompletion: taskActions.onToggleCompletion,
-                            onSetStatus: taskActions.onSetStatus,
-                            onRollback: taskActions.onRollback,
-                            onEdit: taskActions.onEdit,
-                            onArchive: taskActions.onArchive,
-                            onDelete: taskActions.onDelete
-                        )
-                    }
-                }
-                .padding(14)
-            }
-        }
-    }
-}
-
-private struct TodoArchivePlaceholderView: View {
-    let tasks: [TodoTask]
-    let onRestore: (UUID) -> Void
-    let onDelete: (TodoTask) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(L10n.t("todo.archive.title"))
-                    .font(.title2.weight(.semibold))
-                Spacer()
-                Button(L10n.t("common.close")) { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-            }
-            .padding(16)
-
-            Divider()
-
-            if tasks.isEmpty {
-                Text(L10n.t("todo.archive.empty"))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(tasks) { task in
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(task.title)
-                                .strikethrough(task.status == .completed)
-                            Text(task.quadrant.localizedTitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button {
-                            onRestore(task.id)
-                        } label: {
-                            Image(systemName: "arrow.uturn.backward.circle")
-                        }
-                        .help(L10n.t("todo.action.restore"))
-                        Button(role: .destructive) {
-                            onDelete(task)
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                        .help(L10n.t("todo.action.delete"))
-                    }
-                }
-            }
-        }
-        .frame(minWidth: 520, minHeight: 420)
     }
 }
 

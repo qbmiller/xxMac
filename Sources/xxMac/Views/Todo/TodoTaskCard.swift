@@ -5,6 +5,16 @@ enum TodoTaskCardDensity {
     case compact
 }
 
+struct TodoTaskCardActions {
+    let onSelect: () -> Void
+    let onToggleCompletion: () -> Void
+    let onSetStatus: (TodoStatus) -> Void
+    let onRollback: () -> Void
+    let onEdit: () -> Void
+    let onArchive: () -> Void
+    let onDelete: () -> Void
+}
+
 struct TodoTaskCard: View {
     let task: TodoTask
     let density: TodoTaskCardDensity
