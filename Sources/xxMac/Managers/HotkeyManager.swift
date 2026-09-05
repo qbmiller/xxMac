@@ -20,6 +20,7 @@ enum WindowAction: String, CaseIterable, Codable {
     case nextScreen = "Next Screen"
     case previousScreen = "Previous Screen"
     case toggleLauncher = "Toggle Launcher"
+    case toggleTodo = "Toggle Todo"
     case pasteFinderPath = "Paste Finder Path"
     case lockAI = "LockAI"
 
@@ -65,6 +66,7 @@ enum WindowAction: String, CaseIterable, Codable {
         case .nextScreen: return L10n.t("window_action.next_screen")
         case .previousScreen: return L10n.t("window_action.previous_screen")
         case .toggleLauncher: return L10n.t("window_action.toggle_launcher")
+        case .toggleTodo: return L10n.t("window_action.toggle_todo")
         case .pasteFinderPath: return L10n.t("window_action.paste_finder_path")
         case .lockAI: return L10n.t("window_action.lock_ai")
         }
@@ -91,9 +93,14 @@ class HotKeyManager: ObservableObject {
     func loadConfigurations() {
         if let data = PreferencesStore.shared.data(forKey: "HotKeyConfigurations"),
            let decoded = try? JSONDecoder().decode([WindowAction: HotKeyConfiguration].self, from: data) {
-            configurations = decoded
-            ensureDefaultConfiguration(for: .lockAI)
-            ensureDefaultConfiguration(for: .pasteFinderPath)
+            let backfilled = Self.backfilledConfigurations(
+                decoded,
+                clearedActions: clearedActions()
+            )
+            configurations = backfilled
+            if backfilled.count != decoded.count {
+                saveConfigurations(notify: false)
+            }
         } else {
             setupDefaultConfigurations()
         }
@@ -114,23 +121,28 @@ class HotKeyManager: ObservableObject {
         PreferencesStore.shared.removeObject(forKey: Self.clearedActionsKey)
     }
 
+    static func backfilledConfigurations(
+        _ configurations: [WindowAction: HotKeyConfiguration],
+        clearedActions: Set<String>
+    ) -> [WindowAction: HotKeyConfiguration] {
+        var result = configurations
+        for action in [WindowAction.lockAI, .pasteFinderPath, .toggleTodo] {
+            guard result[action] == nil,
+                  !clearedActions.contains(action.rawValue),
+                  let defaultConfiguration = AppDefaultSettings.HotKeys.configurations[action] else {
+                continue
+            }
+            result[action] = defaultConfiguration
+        }
+        return result
+    }
+
     private func defaultConfiguration(for action: WindowAction) -> HotKeyConfiguration? {
         AppDefaultSettings.HotKeys.configurations[action]
     }
 
     func defaultConfigurationForUserReset(_ action: WindowAction) -> HotKeyConfiguration? {
         defaultConfiguration(for: action)
-    }
-
-    private func ensureDefaultConfiguration(for action: WindowAction) {
-        guard configurations[action] == nil,
-              !clearedActions().contains(action.rawValue),
-              let defaultConfiguration = defaultConfiguration(for: action) else {
-            return
-        }
-
-        configurations[action] = defaultConfiguration
-        saveConfigurations(notify: false)
     }
     
     func refreshHotKeys() {
@@ -254,6 +266,10 @@ class HotKeyManager: ObservableObject {
                 showLauncher()
             } else {
                 DispatchQueue.main.async(execute: showLauncher)
+            }
+        case .toggleTodo:
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .toggleTodoWindow, object: nil)
             }
         case .pasteFinderPath:
             DispatchQueue.main.async {

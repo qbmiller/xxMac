@@ -51,8 +51,28 @@ final class AppDefaultSettingsTests: XCTestCase {
         XCTAssertEqual(pastePath?.key, .v)
         XCTAssertEqual(pastePath?.modifiers, [.command, .shift])
 
+        let todo = AppDefaultSettings.HotKeys.configurations[.toggleTodo]
+        XCTAssertEqual(todo?.key, .t)
+        XCTAssertEqual(todo?.modifiers, [.command, .option])
+
         XCTAssertEqual(AppDefaultSettings.Snippets.hotKey.key, .x)
         XCTAssertEqual(AppDefaultSettings.Snippets.hotKey.modifiers, [.control, .option, .command])
+    }
+
+    func testOldHotKeyConfigurationsBackfillTodoUnlessUserClearedIt() {
+        let saved: [WindowAction: HotKeyConfiguration] = [
+            .toggleLauncher: HotKeyConfiguration(key: .space, modifiers: [.control, .option])
+        ]
+
+        let backfilled = HotKeyManager.backfilledConfigurations(saved, clearedActions: [])
+        let explicitlyCleared = HotKeyManager.backfilledConfigurations(
+            saved,
+            clearedActions: [WindowAction.toggleTodo.rawValue]
+        )
+
+        XCTAssertEqual(backfilled[.toggleTodo]?.key, .t)
+        XCTAssertEqual(backfilled[.toggleTodo]?.modifiers, [.command, .option])
+        XCTAssertNil(explicitlyCleared[.toggleTodo])
     }
 
     func testQuickShortcutAndLockAIDefaults() {

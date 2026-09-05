@@ -75,6 +75,7 @@ enum AppDefaultSettings {
             .nextScreen: HotKeyConfiguration(key: .n, modifiers: windowModifiers),
             .previousScreen: HotKeyConfiguration(key: .p, modifiers: windowModifiers),
             .toggleLauncher: HotKeyConfiguration(key: .space, modifiers: [.control, .option]),
+            .toggleTodo: HotKeyConfiguration(key: .t, modifiers: [.command, .option]),
             .pasteFinderPath: HotKeyConfiguration(key: .v, modifiers: [.command, .shift]),
             .lockAI: HotKeyConfiguration(key: .l, modifiers: windowModifiers)
         ]

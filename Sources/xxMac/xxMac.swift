@@ -270,6 +270,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         _ = PreferencesStore.shared
         _ = GeneralSettingsManager.shared
         _ = UpdateManager.shared
+        _ = TodoStore.shared
+        _ = TodoWindowController.shared
         // Initialize HotKeyManager
         _ = HotKeyManager.shared
         // Initialize AppLauncherManager
