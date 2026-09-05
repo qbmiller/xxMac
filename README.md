@@ -110,6 +110,8 @@ bash publish_dmg.sh
 
 The release script first prints the current version recorded in `Sources/xxMac/Info.plist`, then prompts for the release version. The version is written back to `CFBundleShortVersionString` and `CFBundleVersion`, the latest update date is written to `XXLastUpdated`, and the generated DMG is named `xxMac-version.dmg` by default.
 
+After entering the version, choose whether to publish a GitHub Release. When enabled, the script checks `gh auth status`, prompts for a release title and multi-line release notes (finish with `exist` on its own line; surrounding spaces are ignored), builds and verifies the DMG, then shows a final summary before calling `gh release create`. Run `gh auth login -h github.com` first when authentication has expired. The script does not run `git commit` or `git push`; if the numeric release tag does not already exist, GitHub creates it from the latest default branch.
+
 `bundle_app.sh` and `publish_dmg.sh` use the fixed signing identity `qbmiller` by default and do not fall back to ad-hoc signing. This helps macOS associate Accessibility permission with a stable app identity and reduces the need to remove and re-add authorization after rebuilding. Set the `SIGNING_IDENTITY` environment variable to temporarily use another certificate.
 
 If you do not have a developer account, macOS may mark the app as quarantined after it is copied to `/Applications`, preventing it from opening. Clear the quarantine attribute before launching:
