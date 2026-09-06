@@ -78,6 +78,7 @@ struct TodoTask: Identifiable, Codable, Equatable, Hashable {
     var createdAt: Date
     var updatedAt: Date
     var completedAt: Date?
+    var statusBeforeCompletion: TodoStatus?
     var archivedAt: Date?
     var quadrantRank: Double
     var statusRank: Double
@@ -100,6 +101,7 @@ struct TodoTask: Identifiable, Codable, Equatable, Hashable {
             createdAt: now,
             updatedAt: now,
             completedAt: nil,
+            statusBeforeCompletion: nil,
             archivedAt: nil,
             quadrantRank: quadrantRank,
             statusRank: statusRank
@@ -110,7 +112,15 @@ struct TodoTask: Identifiable, Codable, Equatable, Hashable {
         var copy = self
         copy.status = newStatus
         copy.updatedAt = date
-        copy.completedAt = newStatus == .completed ? date : nil
+        if newStatus == .completed {
+            if status != .completed {
+                copy.statusBeforeCompletion = status
+            }
+            copy.completedAt = date
+        } else {
+            copy.statusBeforeCompletion = nil
+            copy.completedAt = nil
+        }
         return copy
     }
 

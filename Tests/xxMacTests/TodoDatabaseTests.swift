@@ -22,11 +22,24 @@ final class TodoDatabaseTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    func testOpeningDatabaseCreatesSchemaVersionOne() throws {
+    func testOpeningDatabaseCreatesSchemaVersionTwo() throws {
         let database = try TodoDatabase(url: databaseURL)
         defer { database.checkpointAndClose() }
 
-        XCTAssertEqual(try userVersion(at: databaseURL), 1)
+        XCTAssertEqual(try userVersion(at: databaseURL), 2)
+    }
+
+    func testOpeningVersionOneDatabaseMigratesExistingTasks() throws {
+        try createVersionOneDatabase()
+
+        let database = try TodoDatabase(url: databaseURL)
+        defer { database.checkpointAndClose() }
+
+        let task = try XCTUnwrap(database.fetchTasks(includeArchived: true).first)
+        XCTAssertEqual(task.title, "Legacy task")
+        XCTAssertEqual(task.status, .completed)
+        XCTAssertNil(task.statusBeforeCompletion)
+        XCTAssertEqual(try userVersion(at: databaseURL), 2)
     }
 
     func testInsertAndFetchRoundTripsEveryTaskField() throws {
@@ -39,6 +52,7 @@ final class TodoDatabaseTests: XCTestCase {
             quadrant: .importantUrgent,
             dueAt: date(2026, 9, 6, 14, 35),
             completedAt: date(2026, 9, 5, 16, 0),
+            statusBeforeCompletion: .todo,
             archivedAt: date(2026, 9, 5, 17, 0),
             quadrantRank: 2_048,
             statusRank: 3_072
@@ -150,6 +164,7 @@ final class TodoDatabaseTests: XCTestCase {
         quadrant: TodoQuadrant = .notImportantNotUrgent,
         dueAt: Date? = nil,
         completedAt: Date? = nil,
+        statusBeforeCompletion: TodoStatus? = nil,
         archivedAt: Date? = nil,
         quadrantRank: Double = 1_024,
         statusRank: Double = 1_024
@@ -158,9 +173,39 @@ final class TodoDatabaseTests: XCTestCase {
         return TodoTask(
             id: UUID(), title: title, notes: notes, status: status, quadrant: quadrant,
             dueAt: dueAt, createdAt: createdAt, updatedAt: createdAt,
-            completedAt: completedAt, archivedAt: archivedAt,
+            completedAt: completedAt, statusBeforeCompletion: statusBeforeCompletion, archivedAt: archivedAt,
             quadrantRank: quadrantRank, statusRank: statusRank
         )
+    }
+
+    private func createVersionOneDatabase() throws {
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(
+            databaseURL.path,
+            &database,
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+            nil
+        ) == SQLITE_OK, let database else {
+            throw NSError(domain: "TodoDatabaseTests", code: 10)
+        }
+        defer { sqlite3_close(database) }
+
+        let taskID = UUID().uuidString
+        let createdAt = date(2026, 9, 5, 10, 0).timeIntervalSince1970
+        let sql = """
+        CREATE TABLE todo_tasks (
+            id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL, quadrant TEXT NOT NULL, due_at REAL, created_at REAL NOT NULL,
+            updated_at REAL NOT NULL, completed_at REAL, archived_at REAL,
+            quadrant_rank REAL NOT NULL, status_rank REAL NOT NULL
+        );
+        INSERT INTO todo_tasks VALUES ('\(taskID)', 'Legacy task', '', 'completed',
+            'notImportantNotUrgent', NULL, \(createdAt), \(createdAt), \(createdAt), NULL, 1024, 1024);
+        PRAGMA user_version = 1;
+        """
+        guard sqlite3_exec(database, sql, nil, nil, nil) == SQLITE_OK else {
+            throw NSError(domain: "TodoDatabaseTests", code: 11)
+        }
     }
 
     private func userVersion(at url: URL) throws -> Int32 {

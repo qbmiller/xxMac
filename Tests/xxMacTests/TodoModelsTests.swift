@@ -39,9 +39,11 @@ final class TodoModelsTests: XCTestCase {
 
         XCTAssertEqual(done.status, .completed)
         XCTAssertEqual(done.completedAt, completed)
+        XCTAssertEqual(done.statusBeforeCompletion, .todo)
         XCTAssertEqual(done.updatedAt, completed)
         XCTAssertEqual(active.status, .inProgress)
         XCTAssertNil(active.completedAt)
+        XCTAssertNil(active.statusBeforeCompletion)
         XCTAssertEqual(active.updatedAt, reopened)
     }
 

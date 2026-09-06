@@ -47,7 +47,7 @@ struct TodoRootView: View {
                 content(now: context.date)
             }
         }
-        .background(.regularMaterial)
+        .background(Color(nsColor: .windowBackgroundColor))
         .sheet(item: $sheet) { sheet in
             switch sheet {
             case .editor(_, let task):
@@ -92,44 +92,57 @@ struct TodoRootView: View {
                 onMove: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
             )
         } else {
-            switch preferences.selectedView {
-            case .quadrants:
-                TodoQuadrantView(
-                    tasks: visibleTasks(now: now),
-                    selectedTaskID: selectedTaskID,
-                    actions: actions(for:),
-                    onMove: { store.moveToQuadrant(id: $0, quadrant: $1, beforeID: $2) }
-                )
-            case .today:
-                TodoTodayView(
-                    tasks: searchedActiveTasks,
-                    now: now,
-                    selectedTaskID: selectedTaskID,
-                    actions: actions(for:)
-                )
-            case .all:
-                TodoCollectionView(
-                    title: preferences.selectedView.localizedTitle,
-                    tasks: visibleTasks(now: now),
-                    layout: preferences.listLayout,
-                    selectedTaskID: selectedTaskID,
-                    showsQuadrant: true,
-                    reorderStatus: nil,
-                    actions: actions(for:),
-                    onMoveToStatus: { _, _, _ in }
-                )
-            case .todo, .inProgress, .completed:
-                TodoCollectionView(
-                    title: preferences.selectedView.localizedTitle,
-                    tasks: visibleTasks(now: now),
-                    layout: .list,
-                    selectedTaskID: selectedTaskID,
-                    showsQuadrant: true,
-                    reorderStatus: preferences.selectedView.statusFilter,
-                    actions: actions(for:),
-                    onMoveToStatus: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
-                )
+            HStack(spacing: 0) {
+                TodoNavigationSidebar(selectedView: $preferences.selectedView)
+                    .frame(width: 174)
+
+                Divider()
+
+                compactContent(now: now)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func compactContent(now: Date) -> some View {
+        switch preferences.selectedView {
+        case .quadrants:
+            TodoQuadrantView(
+                tasks: visibleTasks(now: now),
+                selectedTaskID: selectedTaskID,
+                actions: actions(for:),
+                onMove: { store.moveToQuadrant(id: $0, quadrant: $1, beforeID: $2) }
+            )
+        case .today:
+            TodoTodayView(
+                tasks: searchedActiveTasks,
+                now: now,
+                selectedTaskID: selectedTaskID,
+                actions: actions(for:)
+            )
+        case .all:
+            TodoCollectionView(
+                title: preferences.selectedView.localizedTitle,
+                tasks: visibleTasks(now: now),
+                layout: preferences.listLayout,
+                selectedTaskID: selectedTaskID,
+                showsQuadrant: true,
+                reorderStatus: nil,
+                actions: actions(for:),
+                onMoveToStatus: { _, _, _ in }
+            )
+        case .todo, .inProgress, .completed:
+            TodoCollectionView(
+                title: preferences.selectedView.localizedTitle,
+                tasks: visibleTasks(now: now),
+                layout: .list,
+                selectedTaskID: selectedTaskID,
+                showsQuadrant: true,
+                reorderStatus: preferences.selectedView.statusFilter,
+                actions: actions(for:),
+                onMoveToStatus: { store.moveToStatus(id: $0, status: $1, beforeID: $2) }
+            )
         }
     }
 
@@ -217,104 +230,125 @@ private struct TodoHeaderView: View {
     let onToggleBoard: () -> Void
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.t("todo.title"))
-                        .font(.title2.weight(.semibold))
-                    Text(Date().formatted(date: .long, time: .omitted))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L10n.t("todo.title"))
+                    .font(.title3.weight(.semibold))
+                Text(Date().formatted(date: .long, time: .omitted))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 16)
+
+            TextField(L10n.t("todo.search.placeholder"), text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .frame(minWidth: 170, idealWidth: 220, maxWidth: 280)
+
+            if mode == .compact && selectedView == .all {
+                Picker(L10n.t("todo.layout.title"), selection: $listLayout) {
+                    Image(systemName: "rectangle.grid.1x2").tag(TodoListLayout.cards)
+                    Image(systemName: "list.bullet").tag(TodoListLayout.list)
                 }
-
-                Spacer(minLength: 12)
-
-                TextField(L10n.t("todo.search.placeholder"), text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(minWidth: 150, idealWidth: 220, maxWidth: 260)
-
-                if mode == .compact && selectedView == .all {
-                    Picker(L10n.t("todo.layout.title"), selection: $listLayout) {
-                        Image(systemName: "rectangle.grid.1x2").tag(TodoListLayout.cards)
-                        Image(systemName: "list.bullet").tag(TodoListLayout.list)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 78)
-
-                    Menu {
-                        ForEach(TodoSort.allCases) { option in
-                            Button {
-                                sort = option
-                            } label: {
-                                if sort == option {
-                                    Label(option.localizedTitle, systemImage: "checkmark")
-                                } else {
-                                    Text(option.localizedTitle)
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                    }
-                    .help(L10n.t("todo.sort.title"))
-                }
-
-                if mode == .compact && selectedView == .quadrants {
-                    Toggle(isOn: $hideCompletedInQuadrants) {
-                        Image(systemName: hideCompletedInQuadrants ? "eye.slash" : "eye")
-                    }
-                    .toggleStyle(.button)
-                    .help(L10n.t("todo.action.hide_completed"))
-                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 76)
 
                 Menu {
-                    Button(action: onOpenArchive) {
-                        Label(L10n.t("todo.archive.title"), systemImage: "archivebox")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .help(L10n.t("todo.action.more"))
-
-                Button(action: onToggleBoard) {
-                    Image(systemName: mode == .compact ? "rectangle.expand.vertical" : "rectangle.compress.vertical")
-                }
-                .help(mode == .compact ? L10n.t("todo.action.expand_board") : L10n.t("todo.action.compact_window"))
-
-                Button(action: onCreate) {
-                    Image(systemName: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut("n", modifiers: .command)
-                .help(L10n.t("todo.action.new"))
-                .accessibilityLabel(L10n.t("todo.action.new"))
-            }
-
-            if mode == .compact {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(TodoView.allCases) { item in
-                            Button {
-                                selectedView = item
-                            } label: {
-                                Text(item.localizedTitle)
-                                    .font(.subheadline.weight(selectedView == item ? .semibold : .regular))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(
-                                        selectedView == item ? Color.accentColor.opacity(0.14) : Color.clear,
-                                        in: RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                    )
+                    ForEach(TodoSort.allCases) { option in
+                        Button {
+                            sort = option
+                        } label: {
+                            if sort == option {
+                                Label(option.localizedTitle, systemImage: "checkmark")
+                            } else {
+                                Text(option.localizedTitle)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
                 }
+                .help(L10n.t("todo.sort.title"))
             }
+
+            if mode == .compact && selectedView == .quadrants {
+                Toggle(isOn: $hideCompletedInQuadrants) {
+                    Image(systemName: hideCompletedInQuadrants ? "eye.slash" : "eye")
+                }
+                .toggleStyle(.button)
+                .help(L10n.t("todo.action.hide_completed"))
+            }
+
+            Menu {
+                Button(action: onOpenArchive) {
+                    Label(L10n.t("todo.archive.title"), systemImage: "archivebox")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .help(L10n.t("todo.action.more"))
+
+            Button(action: onToggleBoard) {
+                Image(systemName: mode == .compact ? "rectangle.expand.vertical" : "rectangle.compress.vertical")
+            }
+            .help(mode == .compact ? L10n.t("todo.action.expand_board") : L10n.t("todo.action.compact_window"))
+
+            Button(action: onCreate) {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut("n", modifiers: .command)
+            .help(L10n.t("todo.action.new"))
+            .accessibilityLabel(L10n.t("todo.action.new"))
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .frame(height: 56)
+    }
+}
+
+private struct TodoNavigationSidebar: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Binding var selectedView: TodoView
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            ForEach(TodoView.allCases) { item in
+                Button {
+                    selectedView = item
+                } label: {
+                    HStack(spacing: 9) {
+                        Image(systemName: item.systemImage)
+                            .font(.system(size: 13, weight: .medium))
+                            .frame(width: 18)
+                            .foregroundStyle(selectedView == item ? .white : item.tintColor)
+
+                        Text(item.localizedTitle)
+                            .font(.subheadline.weight(selectedView == item ? .semibold : .regular))
+                            .foregroundStyle(selectedView == item ? .white : .primary)
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(height: 32)
+                    .background(
+                        selectedView == item ? Color.accentColor : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background {
+            ZStack {
+                Color(nsColor: .windowBackgroundColor)
+                Color.accentColor.opacity(colorScheme == .dark ? 0.13 : 0.055)
+            }
+        }
     }
 }
 

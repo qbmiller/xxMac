@@ -19,7 +19,7 @@ struct TodoTodayView: View {
             )
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 18) {
+                LazyVStack(alignment: .leading, spacing: 20) {
                     ForEach(groups, id: \.section) { group in
                         TodoTodaySectionView(
                             group: group,
@@ -28,8 +28,10 @@ struct TodoTodayView: View {
                         )
                     }
                 }
-                .padding(14)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 16)
             }
+            .background(Color(nsColor: .windowBackgroundColor))
         }
     }
 }
@@ -40,15 +42,21 @@ private struct TodoTodaySectionView: View {
     let actions: (TodoTask) -> TodoTaskCardActions
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 8) {
                 Image(systemName: group.section.systemImage)
-                    .foregroundStyle(group.section.tintColor)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 23, height: 23)
+                    .background(group.section.tintColor, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                 Text(group.section.localizedTitle)
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                 Text("\(group.tasks.count)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .frame(height: 20)
+                    .background(Color(nsColor: .separatorColor).opacity(0.22), in: Capsule())
                 Spacer()
             }
 

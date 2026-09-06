@@ -30,7 +30,7 @@ enum TodoDatabaseError: LocalizedError, Equatable {
 }
 
 final class TodoDatabase: TodoPersisting {
-    private static let schemaVersion: Int32 = 1
+    private static let schemaVersion: Int32 = 2
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
     private let queue = DispatchQueue(label: "com.macefficiency.todo.database", qos: .userInitiated)
@@ -55,7 +55,7 @@ final class TodoDatabase: TodoPersisting {
             let archivedClause = includeArchived ? "" : "WHERE archived_at IS NULL"
             let sql = """
             SELECT id, title, notes, status, quadrant, due_at, created_at, updated_at,
-                   completed_at, archived_at, quadrant_rank, status_rank
+                   completed_at, status_before_completion, archived_at, quadrant_rank, status_rank
             FROM todo_tasks
             \(archivedClause)
             ORDER BY created_at ASC, id ASC;
@@ -82,8 +82,8 @@ final class TodoDatabase: TodoPersisting {
             let sql = """
             INSERT INTO todo_tasks (
                 id, title, notes, status, quadrant, due_at, created_at, updated_at,
-                completed_at, archived_at, quadrant_rank, status_rank
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                completed_at, status_before_completion, archived_at, quadrant_rank, status_rank
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
             let statement = try prepare(sql, operation: "prepare insert")
             defer { sqlite3_finalize(statement) }
@@ -160,8 +160,8 @@ final class TodoDatabase: TodoPersisting {
         let sql = """
         UPDATE todo_tasks SET
             title = ?, notes = ?, status = ?, quadrant = ?, due_at = ?,
-            created_at = ?, updated_at = ?, completed_at = ?, archived_at = ?,
-            quadrant_rank = ?, status_rank = ?
+            created_at = ?, updated_at = ?, completed_at = ?, status_before_completion = ?,
+            archived_at = ?, quadrant_rank = ?, status_rank = ?
         WHERE id = ?;
         """
         let statement = try prepare(sql, operation: "prepare update")
@@ -174,10 +174,11 @@ final class TodoDatabase: TodoPersisting {
         sqlite3_bind_double(statement, 6, task.createdAt.timeIntervalSince1970)
         sqlite3_bind_double(statement, 7, task.updatedAt.timeIntervalSince1970)
         bindDate(task.completedAt, to: statement, index: 8)
-        bindDate(task.archivedAt, to: statement, index: 9)
-        sqlite3_bind_double(statement, 10, task.quadrantRank)
-        sqlite3_bind_double(statement, 11, task.statusRank)
-        bindText(task.id.uuidString, to: statement, index: 12)
+        bindOptionalText(task.statusBeforeCompletion?.rawValue, to: statement, index: 9)
+        bindDate(task.archivedAt, to: statement, index: 10)
+        sqlite3_bind_double(statement, 11, task.quadrantRank)
+        sqlite3_bind_double(statement, 12, task.statusRank)
+        bindText(task.id.uuidString, to: statement, index: 13)
         try finish(statement, operation: "update task")
     }
 
@@ -234,6 +235,7 @@ final class TodoDatabase: TodoPersisting {
                     created_at REAL NOT NULL,
                     updated_at REAL NOT NULL,
                     completed_at REAL,
+                    status_before_completion TEXT,
                     archived_at REAL,
                     quadrant_rank REAL NOT NULL,
                     status_rank REAL NOT NULL
@@ -241,6 +243,7 @@ final class TodoDatabase: TodoPersisting {
                 """,
                 operation: "create todo table"
             )
+            try ensureStatusBeforeCompletionColumn()
             try execute(
                 "CREATE INDEX IF NOT EXISTS idx_todo_status ON todo_tasks(archived_at, status, status_rank);",
                 operation: "create status index"
@@ -258,6 +261,24 @@ final class TodoDatabase: TodoPersisting {
             closeUnlocked()
             throw error
         }
+    }
+
+    private func ensureStatusBeforeCompletionColumn() throws {
+        let statement = try prepare("PRAGMA table_info(todo_tasks);", operation: "inspect todo schema")
+        var hasColumn = false
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if text(at: 1, from: statement) == "status_before_completion" {
+                hasColumn = true
+                break
+            }
+        }
+        sqlite3_finalize(statement)
+        guard !hasColumn else { return }
+
+        try execute(
+            "ALTER TABLE todo_tasks ADD COLUMN status_before_completion TEXT;",
+            operation: "migrate todo schema to version 2"
+        )
     }
 
     private func closeUnlocked() {
@@ -307,13 +328,22 @@ final class TodoDatabase: TodoPersisting {
         sqlite3_bind_double(statement, 7, task.createdAt.timeIntervalSince1970)
         sqlite3_bind_double(statement, 8, task.updatedAt.timeIntervalSince1970)
         bindDate(task.completedAt, to: statement, index: 9)
-        bindDate(task.archivedAt, to: statement, index: 10)
-        sqlite3_bind_double(statement, 11, task.quadrantRank)
-        sqlite3_bind_double(statement, 12, task.statusRank)
+        bindOptionalText(task.statusBeforeCompletion?.rawValue, to: statement, index: 10)
+        bindDate(task.archivedAt, to: statement, index: 11)
+        sqlite3_bind_double(statement, 12, task.quadrantRank)
+        sqlite3_bind_double(statement, 13, task.statusRank)
     }
 
     private func bindText(_ value: String, to statement: OpaquePointer, index: Int32) {
         sqlite3_bind_text(statement, index, value, -1, Self.transient)
+    }
+
+    private func bindOptionalText(_ value: String?, to statement: OpaquePointer, index: Int32) {
+        if let value {
+            bindText(value, to: statement, index: index)
+        } else {
+            sqlite3_bind_null(statement, index)
+        }
     }
 
     private func bindDate(_ value: Date?, to statement: OpaquePointer, index: Int32) {
@@ -352,9 +382,10 @@ final class TodoDatabase: TodoPersisting {
             createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 6)),
             updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 7)),
             completedAt: date(at: 8, from: statement),
-            archivedAt: date(at: 9, from: statement),
-            quadrantRank: sqlite3_column_double(statement, 10),
-            statusRank: sqlite3_column_double(statement, 11)
+            statusBeforeCompletion: text(at: 9, from: statement).flatMap(TodoStatus.init(rawValue:)),
+            archivedAt: date(at: 10, from: statement),
+            quadrantRank: sqlite3_column_double(statement, 11),
+            statusRank: sqlite3_column_double(statement, 12)
         )
     }
 

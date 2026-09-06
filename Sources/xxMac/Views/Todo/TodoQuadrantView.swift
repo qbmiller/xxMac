@@ -13,9 +13,9 @@ struct TodoQuadrantView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let cellHeight = max(170, (proxy.size.height - 34) / 2)
+            let cellHeight = max(190, (proxy.size.height - 46) / 2)
             ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 10) {
+                LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(TodoQuadrant.allCases) { quadrant in
                         TodoQuadrantCell(
                             quadrant: quadrant,
@@ -27,9 +27,10 @@ struct TodoQuadrantView: View {
                         .frame(height: cellHeight)
                     }
                 }
-                .frame(minWidth: max(500, proxy.size.width - 24))
-                .padding(12)
+                .frame(minWidth: max(500, proxy.size.width - 32))
+                .padding(16)
             }
+            .background(Color(nsColor: .windowBackgroundColor))
         }
     }
 
@@ -59,24 +60,32 @@ private struct TodoQuadrantCell: View {
             VStack(spacing: 0) {
                 HStack(spacing: 7) {
                     Image(systemName: quadrant.systemImage)
-                        .foregroundStyle(quadrant.tintColor)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 24, height: 24)
+                        .background(quadrant.tintColor, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     Text(quadrant.localizedTitle)
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                     Text("\(tasks.count)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .frame(height: 20)
+                        .background(Color(nsColor: .separatorColor).opacity(0.22), in: Capsule())
                     Spacer()
                 }
-                .padding(.horizontal, 11)
-                .padding(.vertical, 9)
+                .padding(.horizontal, 12)
+                .frame(height: 44)
+                .background(quadrant.tintColor.opacity(0.055))
 
                 Divider()
 
                 if tasks.isEmpty {
                     VStack(spacing: 6) {
                         Image(systemName: "tray")
-                            .foregroundStyle(.tertiary)
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundStyle(quadrant.tintColor.opacity(0.55))
                         Text(L10n.t("todo.quadrant.empty"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -108,16 +117,17 @@ private struct TodoQuadrantCell: View {
                                 }
                             }
                         }
-                        .padding(8)
+                        .padding(9)
                     }
                 }
             }
-            .background(Color(nsColor: .underPageBackgroundColor).opacity(0.5))
+            .background(Color(nsColor: .controlBackgroundColor))
             .clipShape(.rect(cornerRadius: 7))
             .overlay {
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(quadrant.tintColor.opacity(0.3), lineWidth: 1)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.65), lineWidth: 1)
             }
+            .shadow(color: .black.opacity(0.035), radius: 5, y: 1)
         }
     }
 

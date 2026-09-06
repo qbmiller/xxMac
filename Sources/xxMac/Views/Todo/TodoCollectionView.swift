@@ -11,7 +11,7 @@ struct TodoCollectionView: View {
     let onMoveToStatus: (UUID, TodoStatus, UUID?) -> Void
 
     private let cardColumns = [
-        GridItem(.adaptive(minimum: 280, maximum: 420), spacing: 10, alignment: .top)
+        GridItem(.adaptive(minimum: 260, maximum: 400), spacing: 10, alignment: .top)
     ]
 
     @ViewBuilder
@@ -38,13 +38,16 @@ struct TodoCollectionView: View {
             )
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 7) {
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
                         Text(title)
-                            .font(.headline)
+                            .font(.title3.weight(.semibold))
                         Text("\(tasks.count)")
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                            .padding(.horizontal, 7)
+                            .frame(height: 20)
+                            .background(Color(nsColor: .separatorColor).opacity(0.22), in: Capsule())
                         Spacer()
                     }
 
@@ -62,8 +65,10 @@ struct TodoCollectionView: View {
                         }
                     }
                 }
-                .padding(14)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 16)
             }
+            .background(Color(nsColor: .windowBackgroundColor))
         }
     }
 
@@ -111,8 +116,10 @@ struct TodoEmptyStateView: View {
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: systemImage)
-                .font(.system(size: 30))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 46, height: 46)
+                .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             Text(title)
                 .font(.headline)
             Text(message)

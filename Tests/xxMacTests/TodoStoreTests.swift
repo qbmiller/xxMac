@@ -47,7 +47,7 @@ final class TodoStoreTests: XCTestCase {
         XCTAssertEqual(persistence.tasks, [original])
     }
 
-    func testRollbackUsesFixedPreviousStatus() async throws {
+    func testLegacyCompletedTaskWithoutHistoryUsesFixedFallback() async throws {
         var completed = makeTask(title: "Completed", status: .completed)
         completed.completedAt = now.addingTimeInterval(-60)
         let persistence = TodoPersistenceFake(tasks: [completed])
@@ -60,6 +60,39 @@ final class TodoStoreTests: XCTestCase {
         store.rollbackStatus(id: completed.id)
         try await waitUntil { store.tasks.first?.status == .todo }
         XCTAssertNil(store.tasks.first?.status.previous)
+    }
+
+    func testCancellingCompletionRestoresStatusBeforeCompletion() async throws {
+        let task = makeTask(title: "Restore original status")
+        let persistence = TodoPersistenceFake(tasks: [task])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.setStatus(id: task.id, status: .completed)
+        try await waitUntil { store.tasks.first?.status == .completed }
+        XCTAssertEqual(persistence.tasks.first?.statusBeforeCompletion, .todo)
+
+        let reloadedStore = TodoStore(
+            persistence: persistence,
+            notifications: TodoNotificationSpy(),
+            now: { self.now }
+        )
+        reloadedStore.rollbackStatus(id: task.id)
+        try await waitUntil { reloadedStore.tasks.first?.status == .todo }
+
+        XCTAssertNil(reloadedStore.tasks.first?.completedAt)
+        XCTAssertNil(reloadedStore.tasks.first?.statusBeforeCompletion)
+    }
+
+    func testCancellingCompletionRestoresInProgressStatus() async throws {
+        let task = makeTask(title: "Continue original work", status: .inProgress)
+        let persistence = TodoPersistenceFake(tasks: [task])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.setStatus(id: task.id, status: .completed)
+        try await waitUntil { store.tasks.first?.status == .completed }
+
+        store.rollbackStatus(id: task.id)
+        try await waitUntil { store.tasks.first?.status == .inProgress }
     }
 
     func testQuadrantAndStatusMovesChangeIndependentRanks() async throws {

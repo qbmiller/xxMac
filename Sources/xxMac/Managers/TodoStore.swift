@@ -115,6 +115,7 @@ final class TodoStore: ObservableObject {
             updated.createdAt = old.createdAt
             updated.updatedAt = timestamp
             if old.status != updated.status {
+                updated.statusBeforeCompletion = updated.status == .completed ? old.status : nil
                 updated.completedAt = updated.status == .completed ? timestamp : nil
                 updated.statusRank = Self.rankAtEnd(
                     tasks.filter {
@@ -123,6 +124,7 @@ final class TodoStore: ObservableObject {
                 )
             } else {
                 updated.completedAt = old.completedAt
+                updated.statusBeforeCompletion = old.statusBeforeCompletion
             }
             try persistence.update(updated)
             tasks[index] = updated
@@ -147,11 +149,15 @@ final class TodoStore: ObservableObject {
     }
 
     func rollbackStatus(id: UUID) {
-        worker.read { tasks in
-            tasks.first(where: { $0.id == id })?.status.previous
-        } completion: { [weak self] previous in
-            guard let self, let previous else { return }
-            self.setStatus(id: id, status: previous)
+        worker.read { tasks -> TodoStatus? in
+            guard let task = tasks.first(where: { $0.id == id }) else { return nil }
+            if task.status == .completed {
+                return task.statusBeforeCompletion ?? .inProgress
+            }
+            return task.status.previous
+        } completion: { [weak self] targetStatus in
+            guard let self, let targetStatus else { return }
+            self.setStatus(id: id, status: targetStatus)
         }
     }
 
