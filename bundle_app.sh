@@ -71,7 +71,7 @@ echo "   3. Restart the app for global hotkeys to work"
 INSTALL_RESPONSE=""
 if [ "${INSTALL_TO_APPLICATIONS:-0}" = "1" ]; then
     INSTALL_RESPONSE="y"
-    echo "INSTALL_TO_APPLICATIONS=1，自动确认覆盖 $APPLICATIONS_APP_PATH。"
+    echo "INSTALL_TO_APPLICATIONS=1，自动确认覆盖 ${APPLICATIONS_APP_PATH}。"
 else
     printf "是否覆盖原文件 %s？[y/N] " "$APPLICATIONS_APP_PATH"
     read -r INSTALL_RESPONSE
@@ -99,7 +99,7 @@ case "$INSTALL_RESPONSE" in
             fi
 
             if pgrep -x "$APP_NAME" >/dev/null 2>&1; then
-                echo "无法关闭当前运行中的 $APP_NAME，已取消覆盖。"
+                echo "无法关闭当前运行中的 ${APP_NAME}，已取消覆盖。"
                 exit 1
             fi
         fi
@@ -121,6 +121,6 @@ case "$INSTALL_RESPONSE" in
         echo "已替换为新应用并打开：$APPLICATIONS_APP_PATH"
         ;;
     *)
-        echo "已保留生成的 $APP_BUNDLE，未覆盖 $APPLICATIONS_APP_PATH。"
+        echo "已保留生成的 ${APP_BUNDLE}，未覆盖 ${APPLICATIONS_APP_PATH}。"
         ;;
 esac
