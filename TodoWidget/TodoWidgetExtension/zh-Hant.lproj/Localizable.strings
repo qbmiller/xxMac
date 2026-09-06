@@ -1,0 +1,10 @@
+"widget.title" = "待辦";
+"widget.description" = "在桌面查看並完成待辦任務。";
+"widget.category.today" = "今日";
+"widget.category.in_progress" = "進行中";
+"widget.category.todo" = "待辦";
+"widget.overdue" = "逾期";
+"widget.empty" = "沒有未完成任務";
+"widget.complete_accessibility" = "完成「%@」";
+"widget.count_format" = "%d/%d";
+"widget.complete" = "完成待辦";

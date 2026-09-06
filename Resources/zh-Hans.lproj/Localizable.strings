@@ -31,7 +31,7 @@
 "common.indexing_apps" = "正在索引应用...";
 "common.indexed_apps_format" = "已索引 %d 个应用";
 "common.config_directory" = "配置目录";
-"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据、待办数据和图片缓存的位置。修改目录会随其他本地数据一起迁移 todo.db，但“导出配置”不包含任务；本版本待办仅保存在本地，不支持 iCloud 同步。该目录还会自动创建 quick/ 用于放置复杂快捷指令脚本。粘贴操作的开关和每日计数保存在配置中，但生成的文件只写入 Finder 目标文件夹。浏览器书签和历史不存入或迁移到此目录。该目录可以是本地目录或同步服务下保持本地可用的目录。";
+"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据、待办数据和图片缓存的位置。修改目录会随其他本地数据一起迁移 todo.db，但“导出配置”不包含任务；可重新生成的 Todo 小组件快照和待确认完成操作保存在系统 App Group 容器中，不随此目录迁移；待办仅保存在本地，不支持 iCloud 同步。该目录还会自动创建 quick/ 用于放置复杂快捷指令脚本。粘贴操作的开关和每日计数保存在配置中，但生成的文件只写入 Finder 目标文件夹。浏览器书签和历史不存入或迁移到此目录。该目录可以是本地目录或同步服务下保持本地可用的目录。";
 "common.set_config_directory" = "设置配置目录...";
 "common.reveal_config_directory" = "在 Finder 中显示";
 "common.reset_config_directory" = "恢复默认目录";

@@ -247,6 +247,90 @@ final class TodoStoreTests: XCTestCase {
         XCTAssertTrue(persistence.tasks.isEmpty)
     }
 
+    func testWidgetCompletionUsesNormalCompletionTransition() async throws {
+        let task = makeTask(title: "Active", status: .inProgress)
+        let persistence = TodoPersistenceFake(tasks: [task])
+        let notifications = TodoNotificationSpy()
+        let store = TodoStore(persistence: persistence, notifications: notifications, now: { self.now })
+
+        let result = await completionResult(store: store, id: task.id)
+
+        try result.get()
+        XCTAssertEqual(store.tasks[0].status, .completed)
+        XCTAssertEqual(store.tasks[0].completedAt, now)
+        XCTAssertEqual(store.tasks[0].statusBeforeCompletion, .inProgress)
+        XCTAssertEqual(persistence.tasks, store.tasks)
+        XCTAssertEqual(notifications.reconciliations.count, 1)
+    }
+
+    func testWidgetCompletionTreatsMissingCompletedAndArchivedTasksAsSuccess() async throws {
+        var completed = makeTask(title: "Completed", status: .completed)
+        completed.completedAt = now.addingTimeInterval(-60)
+        var archived = makeTask(title: "Archived")
+        archived.archivedAt = now.addingTimeInterval(-60)
+        let persistence = TodoPersistenceFake(tasks: [completed, archived])
+        let notifications = TodoNotificationSpy()
+        let store = TodoStore(persistence: persistence, notifications: notifications, now: { self.now })
+
+        try await completionResult(store: store, id: UUID()).get()
+        try await completionResult(store: store, id: completed.id).get()
+        try await completionResult(store: store, id: archived.id).get()
+
+        XCTAssertEqual(store.tasks, [completed, archived])
+        XCTAssertEqual(persistence.tasks, [completed, archived])
+        XCTAssertTrue(notifications.reconciliations.isEmpty)
+    }
+
+    func testWidgetCompletionReturnsPersistenceFailureWithoutPublishing() async throws {
+        let task = makeTask(title: "Failure")
+        let persistence = TodoPersistenceFake(tasks: [task])
+        persistence.updateError = TestError.writeFailed
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        let result = await completionResult(store: store, id: task.id)
+
+        XCTAssertThrowsError(try result.get())
+        XCTAssertEqual(store.tasks, [task])
+        XCTAssertEqual(persistence.tasks, [task])
+    }
+
+    func testSuccessfulMutationPostsTasksDidChangeAfterPublishing() async throws {
+        let persistence = TodoPersistenceFake()
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+        let expectation = expectation(description: "Todo tasks changed")
+        var publishedTitles: [String] = []
+        let observer = NotificationCenter.default.addObserver(
+            forName: .todoStoreTasksDidChange,
+            object: store,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                publishedTitles = store.tasks.map(\.title)
+                expectation.fulfill()
+            }
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        store.create(
+            title: "Published",
+            notes: "",
+            quadrant: .notImportantNotUrgent,
+            status: .todo,
+            dueAt: nil
+        )
+        await fulfillment(of: [expectation], timeout: 2)
+
+        XCTAssertEqual(publishedTitles, ["Published"])
+    }
+
+    private func completionResult(store: TodoStore, id: UUID) async -> Result<Void, Error> {
+        await withCheckedContinuation { continuation in
+            store.completeFromWidget(id: id) { result in
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
     private func makeTask(
         title: String,
         status: TodoStatus = .todo,

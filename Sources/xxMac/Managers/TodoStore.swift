@@ -1,6 +1,10 @@
 import Combine
 import Foundation
 
+extension Notification.Name {
+    static let todoStoreTasksDidChange = Notification.Name("TodoStoreTasksDidChange")
+}
+
 @MainActor
 final class TodoStore: ObservableObject {
     static let shared: TodoStore = {
@@ -37,7 +41,7 @@ final class TodoStore: ObservableObject {
             self.isLoading = false
             switch result {
             case .success(let tasks):
-                self.tasks = tasks
+                self.publish(tasks)
                 self.errorMessage = nil
             case .failure(let error):
                 self.errorMessage = error.localizedDescription
@@ -55,13 +59,13 @@ final class TodoStore: ObservableObject {
     func reloadStorageDirectory(
         _ databaseURL: URL = ConfigDirectoryManager.shared.todoDatabaseURL
     ) throws {
-        tasks = try worker.reopen(at: databaseURL.standardizedFileURL)
+        publish(try worker.reopen(at: databaseURL.standardizedFileURL))
         errorMessage = nil
     }
 
     func resumeAfterDirectoryMigration() throws {
         guard let migrationSourceURL else { return }
-        tasks = try worker.reopen(at: migrationSourceURL)
+        publish(try worker.reopen(at: migrationSourceURL))
         self.migrationSourceURL = nil
         errorMessage = nil
     }
@@ -133,18 +137,22 @@ final class TodoStore: ObservableObject {
     }
 
     func setStatus(id: UUID, status: TodoStatus) {
-        let timestamp = now()
-        submit { tasks, persistence in
-            guard let index = tasks.firstIndex(where: { $0.id == id }) else { return nil }
-            let old = tasks[index]
-            guard old.status != status else { return nil }
-            let newRank = Self.rankAtEnd(
-                tasks.filter { $0.id != id && $0.archivedAt == nil && $0.status == status }.map(\.statusRank)
-            )
-            let updated = old.moving(to: status, statusRank: newRank, at: timestamp)
-            try persistence.update(updated)
-            tasks[index] = updated
-            return TodoStoreChange(old: old, new: updated)
+        submit(Self.statusMutation(id: id, status: status, timestamp: now(), widgetCompletion: false))
+    }
+
+    func completeFromWidget(
+        id: UUID,
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        submit(
+            Self.statusMutation(id: id, status: .completed, timestamp: now(), widgetCompletion: true)
+        ) { result in
+            switch result {
+            case .success:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
+            }
         }
     }
 
@@ -253,12 +261,19 @@ final class TodoStore: ObservableObject {
         }
     }
 
-    private func submit(_ mutation: @escaping TodoStoreWorker.Mutation) {
+    private func submit(
+        _ mutation: @escaping TodoStoreWorker.Mutation,
+        completion: ((Result<TodoStoreWorker.Output, Error>) -> Void)? = nil
+    ) {
         worker.perform(mutation) { [weak self] result in
             guard let self else { return }
             switch result {
             case .success(let output):
-                self.tasks = output.tasks
+                if output.change != nil {
+                    self.publish(output.tasks)
+                } else {
+                    self.tasks = output.tasks
+                }
                 self.errorMessage = nil
                 if let change = output.change {
                     self.notifications.reconcile(old: change.old, new: change.new)
@@ -266,6 +281,35 @@ final class TodoStore: ObservableObject {
             case .failure(let error):
                 self.errorMessage = error.localizedDescription
             }
+            completion?(result)
+        }
+    }
+
+    private func publish(_ newTasks: [TodoTask]) {
+        tasks = newTasks
+        NotificationCenter.default.post(name: .todoStoreTasksDidChange, object: self)
+    }
+
+    private static func statusMutation(
+        id: UUID,
+        status: TodoStatus,
+        timestamp: Date,
+        widgetCompletion: Bool
+    ) -> TodoStoreWorker.Mutation {
+        { tasks, persistence in
+            guard let index = tasks.firstIndex(where: { $0.id == id }) else { return nil }
+            let old = tasks[index]
+            if widgetCompletion && (old.archivedAt != nil || old.status == .completed) {
+                return nil
+            }
+            guard old.status != status else { return nil }
+            let newRank = Self.rankAtEnd(
+                tasks.filter { $0.id != id && $0.archivedAt == nil && $0.status == status }.map(\.statusRank)
+            )
+            let updated = old.moving(to: status, statusRank: newRank, at: timestamp)
+            try persistence.update(updated)
+            tasks[index] = updated
+            return TodoStoreChange(old: old, new: updated)
         }
     }
 

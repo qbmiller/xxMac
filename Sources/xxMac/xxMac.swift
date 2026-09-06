@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import OSLog
+import TodoWidgetShared
 
 enum MenuBarVisibilityAction: Equatable {
     case create
@@ -210,6 +211,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private var restoresAccessoryPolicyAfterSettingsClose = false
     private var isUpdatingLauncherPanelFrame = false
     private var launcherPanelAnchor: NSPoint?
+    private var todoWidgetSyncCoordinator: TodoWidgetSyncCoordinator?
     private let launcherRestingLevel: NSWindow.Level = .floating
     private let launcherPresentationLevel: NSWindow.Level = .statusBar
 
@@ -272,6 +274,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         _ = GeneralSettingsManager.shared
         _ = UpdateManager.shared
         _ = TodoStore.shared
+        if let fileStore = TodoWidgetFileStore.appGroup() {
+            let coordinator = TodoWidgetSyncCoordinator(taskStore: TodoStore.shared, fileStore: fileStore)
+            todoWidgetSyncCoordinator = coordinator
+            coordinator.start()
+        }
         _ = TodoWindowController.shared
         // Initialize HotKeyManager
         _ = HotKeyManager.shared
@@ -1375,7 +1382,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         saveLauncherPanelAnchor(anchor)
     }
 
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: { TodoDeepLink.route(for: $0) == .todo }) else {
+            return
+        }
+        TodoWindowController.shared.show()
+    }
+
     func applicationDidBecomeActive(_ notification: Notification) {
+        todoWidgetSyncCoordinator?.synchronize()
         NSLog("=== applicationDidBecomeActive === pendingRestore:%@",
               pendingLauncherRestore.description)
         logLauncherState("applicationDidBecomeActive pendingRestore=\(pendingLauncherRestore)")

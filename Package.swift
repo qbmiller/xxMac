@@ -17,9 +17,12 @@ let package = Package(
         .package(url: "https://github.com/soffes/HotKey", from: "0.1.3")
     ],
     targets: [
+        .target(
+            name: "TodoWidgetShared"
+        ),
         .executableTarget(
             name: "xxMac",
-            dependencies: ["HotKey"],
+            dependencies: ["HotKey", "TodoWidgetShared"],
             exclude: ["Info.plist"], // Exclude from default build rules to avoid "forbidden resource" error
             resources: [],
             linkerSettings: [
@@ -34,6 +37,10 @@ let package = Package(
         .testTarget(
             name: "xxMacTests",
             dependencies: ["xxMac"]
+        ),
+        .testTarget(
+            name: "TodoWidgetSharedTests",
+            dependencies: ["TodoWidgetShared"]
         ),
     ]
 )

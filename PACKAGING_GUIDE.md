@@ -10,15 +10,34 @@ bash bundle_app.sh
 
 脚本会生成 `xxMac.app`：
 
-- 默认使用 ad-hoc 签名，签名标识为 `-`。
+- 默认使用固定签名身份 `qbmiller`，可通过 `SIGNING_IDENTITY` 覆盖。
 - 从 `Sources/xxMac/Info.plist` 拷贝应用元信息。
 - 从 `Resources/` 拷贝图标、本地化和日历数据。
+- 构建并嵌入 `Contents/PlugIns/TodoWidgetExtension.appex`。
+- 先签名 Widget Extension，再签名主应用，并校验嵌套签名。
 
 指定开发者签名：
 
 ```bash
 SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 ```
+
+## Todo Widget 打包要求
+
+Todo 桌面小组件位于独立的 `TodoWidget/` Xcode 工程中。主应用仍由 SwiftPM 构建，只有扩展由 `bundle_app.sh` 调用 `xcodebuild`。
+
+主应用与扩展必须同时包含 App Group `group.com.xiaomi318.xxMac`，扩展还必须启用 App Sandbox。两者应使用同一签名身份；缺少 App Group、扩展产物或嵌套签名校验失败时，脚本会直接终止。
+
+可用以下命令复核生成物：
+
+```bash
+codesign --verify --deep --strict --verbose=2 xxMac.app
+codesign -d --entitlements :- xxMac.app
+codesign -d --entitlements :- xxMac.app/Contents/PlugIns/TodoWidgetExtension.appex
+plutil -p xxMac.app/Contents/PlugIns/TodoWidgetExtension.appex/Contents/Info.plist
+```
+
+系统只有在安装应用后才会注册其中的 Widget Extension。不要把“扩展构建成功”等同于桌面小组件已完成系统验收；仍需在 macOS 14 或更高版本的“编辑小组件”中找到 Todo，并手动添加中号组件验证。
 
 ## DMG 发布
 
@@ -64,17 +83,6 @@ DMG_NAME="xxMac-0.0.1.dmg" VOLUME_NAME="xxMac" bash publish_dmg.sh
 - `CFBundleShortVersionString`：展示版本号，关于页读取这个字段。
 - `CFBundleVersion`：构建版本号，发布脚本会同步写成同一个版本。
 - `XXLastUpdated`：最近更新时间，发布脚本会写入当天日期，关于页读取这个字段。
-
-## 无开发者账号
-
-默认 ad-hoc 签名的 App 拷贝到 `/Applications` 后，macOS 可能因为隔离属性阻止打开。清理隔离属性后再启动：
-
-```bash
-xattr -cr /Applications/xxMac.app
-open /Applications/xxMac.app
-```
-
-如果 App 不在 `/Applications`，把路径替换成实际的 `xxMac.app` 路径。
 
 ## 权限排障
 

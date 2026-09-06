@@ -1,0 +1,10 @@
+"widget.title" = "Todo";
+"widget.description" = "View and complete Todo tasks from the desktop.";
+"widget.category.today" = "Today";
+"widget.category.in_progress" = "Doing";
+"widget.category.todo" = "Todo";
+"widget.overdue" = "Overdue";
+"widget.empty" = "No incomplete tasks";
+"widget.complete_accessibility" = "Complete %@";
+"widget.count_format" = "%d/%d";
+"widget.complete" = "Complete Todo";
