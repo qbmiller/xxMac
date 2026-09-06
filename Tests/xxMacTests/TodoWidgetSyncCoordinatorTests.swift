@@ -180,6 +180,11 @@ private final class WidgetFileStoreFake: TodoWidgetFileStoring {
         return actions
     }
 
+    func readPageIndex() throws -> Int { 0 }
+    func readFontSize() throws -> Int { TodoWidgetLayout.defaultFontSize }
+    func setFontSize(_ fontSize: Int) throws -> Int { TodoWidgetLayout.clampedFontSize(fontSize) }
+    func movePage(by delta: Int) throws -> Int { 0 }
+
     func appendCompletion(taskID: UUID, now: Date) throws -> TodoWidgetAction {
         let action = TodoWidgetAction(id: UUID(), taskID: taskID, kind: .complete, createdAt: now)
         actions.append(action)

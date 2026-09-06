@@ -88,7 +88,7 @@ final class TodoWidgetSnapshotBuilderTests: XCTestCase {
         XCTAssertEqual(snapshot.totalIncompleteCount, 1)
     }
 
-    func testLimitsItemsToTenButKeepsFullIncompleteCount() {
+    func testSnapshotKeepsEveryIncompleteTaskForPaging() {
         let tasks = (0..<12).map { index in
             makeTask(title: "Task \(index)", status: .todo, statusRank: Double(index))
         }
@@ -99,9 +99,9 @@ final class TodoWidgetSnapshotBuilderTests: XCTestCase {
             calendar: calendar
         )
 
-        XCTAssertEqual(snapshot.items.count, 10)
+        XCTAssertEqual(snapshot.items.count, 12)
         XCTAssertEqual(snapshot.totalIncompleteCount, 12)
-        XCTAssertEqual(snapshot.items.map(\.title), (0..<10).map { "Task \($0)" })
+        XCTAssertEqual(snapshot.items.map(\.title), (0..<12).map { "Task \($0)" })
     }
 
     func testSchedulesNextRefreshAtFollowingLocalMidnight() {

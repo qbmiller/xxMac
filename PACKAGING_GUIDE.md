@@ -26,7 +26,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 
 Todo 桌面小组件位于独立的 `TodoWidget/` Xcode 工程中。主应用仍由 SwiftPM 构建，只有扩展由 `bundle_app.sh` 调用 `xcodebuild`。
 
-主应用与扩展必须同时包含 App Group `group.com.xiaomi318.xxMac`，扩展还必须启用 App Sandbox。两者应使用同一签名身份；缺少 App Group、扩展产物或嵌套签名校验失败时，脚本会直接终止。
+扩展必须启用 App Sandbox，并通过 home-relative 文件例外仅访问 `~/Library/Application Support/xxMac/Widget/`。主应用和扩展通过该目录交换可重新生成的任务快照与待确认操作，不依赖需要 Apple Team ID 的 App Group。缺少目录权限、扩展产物或嵌套签名校验失败时，脚本会直接终止。
 
 可用以下命令复核生成物：
 

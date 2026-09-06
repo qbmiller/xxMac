@@ -31,7 +31,7 @@
 "common.indexing_apps" = "正在索引應用...";
 "common.indexed_apps_format" = "已索引 %d 個應用";
 "common.config_directory" = "設定目錄";
-"common.config_directory_desc" = "設定 xxMac 保存設定、應用索引快取、剪貼簿資料、待辦資料和圖片快取的位置。變更目錄時會連同其他本機資料一起遷移 todo.db，但「匯出設定」不包含任務；可重新產生的 Todo 小工具快照和待確認完成操作保存在系統 App Group 容器中，不會隨此目錄遷移；待辦只保存在本機，不支援 iCloud 同步。此目錄也會自動建立 quick/ 用於放置複雜快捷指令腳本。貼上操作的開關和每日計數保存在設定中，但產生的檔案只寫入 Finder 目標資料夾。瀏覽器書籤和歷史不會存入或遷移到此目錄。此目錄可以是本機目錄，也可以是同步服務中保持本機可用的目錄。";
+"common.config_directory_desc" = "設定 xxMac 保存設定、應用索引快取、剪貼簿資料、待辦資料和圖片快取的位置。變更目錄時會連同其他本機資料一起遷移 todo.db，但「匯出設定」不包含任務；可重新產生的 Todo 小工具快照、顯示設定、分頁狀態和待確認完成操作固定保存在 ~/Library/Application Support/xxMac/Widget，不會隨此目錄遷移；待辦只保存在本機，不支援 iCloud 同步。此目錄也會自動建立 quick/ 用於放置複雜快捷指令腳本。貼上操作的開關和每日計數保存在設定中，但產生的檔案只寫入 Finder 目標資料夾。瀏覽器書籤和歷史不會存入或遷移到此目錄。此目錄可以是本機目錄，也可以是同步服務中保持本機可用的目錄。";
 "common.set_config_directory" = "設定目錄...";
 "common.reveal_config_directory" = "在 Finder 中顯示";
 "common.reset_config_directory" = "還原預設目錄";
@@ -430,6 +430,7 @@
 "window_action.toggle_todo" = "顯示/隱藏待辦";
 "tool.todo" = "待辦";
 "function.todo.general" = "一般";
+"function.todo.widget" = "小工具";
 "todo.title" = "待辦";
 "todo.view.quadrants" = "四象限";
 "todo.view.all" = "全部";
@@ -491,7 +492,17 @@
 "todo.delete.title" = "永久刪除任務？";
 "todo.delete.message" = "此任務將從本機資料庫刪除，且無法恢復。";
 "todo.notification.due" = "任務已到截止時間。";
-"todo.settings.description" = "設定待辦視窗、截止通知和本機資料庫位置。";
+"todo.settings.description" = "設定待辦視窗、字體大小、截止通知和本機資料庫位置。";
+"todo.settings.appearance" = "顯示";
+"todo.settings.font_size" = "一般待辦字體大小";
+"todo.settings.font_size_desc" = "調整待辦視窗中任務標題的字體大小。";
+"todo.settings.font_size_format" = "%d pt";
+"todo.widget_settings.description" = "設定桌面待辦小工具的顯示方式。";
+"todo.widget_settings.appearance" = "小工具顯示";
+"todo.widget_settings.font_size" = "小工具字體大小";
+"todo.widget_settings.font_size_desc" = "調整任務、分類和截止時間的字體大小。";
+"todo.widget_settings.page_size_format" = "目前字號每頁最多顯示 %d 項任務。";
+"todo.widget_settings.save_failed" = "儲存小工具設定失敗：%@";
 "todo.settings.window" = "視窗與快速鍵";
 "todo.settings.hotkey" = "開啟或隱藏待辦";
 "todo.settings.open_window" = "開啟待辦";

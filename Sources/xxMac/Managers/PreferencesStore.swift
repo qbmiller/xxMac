@@ -184,7 +184,9 @@ final class PreferencesStore {
 
     private static let intKeys = [
         "CalendarFirstWeekday",
-        "LauncherHistoryMaxItems"
+        "LauncherHistoryMaxItems",
+        "TodoFontSize",
+        "TodoNavigationFontSize"
     ]
 
     private static let doubleKeys = [
@@ -204,6 +206,8 @@ final class TodoPreferencesStore: ObservableObject {
         static let selectedView = "TodoSelectedView"
         static let listLayout = "TodoListLayout"
         static let hideCompleted = "TodoHideCompletedInQuadrants"
+        static let fontSize = "TodoFontSize"
+        static let navigationFontSize = "TodoNavigationFontSize"
     }
 
     @Published var selectedView: TodoView {
@@ -218,6 +222,26 @@ final class TodoPreferencesStore: ObservableObject {
         didSet { preferences.set(hideCompletedInQuadrants, forKey: Key.hideCompleted) }
     }
 
+    @Published var fontSize: Int {
+        didSet {
+            let clamped = Self.clampedFontSize(fontSize)
+            if clamped != fontSize {
+                fontSize = clamped
+            }
+            preferences.set(clamped, forKey: Key.fontSize)
+        }
+    }
+
+    @Published var navigationFontSize: Int {
+        didSet {
+            let clamped = Self.clampedFontSize(navigationFontSize)
+            if clamped != navigationFontSize {
+                navigationFontSize = clamped
+            }
+            preferences.set(clamped, forKey: Key.navigationFontSize)
+        }
+    }
+
     private let preferences: PreferencesStore
 
     init(preferences: PreferencesStore = .shared) {
@@ -228,5 +252,19 @@ final class TodoPreferencesStore: ObservableObject {
             .flatMap(TodoListLayout.init(rawValue:)) ?? AppDefaultSettings.Todo.listLayout
         hideCompletedInQuadrants = preferences.boolObject(forKey: Key.hideCompleted)
             ?? AppDefaultSettings.Todo.hideCompletedInQuadrants
+        fontSize = Self.clampedFontSize(
+            preferences.intObject(forKey: Key.fontSize) ?? AppDefaultSettings.Todo.fontSize
+        )
+        navigationFontSize = Self.clampedFontSize(
+            preferences.intObject(forKey: Key.navigationFontSize)
+                ?? AppDefaultSettings.Todo.navigationFontSize
+        )
+    }
+
+    private static func clampedFontSize(_ value: Int) -> Int {
+        min(
+            max(value, AppDefaultSettings.Todo.fontSizeRange.lowerBound),
+            AppDefaultSettings.Todo.fontSizeRange.upperBound
+        )
     }
 }

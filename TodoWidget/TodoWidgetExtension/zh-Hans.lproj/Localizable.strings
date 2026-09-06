@@ -6,5 +6,7 @@
 "widget.overdue" = "逾期";
 "widget.empty" = "没有未完成任务";
 "widget.complete_accessibility" = "完成“%@”";
-"widget.count_format" = "%d/%d";
+"widget.page_format" = "%d/%d · %d";
+"widget.previous_page" = "上一页";
+"widget.next_page" = "下一页";
 "widget.complete" = "完成待办";

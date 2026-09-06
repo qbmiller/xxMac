@@ -1,10 +1,81 @@
 import Foundation
 
 public enum TodoWidgetEnvironment {
-    public static let appGroupIdentifier = "group.com.xiaomi318.xxMac"
     public static let widgetKind = "com.xiaomi318.xxMac.TodoWidget"
     public static let maximumItemCount = 10
     public static let actionsChangedNotification = "com.xiaomi318.xxMac.todoWidgetActionsChanged"
+}
+
+public enum TodoWidgetLayout {
+    public static let fontSizeRange = 9...13
+    public static let defaultFontSize = 9
+
+    public static func clampedFontSize(_ value: Int) -> Int {
+        min(max(value, fontSizeRange.lowerBound), fontSizeRange.upperBound)
+    }
+
+    public static func rowHeight(fontSize: Int) -> Int {
+        clampedFontSize(fontSize) + 2
+    }
+
+    public static func pageSize(fontSize: Int) -> Int {
+        max(1, 110 / rowHeight(fontSize: fontSize))
+    }
+}
+
+public enum TodoWidgetPagination {
+    public static func pageCount(
+        itemCount: Int,
+        pageSize: Int = TodoWidgetEnvironment.maximumItemCount
+    ) -> Int {
+        let validPageSize = max(1, pageSize)
+        return max(1, (max(0, itemCount) + validPageSize - 1) / validPageSize)
+    }
+
+    public static func clampedPageIndex(
+        _ pageIndex: Int,
+        itemCount: Int,
+        pageSize: Int = TodoWidgetEnvironment.maximumItemCount
+    ) -> Int {
+        min(max(0, pageIndex), pageCount(itemCount: itemCount, pageSize: pageSize) - 1)
+    }
+
+    public static func items<Element>(
+        _ items: [Element],
+        pageIndex: Int,
+        pageSize: Int = TodoWidgetEnvironment.maximumItemCount
+    ) -> [Element] {
+        guard !items.isEmpty else { return [] }
+        let validPageSize = max(1, pageSize)
+        let page = clampedPageIndex(pageIndex, itemCount: items.count, pageSize: validPageSize)
+        let start = page * validPageSize
+        let end = min(items.count, start + validPageSize)
+        return Array(items[start..<end])
+    }
+}
+
+public struct TodoWidgetPresentationState: Codable, Equatable, Sendable {
+    public let pageIndex: Int
+    public let fontSize: Int
+
+    public init(pageIndex: Int = 0, fontSize: Int = TodoWidgetLayout.defaultFontSize) {
+        self.pageIndex = max(0, pageIndex)
+        self.fontSize = TodoWidgetLayout.clampedFontSize(fontSize)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case pageIndex
+        case fontSize
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            pageIndex: try container.decodeIfPresent(Int.self, forKey: .pageIndex) ?? 0,
+            fontSize: try container.decodeIfPresent(Int.self, forKey: .fontSize)
+                ?? TodoWidgetLayout.defaultFontSize
+        )
+    }
 }
 
 public enum TodoWidgetCategory: String, Codable, Equatable, Sendable {

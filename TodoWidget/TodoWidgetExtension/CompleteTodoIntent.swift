@@ -22,9 +22,7 @@ struct CompleteTodoIntent: AppIntent {
         guard let id = UUID(uuidString: taskID) else {
             throw CompleteTodoIntentError.invalidTaskID
         }
-        guard let store = TodoWidgetFileStore.appGroup() else {
-            throw CompleteTodoIntentError.sharedContainerUnavailable
-        }
+        let store = TodoWidgetFileStore.shared()
 
         _ = try store.appendCompletion(taskID: id, now: Date())
         try? store.removeItemFromSnapshot(taskID: id)
@@ -35,6 +33,31 @@ struct CompleteTodoIntent: AppIntent {
             nil,
             true
         )
+        WidgetCenter.shared.reloadTimelines(ofKind: TodoWidgetEnvironment.widgetKind)
+        return .result()
+    }
+}
+
+
+struct ChangeTodoPageIntent: AppIntent {
+    static var title: LocalizedStringResource = "Change Todo Page"
+    static var description = IntentDescription("Show another page of Todo tasks.")
+    static var openAppWhenRun = false
+
+    @Parameter(title: "Page Delta")
+    var delta: Int
+
+    init() {
+        delta = 0
+    }
+
+    init(delta: Int) {
+        self.delta = delta
+    }
+
+    func perform() async throws -> some IntentResult {
+        let store = TodoWidgetFileStore.shared()
+        _ = try store.movePage(by: delta)
         WidgetCenter.shared.reloadTimelines(ofKind: TodoWidgetEnvironment.widgetKind)
         return .result()
     }

@@ -31,13 +31,13 @@
 
 `bundle_app.sh` 在主应用构建完成后，只对 `TodoWidget/` 中的扩展工程运行 `xcodebuild`，将生成的 `.appex` 嵌入 `xxMac.app/Contents/PlugIns/`。扩展先单独签名，最后再签名主应用。日常 `swift build` 不隐式构建或安装小组件。
 
-扩展标识使用 `com.xiaomi318.xxMac.TodoWidget`，App Group 使用 `group.com.xiaomi318.xxMac`。主应用和扩展分别声明所需 entitlement。
+扩展标识使用 `com.xiaomi318.xxMac.TodoWidget`。由于本地固定签名 `qbmiller` 没有 Apple Team ID，不能使用需要 Provisioning Profile 授权的 App Group；扩展保持 App Sandbox，并只获得专用共享目录的 home-relative 读写例外。
 
 ## 小组件内容
 
-小组件显示所有未完成、未归档任务，最多展示 10 条，采用单列紧凑布局。
+小组件包含所有未完成、未归档任务，采用单列紧凑布局，每页展示 10 条。顶部提供上一页和下一页按钮，确保普通待办不会因今日或逾期任务较多而无法查看。
 
-顶部显示 Todo 标题以及当前展示数和未完成总数，例如 `Todo 10/23`。任务不足 10 条时只显示实际任务数；没有任务时显示空状态。
+顶部显示 Todo 标题、当前页、总页数和未完成总数，例如 `Todo 2/3 · 23`。任务不足 10 条时只显示实际任务数；没有任务时显示空状态。
 
 每一行包含：
 
@@ -61,22 +61,23 @@
 2. 进行中：状态为 `inProgress`，但未进入今日组的任务。
 3. 待办：状态为 `todo`，但未进入今日组的任务。
 
-今日组按截止时间升序排列，截止时间相同时按更新时间降序。进行中和待办分别按 `statusRank` 升序排列，排序值相同时按更新时间降序。最终取前 10 条。
+今日组按截止时间升序排列，截止时间相同时按更新时间降序。进行中和待办分别按 `statusRank` 升序排列，排序值相同时按更新时间降序。完整排序结果写入快照，由小组件每页展示 10 条。
 
 “今日”使用当前 Mac 的日历、时区和本地零点边界。跨越午夜后 Timeline 必须安排刷新，使任务能够进入或离开今日优先区。
 
-## App Group 数据
+## 小组件共享数据
 
 现有 `todo.db` 继续保存在用户选择的配置目录中，并保持主应用的权威数据源。小组件不直接打开用户配置目录中的 SQLite 文件。
 
-App Group 共享容器保存两类数据：
+固定目录 `~/Library/Application Support/xxMac/Widget/` 保存三类数据：
 
 - `todo-widget-snapshot.json`：小组件渲染所需的精简任务快照。
 - `todo-widget-actions.json`：小组件产生、尚待主应用确认写入 SQLite 的持久操作日志。
+- `todo-widget-presentation.json`：当前分页位置，可随任务数量变化自动夹取到有效页码。
 
 快照只包含小组件所需字段，例如任务 ID、标题、状态、截止时间、更新时间和排序值，不复制备注等无关内容。文件写入使用临时文件加原子替换，避免扩展读取到半写入内容。
 
-App Group 文件不属于用户可配置的数据目录，不随“通用 > 配置目录”迁移。README 和配置目录说明必须明确：`todo.db` 仍随配置目录迁移，小组件快照及操作日志由系统 App Group 管理，可由主应用重新生成。
+这些文件不属于用户可配置的数据目录，不随“通用 > 配置目录”迁移。README 和配置目录说明必须明确：`todo.db` 仍随配置目录迁移，小组件快照及操作日志固定保存在专用目录，可由主应用重新生成。Widget 沙盒不得获得该目录以外的额外文件权限。
 
 ## 主应用发布快照
 
@@ -97,7 +98,7 @@ App Group 文件不属于用户可配置的数据目录，不随“通用 > 配�
 
 Intent 执行流程：
 
-1. 在 App Group 操作日志中追加带唯一操作 ID 的完成命令。
+1. 在共享目录的操作日志中追加带唯一操作 ID 的完成命令。
 2. 从共享快照中移除该任务，使组件立即反映完成结果。
 3. 原子写回日志与快照。
 4. 发送进程间变更通知，并请求刷新 Todo Widget Timeline。
@@ -129,11 +130,11 @@ Intent 执行流程：
 1. 使用现有流程构建主应用。
 2. 构建 Todo Widget Extension。
 3. 创建 `xxMac.app/Contents/PlugIns/` 并复制 `.appex`。
-4. 使用同一签名体系签名扩展，保留扩展沙盒和 App Group entitlement。
-5. 使用包含 App Group entitlement 的主应用配置签名 xxMac。
-6. 验证主应用、嵌入扩展、Bundle ID、App Group entitlement 和嵌套签名。
+4. 使用同一签名体系签名扩展，保留扩展沙盒和专用共享目录 entitlement。
+5. 签名主应用。
+6. 验证主应用、嵌入扩展、Bundle ID、共享目录 entitlement 和嵌套签名。
 
-若当前签名证书或 Provisioning Profile 不支持 App Group，打包必须明确失败，不得静默移除 entitlement 或退回成没有数据共享能力的小组件。
+打包必须验证 Widget 签名后仍包含 `com.apple.security.temporary-exception.files.home-relative-path.read-write`，且允许路径精确为 `/Library/Application Support/xxMac/Widget/`；缺失时必须失败，不得生成没有数据共享能力的小组件。
 
 ## 验证
 
@@ -142,7 +143,8 @@ Intent 执行流程：
 - 未完成、未归档筛选。
 - 今日、进行中、待办的优先级和去重。
 - 今日组、状态组内部排序。
-- 最多取 10 条。
+- 快照保留全部未完成任务，分页每页最多取 10 条。
+- 页码持久化、上一页/下一页边界夹取。
 - 跨午夜 Timeline 刷新时间计算。
 - 快照原子读写和损坏数据回退。
 - 完成日志的幂等消费与失败重试。

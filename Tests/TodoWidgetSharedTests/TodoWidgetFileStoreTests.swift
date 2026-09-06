@@ -26,6 +26,15 @@ final class TodoWidgetFileStoreTests: XCTestCase {
         XCTAssertEqual(try store.readActions(), [])
     }
 
+    func testSharedDirectoryUsesDedicatedApplicationSupportFolder() {
+        let homeDirectory = URL(fileURLWithPath: "/Users/tester", isDirectory: true)
+
+        XCTAssertEqual(
+            TodoWidgetFileStore.sharedDirectoryURL(homeDirectory: homeDirectory).path,
+            "/Users/tester/Library/Application Support/xxMac/Widget"
+        )
+    }
+
     func testSnapshotRoundTripAndOptimisticRemoval() throws {
         let firstID = UUID()
         let secondID = UUID()
@@ -46,6 +55,48 @@ final class TodoWidgetFileStoreTests: XCTestCase {
         let updated = try XCTUnwrap(store.readSnapshot())
         XCTAssertEqual(updated.items.map(\.id), [secondID])
         XCTAssertEqual(updated.totalIncompleteCount, 1)
+    }
+
+    func testPageIndexPersistsAndMovementClampsToAvailablePages() throws {
+        let store = TodoWidgetFileStore(directoryURL: temporaryDirectory)
+        let items = (0..<23).map { index in
+            TodoWidgetItem(id: UUID(), title: "Task \(index)", category: .todo, dueAt: nil)
+        }
+        try store.writeSnapshot(
+            TodoWidgetSnapshot(
+                generatedAt: Date(timeIntervalSince1970: 100),
+                nextRefreshAt: Date(timeIntervalSince1970: 200),
+                totalIncompleteCount: items.count,
+                items: items
+            )
+        )
+
+        XCTAssertEqual(try store.readPageIndex(), 0)
+        XCTAssertEqual(try store.movePage(by: 1), 1)
+        XCTAssertEqual(try store.movePage(by: 10), 2)
+        XCTAssertEqual(try store.movePage(by: -10), 0)
+        XCTAssertEqual(try store.readPageIndex(), 0)
+    }
+
+    func testFontSizePersistsAndPageMovementPreservesIt() throws {
+        let store = TodoWidgetFileStore(directoryURL: temporaryDirectory)
+        let items = (0..<18).map { index in
+            TodoWidgetItem(id: UUID(), title: "Task \(index)", category: .todo, dueAt: nil)
+        }
+        try store.writeSnapshot(
+            TodoWidgetSnapshot(
+                generatedAt: Date(timeIntervalSince1970: 100),
+                nextRefreshAt: Date(timeIntervalSince1970: 200),
+                totalIncompleteCount: items.count,
+                items: items
+            )
+        )
+
+        XCTAssertEqual(try store.readFontSize(), TodoWidgetLayout.defaultFontSize)
+        XCTAssertEqual(try store.setFontSize(13), 13)
+        XCTAssertEqual(try store.movePage(by: 1), 1)
+        XCTAssertEqual(try store.readFontSize(), 13)
+        XCTAssertEqual(try store.readPageIndex(), 1)
     }
 
     func testAppendPreservesActionsAndCreatesUniqueOperationIDs() throws {

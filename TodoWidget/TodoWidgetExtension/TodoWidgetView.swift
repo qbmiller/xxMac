@@ -24,8 +24,12 @@ struct TodoWidgetView: View {
             if entry.snapshot.items.isEmpty {
                 emptyState
             } else {
-                ForEach(entry.snapshot.items.prefix(TodoWidgetEnvironment.maximumItemCount)) { item in
-                    TodoWidgetRow(item: item, referenceDate: entry.date)
+                ForEach(pageItems) { item in
+                    TodoWidgetRow(
+                        item: item,
+                        referenceDate: entry.date,
+                        fontSize: entry.fontSize
+                    )
                 }
                 Spacer(minLength: 0)
             }
@@ -50,6 +54,16 @@ struct TodoWidgetView: View {
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+            if pageCount > 1 {
+                pageButton(systemName: "chevron.left", delta: -1, disabled: entry.pageIndex == 0)
+                    .accessibilityLabel(Text("widget.previous_page"))
+                pageButton(
+                    systemName: "chevron.right",
+                    delta: 1,
+                    disabled: entry.pageIndex >= pageCount - 1
+                )
+                .accessibilityLabel(Text("widget.next_page"))
+            }
         }
         .frame(height: 13)
     }
@@ -66,25 +80,57 @@ struct TodoWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
+    private var pageSize: Int {
+        TodoWidgetLayout.pageSize(fontSize: entry.fontSize)
+    }
+
+    private var pageItems: [TodoWidgetItem] {
+        TodoWidgetPagination.items(
+            entry.snapshot.items,
+            pageIndex: entry.pageIndex,
+            pageSize: pageSize
+        )
+    }
+
+    private var pageCount: Int {
+        TodoWidgetPagination.pageCount(itemCount: entry.snapshot.items.count, pageSize: pageSize)
+    }
+
     private var countText: String {
         String(
-            format: NSLocalizedString("widget.count_format", comment: "Shown and total Todo count"),
-            entry.snapshot.items.count,
+            format: NSLocalizedString("widget.page_format", comment: "Current page, page count, total Todo count"),
+            entry.pageIndex + 1,
+            pageCount,
             entry.snapshot.totalIncompleteCount
         )
+    }
+
+    private func pageButton(systemName: String, delta: Int, disabled: Bool) -> some View {
+        Button(intent: ChangeTodoPageIntent(delta: delta)) {
+            Image(systemName: systemName)
+                .font(.system(size: 8, weight: .semibold))
+                .frame(width: 12, height: 12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
     }
 }
 
 private struct TodoWidgetRow: View {
     let item: TodoWidgetItem
     let referenceDate: Date
+    let fontSize: Int
 
     var body: some View {
         HStack(spacing: 4) {
             Button(intent: CompleteTodoIntent(taskID: item.id.uuidString)) {
                 Image(systemName: "circle")
-                    .font(.system(size: 9, weight: .medium))
-                    .frame(width: 12, height: 11)
+                    .font(.system(size: CGFloat(fontSize), weight: .medium))
+                    .frame(
+                        width: CGFloat(fontSize + 3),
+                        height: CGFloat(TodoWidgetLayout.rowHeight(fontSize: fontSize))
+                    )
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -96,13 +142,13 @@ private struct TodoWidgetRow: View {
                 .accessibilityHidden(true)
 
             Text(categoryTitle)
-                .font(.system(size: 8))
+                .font(.system(size: CGFloat(max(8, fontSize - 1))))
                 .foregroundStyle(.secondary)
                 .frame(width: 42, alignment: .leading)
                 .lineLimit(1)
 
             Text(item.title)
-                .font(.system(size: 9))
+                .font(.system(size: CGFloat(fontSize)))
                 .lineLimit(1)
                 .truncationMode(.tail)
 
@@ -110,12 +156,12 @@ private struct TodoWidgetRow: View {
 
             if let deadlineText {
                 Text(deadlineText)
-                    .font(.system(size: 8).monospacedDigit())
+                    .font(.system(size: CGFloat(max(8, fontSize - 1))).monospacedDigit())
                     .foregroundStyle(isOverdue ? .red : .secondary)
                     .lineLimit(1)
             }
         }
-        .frame(height: 11)
+        .frame(height: CGFloat(TodoWidgetLayout.rowHeight(fontSize: fontSize)))
         .accessibilityElement(children: .contain)
     }
 

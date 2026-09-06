@@ -50,9 +50,11 @@ final class AppDefaultSettingsTests: XCTestCase {
         XCTAssertEqual(AppDefaultSettings.Todo.selectedView, .quadrants)
         XCTAssertEqual(AppDefaultSettings.Todo.listLayout, .cards)
         XCTAssertFalse(AppDefaultSettings.Todo.hideCompletedInQuadrants)
+        XCTAssertEqual(AppDefaultSettings.Todo.fontSize, 13)
+        XCTAssertEqual(AppDefaultSettings.Todo.fontSizeRange, 11...22)
 
         let todoTool = ToolOption.allTools.first { $0.type == .todo }
-        XCTAssertEqual(todoTool?.functions.map(\.type), [.todoGeneral])
+        XCTAssertEqual(todoTool?.functions.map(\.type), [.todoGeneral, .todoWidget])
     }
 
     func testShortcutDefaults() {

@@ -1,9 +1,12 @@
 import AppKit
 import SwiftUI
+import TodoWidgetShared
 import UserNotifications
+import WidgetKit
 
 struct TodoSettingsView: View {
     @ObservedObject private var hotKeyManager = HotKeyManager.shared
+    @ObservedObject private var preferences = TodoPreferencesStore.shared
     @State private var authorizationStatus = UNAuthorizationStatus.notDetermined
 
     var body: some View {
@@ -11,6 +14,53 @@ struct TodoSettingsView: View {
             Text(L10n.t("todo.settings.description"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            GroupBox(L10n.t("todo.settings.appearance")) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L10n.t("todo.settings.font_size"))
+                            Text(L10n.t("todo.settings.font_size_desc"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { Double(preferences.fontSize) },
+                                set: { preferences.fontSize = Int($0.rounded()) }
+                            ),
+                            in: Double(AppDefaultSettings.Todo.fontSizeRange.lowerBound)...Double(AppDefaultSettings.Todo.fontSizeRange.upperBound),
+                            step: 1
+                        )
+                        Text(L10n.f("todo.settings.font_size_format", preferences.fontSize))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 52, alignment: .trailing)
+                    }
+
+                    Divider()
+
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("导航栏字体大小")
+                            Text("调整待办窗口左侧导航栏标题的字体大小。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { Double(preferences.navigationFontSize) },
+                                set: { preferences.navigationFontSize = Int($0.rounded()) }
+                            ),
+                            in: Double(AppDefaultSettings.Todo.fontSizeRange.lowerBound)...Double(AppDefaultSettings.Todo.fontSizeRange.upperBound),
+                            step: 1
+                        )
+                        Text("\(preferences.navigationFontSize) pt")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 52, alignment: .trailing)
+                    }
+                }
+                .padding(8)
+            }
 
             GroupBox(L10n.t("todo.settings.window")) {
                 VStack(alignment: .leading, spacing: 12) {
@@ -141,6 +191,76 @@ struct TodoSettingsView: View {
             NSWorkspace.shared.activateFileViewerSelecting([databaseURL])
         } else {
             NSWorkspace.shared.open(databaseURL.deletingLastPathComponent())
+        }
+    }
+}
+
+struct TodoWidgetSettingsView: View {
+    @State private var fontSize = TodoWidgetLayout.defaultFontSize
+    @State private var errorMessage: String?
+
+    private let fileStore = TodoWidgetFileStore.shared()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text(L10n.t("todo.widget_settings.description"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            GroupBox(L10n.t("todo.widget_settings.appearance")) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(L10n.t("todo.widget_settings.font_size"))
+                            Text(L10n.t("todo.widget_settings.font_size_desc"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { Double(fontSize) },
+                                set: { saveFontSize(Int($0.rounded())) }
+                            ),
+                            in: Double(TodoWidgetLayout.fontSizeRange.lowerBound)...Double(TodoWidgetLayout.fontSizeRange.upperBound),
+                            step: 1
+                        )
+                        Text(L10n.f("todo.settings.font_size_format", fontSize))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 52, alignment: .trailing)
+                    }
+
+                    Text(L10n.f(
+                        "todo.widget_settings.page_size_format",
+                        TodoWidgetLayout.pageSize(fontSize: fontSize)
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                .padding(8)
+            }
+
+            Spacer()
+        }
+        .onAppear(perform: loadFontSize)
+    }
+
+    private func loadFontSize() {
+        fontSize = (try? fileStore.readFontSize()) ?? TodoWidgetLayout.defaultFontSize
+    }
+
+    private func saveFontSize(_ value: Int) {
+        do {
+            fontSize = try fileStore.setFontSize(value)
+            errorMessage = nil
+            WidgetCenter.shared.reloadTimelines(ofKind: TodoWidgetEnvironment.widgetKind)
+        } catch {
+            errorMessage = L10n.f("todo.widget_settings.save_failed", error.localizedDescription)
         }
     }
 }

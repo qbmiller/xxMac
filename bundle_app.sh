@@ -3,11 +3,12 @@
 APP_NAME="xxMac"
 BUILD_DIR=".build/arm64-apple-macosx/debug"
 APP_BUNDLE="$APP_NAME.app"
-APPLICATIONS_APP_PATH="/Applications/$APP_BUNDLE"
+APPLICATIONS_APP_PATH="${APPLICATIONS_APP_PATH:-/Applications/$APP_BUNDLE}"
 APP_ENTITLEMENTS="xxMac.entitlements"
-APP_GROUP_IDENTIFIER="group.com.xiaomi318.xxMac"
+WIDGET_SHARED_DIRECTORY_EXCEPTION="/Library/Application Support/xxMac/Widget/"
 WIDGET_PROJECT="TodoWidget/TodoWidget.xcodeproj"
 WIDGET_SCHEME="TodoWidgetExtension"
+WIDGET_PROCESS_NAME="TodoWidgetExtension"
 WIDGET_DERIVED_DATA=".build/TodoWidgetDerivedData"
 WIDGET_PRODUCT="$WIDGET_DERIVED_DATA/Build/Products/Release/TodoWidgetExtension.appex"
 WIDGET_ENTITLEMENTS="TodoWidget/TodoWidgetExtension/TodoWidgetExtension.entitlements"
@@ -26,17 +27,14 @@ if [ "$REQUIRE_SIGNING_IDENTITY" = "1" ] && [ "$SIGNING_IDENTITY" = "-" ]; then
     exit 1
 fi
 
-validate_entitlement_file() {
-    local file="$1"
-    local label="$2"
-    if [ ! -f "$file" ] || ! grep -Fq "$APP_GROUP_IDENTIFIER" "$file"; then
-        echo "$label is missing App Group entitlement: $APP_GROUP_IDENTIFIER"
-        exit 1
-    fi
-}
-
-validate_entitlement_file "$APP_ENTITLEMENTS" "Host entitlement file"
-validate_entitlement_file "$WIDGET_ENTITLEMENTS" "Widget entitlement file"
+if [ ! -f "$APP_ENTITLEMENTS" ]; then
+    echo "Host entitlement file is missing: $APP_ENTITLEMENTS"
+    exit 1
+fi
+if [ ! -f "$WIDGET_ENTITLEMENTS" ] || ! grep -Fq "$WIDGET_SHARED_DIRECTORY_EXCEPTION" "$WIDGET_ENTITLEMENTS"; then
+    echo "Widget entitlement file is missing shared-directory access: $WIDGET_SHARED_DIRECTORY_EXCEPTION"
+    exit 1
+fi
 if ! /usr/libexec/PlistBuddy -c "Print :com.apple.security.app-sandbox" "$WIDGET_ENTITLEMENTS" 2>/dev/null | grep -qx "true"; then
     echo "Widget entitlement file must enable the App Sandbox."
     exit 1
@@ -125,13 +123,8 @@ SIGNED_WIDGET_ENTITLEMENTS="$(mktemp -t xxmac-widget-entitlements).plist"
 codesign -d --entitlements :- "$APP_BUNDLE" 2>&1 | sed -n '/<?xml/,$p' > "$SIGNED_APP_ENTITLEMENTS"
 codesign -d --entitlements :- "$EMBEDDED_WIDGET" 2>&1 | sed -n '/<?xml/,$p' > "$SIGNED_WIDGET_ENTITLEMENTS"
 
-if ! grep -Fq "$APP_GROUP_IDENTIFIER" "$SIGNED_APP_ENTITLEMENTS"; then
-    echo "Signed host app is missing App Group entitlement: $APP_GROUP_IDENTIFIER"
-    rm -f "$SIGNED_APP_ENTITLEMENTS" "$SIGNED_WIDGET_ENTITLEMENTS"
-    exit 1
-fi
-if ! grep -Fq "$APP_GROUP_IDENTIFIER" "$SIGNED_WIDGET_ENTITLEMENTS"; then
-    echo "Signed widget is missing App Group entitlement: $APP_GROUP_IDENTIFIER"
+if ! grep -Fq "$WIDGET_SHARED_DIRECTORY_EXCEPTION" "$SIGNED_WIDGET_ENTITLEMENTS"; then
+    echo "Signed widget is missing shared-directory access: $WIDGET_SHARED_DIRECTORY_EXCEPTION"
     rm -f "$SIGNED_APP_ENTITLEMENTS" "$SIGNED_WIDGET_ENTITLEMENTS"
     exit 1
 fi
@@ -192,10 +185,13 @@ case "$INSTALL_RESPONSE" in
             echo "删除旧应用失败，已取消覆盖：$APPLICATIONS_APP_PATH"
             exit 1
         fi
-        if ! cp -R "$APP_BUNDLE" "/Applications/"; then
+        if ! cp -R "$APP_BUNDLE" "$APPLICATIONS_APP_PATH"; then
             echo "复制到 $APPLICATIONS_APP_PATH 失败。"
             exit 1
         fi
+
+        echo "正在重新加载待办小组件..."
+        killall "$WIDGET_PROCESS_NAME" 2>/dev/null || true
 
         if ! open "$APPLICATIONS_APP_PATH"; then
             echo "应用已替换，但重新打开失败：$APPLICATIONS_APP_PATH"

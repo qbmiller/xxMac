@@ -85,6 +85,9 @@ enum AppDefaultSettings {
         static let selectedView = TodoView.quadrants
         static let listLayout = TodoListLayout.cards
         static let hideCompletedInQuadrants = false
+        static let fontSizeRange = 11...22
+        static let fontSize = 13
+        static let navigationFontSize = 13
     }
 
     enum Snippets {

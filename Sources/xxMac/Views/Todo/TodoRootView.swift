@@ -93,7 +93,10 @@ struct TodoRootView: View {
             )
         } else {
             HStack(spacing: 0) {
-                TodoNavigationSidebar(selectedView: $preferences.selectedView)
+                TodoNavigationSidebar(
+                    selectedView: $preferences.selectedView,
+                    fontSize: preferences.navigationFontSize
+                )
                     .frame(width: 174)
 
                 Divider()
@@ -310,6 +313,7 @@ private struct TodoHeaderView: View {
 private struct TodoNavigationSidebar: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedView: TodoView
+    let fontSize: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -324,7 +328,10 @@ private struct TodoNavigationSidebar: View {
                             .foregroundStyle(selectedView == item ? .white : item.tintColor)
 
                         Text(item.localizedTitle)
-                            .font(.subheadline.weight(selectedView == item ? .semibold : .regular))
+                            .font(.system(
+                                size: CGFloat(fontSize),
+                                weight: selectedView == item ? .semibold : .regular
+                            ))
                             .foregroundStyle(selectedView == item ? .white : .primary)
 
                         Spacer(minLength: 0)

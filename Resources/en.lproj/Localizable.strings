@@ -31,7 +31,7 @@
 "common.indexing_apps" = "Indexing applications...";
 "common.indexed_apps_format" = "%d applications indexed";
 "common.config_directory" = "Configuration Folder";
-"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, clipboard data, Todo data, and image cache. Changing this folder moves todo.db with the other local data, but Export Configuration does not include tasks. Regenerable Todo widget snapshots and pending completion actions remain in the system App Group container and do not move with this folder. Todo is local-only and does not support iCloud sync. xxMac also creates quick/ here for complex quick shortcut scripts. Paste-operation switches and daily counters are stored in preferences, but generated files are written only to the target Finder folder. Browser bookmarks and history are not stored or migrated here. This folder can be local or managed by a sync service that keeps files available offline.";
+"common.config_directory_desc" = "Choose where xxMac stores preferences, the app index cache, clipboard data, Todo data, and image cache. Changing this folder moves todo.db with the other local data, but Export Configuration does not include tasks. Regenerable Todo widget snapshots, appearance settings, page state, and pending completion actions remain in ~/Library/Application Support/xxMac/Widget and do not move with this folder. Todo is local-only and does not support iCloud sync. xxMac also creates quick/ here for complex quick shortcut scripts. Paste-operation switches and daily counters are stored in preferences, but generated files are written only to the target Finder folder. Browser bookmarks and history are not stored or migrated here. This folder can be local or managed by a sync service that keeps files available offline.";
 "common.set_config_directory" = "Set Preferences Folder...";
 "common.reveal_config_directory" = "Reveal in Finder";
 "common.reset_config_directory" = "Reset to Default";
@@ -430,6 +430,7 @@
 "window_action.toggle_todo" = "Toggle Todo";
 "tool.todo" = "Todo";
 "function.todo.general" = "General";
+"function.todo.widget" = "Widget";
 "todo.title" = "Todo";
 "todo.view.quadrants" = "Quadrants";
 "todo.view.all" = "All";
@@ -491,7 +492,17 @@
 "todo.delete.title" = "Delete Task Permanently?";
 "todo.delete.message" = "This task will be removed from the local database and cannot be restored.";
 "todo.notification.due" = "This task has reached its deadline.";
-"todo.settings.description" = "Configure the Todo window, deadline notifications, and local database location.";
+"todo.settings.description" = "Configure the Todo window, font size, deadline notifications, and local database location.";
+"todo.settings.appearance" = "Appearance";
+"todo.settings.font_size" = "Todo font size";
+"todo.settings.font_size_desc" = "Adjust the task title font size in the Todo window.";
+"todo.settings.font_size_format" = "%d pt";
+"todo.widget_settings.description" = "Configure the desktop Todo widget appearance.";
+"todo.widget_settings.appearance" = "Widget Appearance";
+"todo.widget_settings.font_size" = "Widget font size";
+"todo.widget_settings.font_size_desc" = "Adjust the task, category, and deadline font size.";
+"todo.widget_settings.page_size_format" = "The current font size shows up to %d tasks per page.";
+"todo.widget_settings.save_failed" = "Unable to save widget settings: %@";
 "todo.settings.window" = "Window and Shortcut";
 "todo.settings.hotkey" = "Open or hide Todo";
 "todo.settings.open_window" = "Open Todo";

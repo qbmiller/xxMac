@@ -6,5 +6,7 @@
 "widget.overdue" = "Overdue";
 "widget.empty" = "No incomplete tasks";
 "widget.complete_accessibility" = "Complete %@";
-"widget.count_format" = "%d/%d";
+"widget.page_format" = "%d/%d · %d";
+"widget.previous_page" = "Previous page";
+"widget.next_page" = "Next page";
 "widget.complete" = "Complete Todo";

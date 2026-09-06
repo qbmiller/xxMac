@@ -202,6 +202,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
 
     // Todo
     case todoGeneral = "function.todo.general"
+    case todoWidget = "function.todo.widget"
 
     // Calendar
     case calendarGeneral = "function.calendar.general"
@@ -235,6 +236,7 @@ enum FunctionType: String, CaseIterable, Identifiable {
         case .quickShortcutLibrary: return "bolt.circle"
         case .launcherApps: return "command.square"
         case .todoGeneral: return "checklist"
+        case .todoWidget: return "rectangle.grid.1x2"
         case .calendarGeneral: return "calendar"
         case .lockAIGeneral: return "lock.shield"
         case .lockAIScreen: return "display"
@@ -299,7 +301,8 @@ struct ToolOption: Identifiable, Hashable {
             ToolFunction(type: .launcherApps)
         ]),
         ToolOption(type: .todo, functions: [
-            ToolFunction(type: .todoGeneral)
+            ToolFunction(type: .todoGeneral),
+            ToolFunction(type: .todoWidget)
         ]),
         ToolOption(type: .calendar, functions: [
             ToolFunction(type: .calendarGeneral)

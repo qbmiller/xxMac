@@ -67,7 +67,7 @@ if [[ " $* " == *" -d "* ]]; then
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>com.apple.security.app-sandbox</key><true/>
-<key>com.apple.security.application-groups</key><array><string>group.com.xiaomi318.xxMac</string></array>
+<key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key><array><string>/Library/Application Support/xxMac/Widget/</string></array>
 </dict></plist>
 PLIST
     else
@@ -75,14 +75,30 @@ PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>com.apple.security.app-sandbox</key><false/>
-<key>com.apple.security.application-groups</key><array><string>group.com.xiaomi318.xxMac</string></array>
 </dict></plist>
 PLIST
     fi
 fi
 SCRIPT
 
-    chmod +x "$fixture/bin/swift" "$fixture/bin/xcodebuild" "$fixture/bin/codesign"
+    cat > "$fixture/bin/pgrep" <<'SCRIPT'
+#!/bin/bash
+echo "pgrep $*" >> "$CALL_LOG"
+exit 1
+SCRIPT
+
+    cat > "$fixture/bin/killall" <<'SCRIPT'
+#!/bin/bash
+echo "killall $*" >> "$CALL_LOG"
+SCRIPT
+
+    cat > "$fixture/bin/open" <<'SCRIPT'
+#!/bin/bash
+echo "open $*" >> "$CALL_LOG"
+SCRIPT
+
+    chmod +x "$fixture/bin/swift" "$fixture/bin/xcodebuild" "$fixture/bin/codesign" \
+        "$fixture/bin/pgrep" "$fixture/bin/killall" "$fixture/bin/open"
 }
 
 run_bundle() {
@@ -100,6 +116,22 @@ run_bundle() {
     )
 }
 
+run_install() {
+    local fixture="$1"
+    mkdir -p "$fixture/Applications"
+    (
+        cd "$fixture"
+        env \
+            PATH="$fixture/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
+            CALL_LOG="$fixture/calls.log" \
+            SIGNING_IDENTITY="Test Identity" \
+            REQUIRE_SIGNING_IDENTITY=1 \
+            INSTALL_TO_APPLICATIONS=1 \
+            APPLICATIONS_APP_PATH="$fixture/Applications/xxMac.app" \
+            bash bundle_app.sh
+    )
+}
+
 SUCCESS_FIXTURE="$TEST_ROOT/success"
 make_fixture "$SUCCESS_FIXTURE"
 run_bundle "$SUCCESS_FIXTURE"
@@ -112,6 +144,10 @@ assert_contains "$SUCCESS_FIXTURE/calls.log" \
     "--entitlements TodoWidget/TodoWidgetExtension/TodoWidgetExtension.entitlements xxMac.app/Contents/PlugIns/TodoWidgetExtension.appex"
 assert_contains "$SUCCESS_FIXTURE/calls.log" \
     "--entitlements xxMac.entitlements xxMac.app"
+assert_contains "$SUCCESS_FIXTURE/TodoWidget/TodoWidgetExtension/TodoWidgetExtension.entitlements" \
+    "com.apple.security.temporary-exception.files.home-relative-path.read-write"
+assert_contains "$SUCCESS_FIXTURE/TodoWidget/TodoWidgetExtension/TodoWidgetExtension.entitlements" \
+    "/Library/Application Support/xxMac/Widget/"
 
 extension_sign_line="$(grep -n -- '--entitlements TodoWidget/TodoWidgetExtension/TodoWidgetExtension.entitlements' "$SUCCESS_FIXTURE/calls.log" | head -1 | cut -d: -f1)"
 host_sign_line="$(grep -n -- '--entitlements xxMac.entitlements' "$SUCCESS_FIXTURE/calls.log" | head -1 | cut -d: -f1)"
@@ -119,6 +155,22 @@ if [ -z "$extension_sign_line" ] || [ -z "$host_sign_line" ] || \
    [ "$extension_sign_line" -ge "$host_sign_line" ]; then
     fail "Extension must be signed before the host app"
 fi
+
+if grep -Fq -- "killall TodoWidgetExtension" "$SUCCESS_FIXTURE/calls.log"; then
+    fail "Widget extension must not be reloaded when installation is skipped"
+fi
+
+assert_contains "$REPO_ROOT/bundle_app.sh" \
+    'APPLICATIONS_APP_PATH="${APPLICATIONS_APP_PATH:-/Applications/$APP_BUNDLE}"'
+
+INSTALL_FIXTURE="$TEST_ROOT/install"
+make_fixture "$INSTALL_FIXTURE"
+run_install "$INSTALL_FIXTURE"
+[ -d "$INSTALL_FIXTURE/Applications/xxMac.app" ] || \
+    fail "Installed app was not copied to the configured Applications path"
+assert_contains "$INSTALL_FIXTURE/calls.log" "killall TodoWidgetExtension"
+assert_contains "$INSTALL_FIXTURE/calls.log" \
+    "open $INSTALL_FIXTURE/Applications/xxMac.app"
 
 MISSING_FIXTURE="$TEST_ROOT/missing-product"
 make_fixture "$MISSING_FIXTURE"
@@ -128,10 +180,10 @@ fi
 
 BAD_ENTITLEMENT_FIXTURE="$TEST_ROOT/bad-entitlement"
 make_fixture "$BAD_ENTITLEMENT_FIXTURE"
-sed -i '' 's/group\.com\.xiaomi318\.xxMac/group.invalid.xxMac/' \
-    "$BAD_ENTITLEMENT_FIXTURE/xxMac.entitlements"
+sed -i '' 's#/Library/Application Support/xxMac/Widget/#/Library/Application Support/invalid/#' \
+    "$BAD_ENTITLEMENT_FIXTURE/TodoWidget/TodoWidgetExtension/TodoWidgetExtension.entitlements"
 if run_bundle "$BAD_ENTITLEMENT_FIXTURE" >/dev/null 2>&1; then
-    fail "Bundle should fail when the host App Group entitlement is missing"
+    fail "Bundle should fail when the widget shared-directory entitlement is missing"
 fi
 
 echo "bundle_app_widget_test: PASS"

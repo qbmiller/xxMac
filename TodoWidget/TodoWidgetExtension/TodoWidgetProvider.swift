@@ -4,11 +4,18 @@ import WidgetKit
 struct TodoWidgetEntry: TimelineEntry {
     let date: Date
     let snapshot: TodoWidgetSnapshot
+    let pageIndex: Int
+    let fontSize: Int
 }
 
 struct TodoWidgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodoWidgetEntry {
-        TodoWidgetEntry(date: Date(), snapshot: Self.placeholderSnapshot)
+        TodoWidgetEntry(
+            date: Date(),
+            snapshot: Self.placeholderSnapshot,
+            pageIndex: 0,
+            fontSize: TodoWidgetLayout.defaultFontSize
+        )
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TodoWidgetEntry) -> Void) {
@@ -29,12 +36,29 @@ struct TodoWidgetProvider: TimelineProvider {
     }
 
     private func loadEntry(at date: Date, usePlaceholderWhenEmpty: Bool) -> TodoWidgetEntry {
-        if let store = TodoWidgetFileStore.appGroup(),
-           let snapshot = try? store.readSnapshot() {
-            return TodoWidgetEntry(date: date, snapshot: snapshot)
+        let store = TodoWidgetFileStore.shared()
+        if let snapshot = try? store.readSnapshot() {
+            let fontSize = (try? store.readFontSize()) ?? TodoWidgetLayout.defaultFontSize
+            let pageSize = TodoWidgetLayout.pageSize(fontSize: fontSize)
+            let pageIndex = TodoWidgetPagination.clampedPageIndex(
+                (try? store.readPageIndex()) ?? 0,
+                itemCount: snapshot.items.count,
+                pageSize: pageSize
+            )
+            return TodoWidgetEntry(
+                date: date,
+                snapshot: snapshot,
+                pageIndex: pageIndex,
+                fontSize: fontSize
+            )
         }
         let snapshot = usePlaceholderWhenEmpty ? Self.placeholderSnapshot : Self.emptySnapshot(at: date)
-        return TodoWidgetEntry(date: date, snapshot: snapshot)
+        return TodoWidgetEntry(
+            date: date,
+            snapshot: snapshot,
+            pageIndex: 0,
+            fontSize: TodoWidgetLayout.defaultFontSize
+        )
     }
 
     private static func emptySnapshot(at date: Date) -> TodoWidgetSnapshot {

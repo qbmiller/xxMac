@@ -274,11 +274,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         _ = GeneralSettingsManager.shared
         _ = UpdateManager.shared
         _ = TodoStore.shared
-        if let fileStore = TodoWidgetFileStore.appGroup() {
-            let coordinator = TodoWidgetSyncCoordinator(taskStore: TodoStore.shared, fileStore: fileStore)
-            todoWidgetSyncCoordinator = coordinator
-            coordinator.start()
-        }
+        let fileStore = TodoWidgetFileStore.shared()
+        let coordinator = TodoWidgetSyncCoordinator(taskStore: TodoStore.shared, fileStore: fileStore)
+        todoWidgetSyncCoordinator = coordinator
+        coordinator.start()
         _ = TodoWindowController.shared
         // Initialize HotKeyManager
         _ = HotKeyManager.shared

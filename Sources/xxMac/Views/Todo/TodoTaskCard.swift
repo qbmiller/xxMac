@@ -29,6 +29,7 @@ struct TodoTaskCard: View {
     let onDelete: () -> Void
 
     @State private var isHovered = false
+    @ObservedObject private var preferences = TodoPreferencesStore.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: density == .compact ? 7 : 9) {
@@ -45,7 +46,10 @@ struct TodoTaskCard: View {
                 Button(action: onSelect) {
                     VStack(alignment: .leading, spacing: density == .compact ? 3 : 5) {
                         Text(task.title)
-                            .font(density == .compact ? .body : .headline)
+                            .font(.system(
+                                size: CGFloat(preferences.fontSize),
+                                weight: density == .compact ? .regular : .semibold
+                            ))
                             .foregroundStyle(task.status == .completed ? .secondary : .primary)
                             .strikethrough(task.status == .completed)
                             .lineLimit(2)

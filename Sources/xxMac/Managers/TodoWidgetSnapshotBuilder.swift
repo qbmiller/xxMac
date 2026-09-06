@@ -5,8 +5,7 @@ enum TodoWidgetSnapshotBuilder {
     static func makeSnapshot(
         tasks: [TodoTask],
         now: Date,
-        calendar: Calendar = .current,
-        limit: Int = TodoWidgetEnvironment.maximumItemCount
+        calendar: Calendar = .current
     ) -> TodoWidgetSnapshot {
         let startOfToday = calendar.startOfDay(for: now)
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday)
@@ -33,13 +32,12 @@ enum TodoWidgetSnapshotBuilder {
                 + inProgressTasks.map { item(from: $0, category: .inProgress) }
                 + todoTasks.map { item(from: $0, category: .todo) }
         )
-        .prefix(max(0, limit))
 
         return TodoWidgetSnapshot(
             generatedAt: now,
             nextRefreshAt: startOfTomorrow,
             totalIncompleteCount: incomplete.count,
-            items: Array(items)
+            items: items
         )
     }
 

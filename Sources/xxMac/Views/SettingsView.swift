@@ -673,6 +673,8 @@ struct ConfigurationView: View {
             LauncherAppearanceSettingsView()
         case .todoGeneral:
             TodoSettingsView()
+        case .todoWidget:
+            TodoWidgetSettingsView()
         case .calendarGeneral:
             CalendarFeatureView(showsSettings: true)
         case .lockAIGeneral:
