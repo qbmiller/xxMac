@@ -27,6 +27,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
+edit_release_notes() {
+  local editor_command
+  local -a editor_parts
+
+  editor_command="${VISUAL:-${EDITOR:-vi}}"
+  read -r -a editor_parts <<< "$editor_command"
+
+  if [[ "${#editor_parts[@]}" -eq 0 ]] || ! command -v "${editor_parts[0]}" >/dev/null 2>&1; then
+    echo "Release notes editor not found: $editor_command"
+    echo "Set VISUAL or EDITOR to an available editor, for example: EDITOR='code --wait'"
+    return 1
+  fi
+
+  echo "Opening release notes in: $editor_command"
+  "${editor_parts[@]}" "$RELEASE_NOTES_FILE"
+}
+
 cd "$SCRIPT_DIR"
 
 if [[ ! -f "$INFO_PLIST" ]]; then
@@ -97,15 +114,30 @@ if [[ "$PUBLISH_GITHUB_RELEASE" == "1" ]]; then
   if [[ -n "$GITHUB_RELEASE_NOTES" ]]; then
     printf "%s\n" "$GITHUB_RELEASE_NOTES" > "$RELEASE_NOTES_FILE"
   else
-    echo "Enter release notes. Finish with 'exist' on its own line:"
-    while IFS= read -r RELEASE_NOTE_LINE; do
-      RELEASE_NOTE_COMMAND="$RELEASE_NOTE_LINE"
-      RELEASE_NOTE_COMMAND="${RELEASE_NOTE_COMMAND#"${RELEASE_NOTE_COMMAND%%[![:space:]]*}"}"
-      RELEASE_NOTE_COMMAND="${RELEASE_NOTE_COMMAND%"${RELEASE_NOTE_COMMAND##*[![:space:]]}"}"
-      if [[ "$RELEASE_NOTE_COMMAND" == "exist" || "$RELEASE_NOTE_COMMAND" == "." ]]; then
-        break
+    while true; do
+      edit_release_notes
+
+      echo ""
+      echo "Release notes preview:"
+      if [[ -s "$RELEASE_NOTES_FILE" ]]; then
+        sed 's/^/  /' "$RELEASE_NOTES_FILE"
+      else
+        echo "  (empty)"
       fi
-      printf "%s\n" "$RELEASE_NOTE_LINE" >> "$RELEASE_NOTES_FILE"
+
+      read -r -p "Use these release notes? [y/e/N] " RELEASE_NOTES_CONFIRM
+      case "$RELEASE_NOTES_CONFIRM" in
+        y|Y|yes|Yes|YES)
+          break
+          ;;
+        e|E|edit|Edit|EDIT)
+          ;;
+        *)
+          echo "GitHub Release cancelled. DMG build will continue."
+          PUBLISH_GITHUB_RELEASE=0
+          break
+          ;;
+      esac
     done
   fi
 fi

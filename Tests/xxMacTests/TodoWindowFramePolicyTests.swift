@@ -3,6 +3,22 @@ import XCTest
 @testable import xxMac
 
 final class TodoWindowFramePolicyTests: XCTestCase {
+    func testWindowBehaviorUsesNormalNonFloatingLevel() {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .utilityWindow],
+            backing: .buffered,
+            defer: false
+        )
+        panel.level = .floating
+        panel.isFloatingPanel = true
+
+        TodoWindowBehavior.apply(to: panel)
+
+        XCTAssertEqual(panel.level, .normal)
+        XCTAssertFalse(panel.isFloatingPanel)
+    }
+
     func testFrameStateStoresCompactAndBoardFramesIndependently() {
         let compact = NSRect(x: 100, y: 200, width: 820, height: 720)
         let board = NSRect(x: 40, y: 120, width: 1_240, height: 760)

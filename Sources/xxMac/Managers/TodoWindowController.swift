@@ -69,6 +69,13 @@ enum TodoWindowFramePolicy {
     }
 }
 
+enum TodoWindowBehavior {
+    static func apply(to panel: NSPanel) {
+        panel.level = .normal
+        panel.isFloatingPanel = false
+    }
+}
+
 extension Notification.Name {
     static let toggleTodoWindow = Notification.Name("ToggleTodoWindow")
 }
@@ -109,7 +116,7 @@ final class TodoWindowController: NSWindowController, NSWindowDelegate, Observab
         )
         panel.title = "Todo"
         panel.minSize = TodoWindowFramePolicy.minimumSize
-        panel.isFloatingPanel = true
+        TodoWindowBehavior.apply(to: panel)
         panel.becomesKeyOnlyIfNeeded = false
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
@@ -158,7 +165,6 @@ final class TodoWindowController: NSWindowController, NSWindowDelegate, Observab
         }
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
     }
 
     func hide() {

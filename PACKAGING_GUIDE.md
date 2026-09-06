@@ -37,6 +37,7 @@ bash publish_dmg.sh
 5. 调用 `bundle_app.sh` 重新生成 `xxMac.app`。
 6. 创建包含 `xxMac.app` 和 `Applications` 快捷方式的压缩 DMG。
 7. 执行 `hdiutil verify` 校验镜像。
+8. 选择发布 GitHub Release 时，使用 `${VISUAL:-${EDITOR:-vi}}` 编辑并预览发布说明；输入 `e` 可反复修改，输入 `y` 确认，输入 `n` 取消 GitHub 发布但继续保留本地 DMG 构建流程。
 
 版本号也可以通过环境变量传入：
 
