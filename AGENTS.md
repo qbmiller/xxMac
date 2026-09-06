@@ -14,7 +14,7 @@ macos工具集合，类似alfred，有启动器。 README.md 是项目内容介�
 
 ## 构建与验证
 - 需要生成应用包时使用根目录的 `bash bundle_app.sh`。 平时也用这个打包。
-- 本项目是 Swift Package 项目，根目录使用 `Package.swift`，没有 `MacTools.xcodeproj` 或其他 Xcode 工程文件，也没有 `Makefile`。
+- 本项目是 Swift Package 项目，根目录使用 `Package.swift`，没有 `MacTools.xcodeproj` 或其他主应用 Xcode 工程文件；`make build` 调用 `bundle_app.sh`，`make deploy` 调用 `publish_dmg.sh`。
 - 编译使用 `swift build`，测试使用 `swift test`；定向测试可使用 `swift test --filter <TestName>`。
 - 主应用禁止使用 `xcodebuild`；唯一例外是 `TodoWidget/TodoWidget.xcodeproj` 中的 Widget Extension，通常由 `bundle_app.sh` 构建。
 - 不要对本仓库运行 `xcodebuild -project MacTools.xcodeproj ...`。

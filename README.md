@@ -98,7 +98,8 @@ swift run xxMac
 Bundle as an `.app`:
 
 ```bash
-bash bundle_app.sh
+make build
+# Equivalent: bash bundle_app.sh
 ```
 
 After bundling, the script asks whether to replace `/Applications/xxMac.app`; the default is no. Enter `y` or `yes` to close the running xxMac, replace the installed app, reload the Todo widget extension, and reopen xxMac automatically. Use `INSTALL_TO_APPLICATIONS=1 bash bundle_app.sh` to explicitly skip the prompt and replace it automatically.
@@ -106,7 +107,8 @@ After bundling, the script asks whether to replace `/Applications/xxMac.app`; th
 Build a `.dmg` release:
 
 ```bash
-bash publish_dmg.sh
+make deploy
+# Equivalent: bash publish_dmg.sh
 ```
 
 The release script first prints the current version recorded in `Sources/xxMac/Info.plist`, then prompts for the release version. The version is written back to `CFBundleShortVersionString` and `CFBundleVersion`, the latest update date is written to `XXLastUpdated`, and the generated DMG is named `xxMac-version.dmg` by default.

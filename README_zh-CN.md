@@ -98,7 +98,8 @@ swift run xxMac
 打包为 `.app`：
 
 ```bash
-bash bundle_app.sh
+make build
+# 等同于：bash bundle_app.sh
 ```
 
 打包完成后脚本会询问是否覆盖 `/Applications/xxMac.app`，默认不覆盖。输入 `y` 或 `yes` 后，脚本会自动关闭当前运行的 xxMac，复制新应用覆盖旧应用，重新加载待办小组件，并重新打开 xxMac；也可以使用 `INSTALL_TO_APPLICATIONS=1 bash bundle_app.sh` 跳过确认并自动覆盖。
@@ -106,7 +107,8 @@ bash bundle_app.sh
 发布为 `.dmg`：
 
 ```bash
-bash publish_dmg.sh
+make deploy
+# 等同于：bash publish_dmg.sh
 ```
 
 发布脚本会先打印 `Sources/xxMac/Info.plist` 中记录的当前版本号，并提示输入本次发布版本。版本会写回 `CFBundleShortVersionString` 和 `CFBundleVersion`，最近更新时间会写回 `XXLastUpdated`，生成的 DMG 默认命名为 `xxMac-版本号.dmg`。
