@@ -23,6 +23,26 @@ enum MenuBarVisibilityPolicy {
     }
 }
 
+enum StatusMenuShortcutSource {
+    case window(WindowAction)
+    case clipboard
+}
+
+enum StatusMenuShortcutPolicy {
+    static func configuration(
+        for source: StatusMenuShortcutSource,
+        windowConfigurations: [WindowAction: HotKeyConfiguration],
+        clipboardConfiguration: HotKeyConfiguration?
+    ) -> HotKeyConfiguration? {
+        switch source {
+        case .window(let action):
+            return windowConfigurations[action]
+        case .clipboard:
+            return clipboardConfiguration
+        }
+    }
+}
+
 enum MenuBarStatusItemIdentity {
     static let autosaveName = "xxMac.statusItem"
     static let accessibilityLabel = "xxMac"
@@ -199,6 +219,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private var quitMenuItem: NSMenuItem?
     private var localizationCancellable: AnyCancellable?
     private var generalSettingsCancellable: AnyCancellable?
+    private var clipboardSettingsCancellable: AnyCancellable?
     private var launcherPanelCancellables = Set<AnyCancellable>()
     private var clipboardImagePreviewController: ClipboardImagePreviewPanelController?
     private var isOpeningLauncher = false
@@ -355,6 +376,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             .sink { [weak self] showMenuBarItem in
                 Task { @MainActor in
                     self?.syncMenuBarVisibility()
+                }
+            }
+        clipboardSettingsCancellable = ClipboardManager.shared.$settings
+            .dropFirst()
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    self?.updateMenuShortcuts()
                 }
             }
         NotificationCenter.default.addObserver(self, selector: #selector(updateMenuShortcuts), name: HotKeyManager.configurationsDidChangeNotification, object: nil)
@@ -1048,15 +1076,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     @MainActor
     @objc private func updateMenuShortcuts() {
-        applyMenuShortcut(for: .toggleLauncher, to: toggleLauncherMenuItem)
-        applyMenuShortcut(for: .toggleTodo, to: todoMenuItem)
-        applyMenuShortcut(for: .lockAI, to: lockAIMenuItem)
+        applyMenuShortcut(for: .window(.toggleLauncher), to: toggleLauncherMenuItem)
+        applyMenuShortcut(for: .clipboard, to: showClipboardHistoryMenuItem)
+        applyMenuShortcut(for: .window(.toggleTodo), to: todoMenuItem)
+        applyMenuShortcut(for: .window(.lockAI), to: lockAIMenuItem)
     }
 
-    private func applyMenuShortcut(for action: WindowAction, to menuItem: NSMenuItem?) {
+    private func applyMenuShortcut(for source: StatusMenuShortcutSource, to menuItem: NSMenuItem?) {
         guard let menuItem else { return }
 
-        if let configuration = HotKeyManager.shared.configurations[action],
+        let configuration = StatusMenuShortcutPolicy.configuration(
+            for: source,
+            windowConfigurations: HotKeyManager.shared.configurations,
+            clipboardConfiguration: ClipboardManager.shared.settings.hotKey
+        )
+
+        if let configuration,
            !configuration.menuKeyEquivalent.isEmpty {
             menuItem.keyEquivalent = configuration.menuKeyEquivalent
             menuItem.keyEquivalentModifierMask = configuration.modifiers.intersection(.deviceIndependentFlagsMask)
