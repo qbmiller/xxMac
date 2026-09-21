@@ -435,6 +435,14 @@
 "todo.view.quadrants" = "Quadrants";
 "todo.view.all" = "All";
 "todo.view.today" = "Today";
+"todo.list.section" = "My Lists";
+"todo.list.new" = "New List";
+"todo.list.rename" = "Rename List";
+"todo.list.delete" = "Delete List";
+"todo.list.delete_title" = "Delete This List?";
+"todo.list.delete_message" = "Tasks in this list will be kept and become unassigned.";
+"todo.list.unassigned" = "No List";
+"todo.list.name_placeholder" = "List name";
 "todo.status.todo" = "Todo";
 "todo.status.in_progress" = "In Progress";
 "todo.status.completed" = "Completed";
@@ -480,6 +488,7 @@
 "todo.editor.notes" = "Notes";
 "todo.editor.status" = "Status";
 "todo.editor.quadrant" = "Quadrant";
+"todo.editor.list" = "List";
 "todo.editor.deadline" = "Deadline";
 "todo.editor.deadline_date" = "Date";
 "todo.editor.deadline_time" = "Time";

@@ -1,21 +1,38 @@
 import SwiftUI
 
+enum TodoQuadrantLayoutPolicy {
+    static let contentPadding: CGFloat = 16
+    static let columnSpacing: CGFloat = 10
+    static let rowSpacing: CGFloat = 12
+    static let minimumCellHeight: CGFloat = 190
+
+    static func columnWidth(for availableWidth: CGFloat) -> CGFloat {
+        max(0, (availableWidth - columnSpacing) / 2)
+    }
+
+    static func cellHeight(for containerHeight: CGFloat) -> CGFloat {
+        max(minimumCellHeight, (containerHeight - contentPadding * 2 - rowSpacing) / 2)
+    }
+}
+
 struct TodoQuadrantView: View {
     let tasks: [TodoTask]
     let selectedTaskID: TodoTask.ID?
     let actions: (TodoTask) -> TodoTaskCardActions
     let onMove: (UUID, TodoQuadrant, UUID?) -> Void
 
-    private let columns = [
-        GridItem(.flexible(minimum: 240), spacing: 10),
-        GridItem(.flexible(minimum: 240), spacing: 10)
-    ]
-
     var body: some View {
         GeometryReader { proxy in
-            let cellHeight = max(190, (proxy.size.height - 46) / 2)
-            ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 12) {
+            let availableWidth = max(0, proxy.size.width - TodoQuadrantLayoutPolicy.contentPadding * 2)
+            let columnWidth = TodoQuadrantLayoutPolicy.columnWidth(for: availableWidth)
+            let cellHeight = TodoQuadrantLayoutPolicy.cellHeight(for: proxy.size.height)
+            let columns = [
+                GridItem(.fixed(columnWidth), spacing: TodoQuadrantLayoutPolicy.columnSpacing),
+                GridItem(.fixed(columnWidth), spacing: TodoQuadrantLayoutPolicy.columnSpacing)
+            ]
+
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVGrid(columns: columns, spacing: TodoQuadrantLayoutPolicy.rowSpacing) {
                     ForEach(TodoQuadrant.allCases) { quadrant in
                         TodoQuadrantCell(
                             quadrant: quadrant,
@@ -27,8 +44,8 @@ struct TodoQuadrantView: View {
                         .frame(height: cellHeight)
                     }
                 }
-                .frame(minWidth: max(500, proxy.size.width - 32))
-                .padding(16)
+                .frame(width: availableWidth)
+                .padding(TodoQuadrantLayoutPolicy.contentPadding)
             }
             .background(Color(nsColor: .windowBackgroundColor))
         }

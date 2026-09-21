@@ -13,6 +13,7 @@ final class TodoStore: ObservableObject {
     }()
 
     @Published private(set) var tasks: [TodoTask]
+    @Published private(set) var lists: [TodoList]
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
 
@@ -31,6 +32,7 @@ final class TodoStore: ObservableObject {
         self.notifications = notifications
         self.now = now
         tasks = worker.initialTasks
+        lists = worker.initialLists
         errorMessage = worker.initialError?.localizedDescription
     }
 
@@ -40,8 +42,9 @@ final class TodoStore: ObservableObject {
             guard let self else { return }
             self.isLoading = false
             switch result {
-            case .success(let tasks):
-                self.publish(tasks)
+            case .success(let state):
+                self.lists = state.lists
+                self.publish(state.tasks)
                 self.errorMessage = nil
             case .failure(let error):
                 self.errorMessage = error.localizedDescription
@@ -59,13 +62,17 @@ final class TodoStore: ObservableObject {
     func reloadStorageDirectory(
         _ databaseURL: URL = ConfigDirectoryManager.shared.todoDatabaseURL
     ) throws {
-        publish(try worker.reopen(at: databaseURL.standardizedFileURL))
+        let state = try worker.reopen(at: databaseURL.standardizedFileURL)
+        lists = state.lists
+        publish(state.tasks)
         errorMessage = nil
     }
 
     func resumeAfterDirectoryMigration() throws {
         guard let migrationSourceURL else { return }
-        publish(try worker.reopen(at: migrationSourceURL))
+        let state = try worker.reopen(at: migrationSourceURL)
+        lists = state.lists
+        publish(state.tasks)
         self.migrationSourceURL = nil
         errorMessage = nil
     }
@@ -75,7 +82,8 @@ final class TodoStore: ObservableObject {
         notes: String,
         quadrant: TodoQuadrant,
         status: TodoStatus,
-        dueAt: Date?
+        dueAt: Date?,
+        listID: UUID? = nil
     ) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
@@ -96,6 +104,7 @@ final class TodoStore: ObservableObject {
                 statusRank: statusRank
             )
             task.quadrant = quadrant
+            task.listID = listID
             task.dueAt = dueAt
             if status != .todo {
                 task = task.transitioned(to: status, at: timestamp)
@@ -103,6 +112,54 @@ final class TodoStore: ObservableObject {
             try persistence.insert(task)
             tasks.append(task)
             return TodoStoreChange(old: nil, new: task)
+        }
+    }
+
+    func createList(
+        name: String,
+        id: UUID = UUID(),
+        completion: ((Result<UUID, Error>) -> Void)? = nil
+    ) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        let timestamp = now()
+        submitList({ _, lists, persistence in
+            let rank = Self.rankAtEnd(lists.map(\.rank))
+            let list = TodoList.makeNew(id: id, name: trimmedName, now: timestamp, rank: rank)
+            try persistence.insertList(list)
+            lists.append(list)
+            return false
+        }, completion: { result in
+            completion?(result.map { _ in id })
+        })
+    }
+
+    func renameList(id: UUID, name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        let timestamp = now()
+        submitList { _, lists, persistence in
+            guard let index = lists.firstIndex(where: { $0.id == id }) else { return false }
+            var updated = lists[index]
+            updated.name = trimmedName
+            updated.updatedAt = timestamp
+            try persistence.updateList(updated)
+            lists[index] = updated
+            return false
+        }
+    }
+
+    func deleteList(id: UUID) {
+        submitList { tasks, lists, persistence in
+            guard lists.contains(where: { $0.id == id }) else { return false }
+            try persistence.deleteList(id: id)
+            lists.removeAll { $0.id == id }
+            var changedTasks = false
+            for index in tasks.indices where tasks[index].listID == id {
+                tasks[index].listID = nil
+                changedTasks = true
+            }
+            return changedTasks
         }
     }
 
@@ -285,6 +342,28 @@ final class TodoStore: ObservableObject {
         }
     }
 
+    private func submitList(
+        _ mutation: @escaping TodoStoreWorker.ListMutation,
+        completion: ((Result<TodoStoreWorker.ListOutput, Error>) -> Void)? = nil
+    ) {
+        worker.performList(mutation) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success(let output):
+                self.lists = output.state.lists
+                if output.changedTasks {
+                    self.publish(output.state.tasks)
+                } else {
+                    self.tasks = output.state.tasks
+                }
+                self.errorMessage = nil
+            case .failure(let error):
+                self.errorMessage = error.localizedDescription
+            }
+            completion?(result)
+        }
+    }
+
     private func publish(_ newTasks: [TodoTask]) {
         tasks = newTasks
         NotificationCenter.default.post(name: .todoStoreTasksDidChange, object: self)
@@ -378,27 +457,41 @@ private struct TodoStoreChange {
     let new: TodoTask?
 }
 
+private struct TodoStoreState {
+    let tasks: [TodoTask]
+    let lists: [TodoList]
+}
+
 private final class TodoStoreWorker {
     typealias Mutation = (inout [TodoTask], TodoPersisting) throws -> TodoStoreChange?
     typealias Output = (tasks: [TodoTask], change: TodoStoreChange?)
+    typealias ListMutation = (inout [TodoTask], inout [TodoList], TodoPersisting) throws -> Bool
+    typealias ListOutput = (state: TodoStoreState, changedTasks: Bool)
 
     let initialTasks: [TodoTask]
+    let initialLists: [TodoList]
     let initialError: Error?
 
     private let persistence: TodoPersisting
     private let queue = DispatchQueue(label: "com.macefficiency.todo.store", qos: .userInitiated)
     private var tasks: [TodoTask]
+    private var lists: [TodoList]
 
     init(persistence: TodoPersisting) {
         self.persistence = persistence
         do {
             let tasks = try persistence.fetchTasks(includeArchived: true)
+            let lists = try persistence.fetchLists()
             self.tasks = tasks
+            self.lists = lists
             initialTasks = tasks
+            initialLists = lists
             initialError = nil
         } catch {
             tasks = []
+            lists = []
             initialTasks = []
+            initialLists = []
             initialError = error
         }
     }
@@ -424,27 +517,58 @@ private final class TodoStoreWorker {
         }
     }
 
+    func performList(
+        _ mutation: @escaping ListMutation,
+        completion: @escaping @MainActor (Result<ListOutput, Error>) -> Void
+    ) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            var candidateTasks = self.tasks
+            var candidateLists = self.lists
+            let result: Result<ListOutput, Error>
+            do {
+                let changedTasks = try mutation(&candidateTasks, &candidateLists, self.persistence)
+                self.tasks = candidateTasks
+                self.lists = candidateLists
+                result = .success((TodoStoreState(tasks: candidateTasks, lists: candidateLists), changedTasks))
+            } catch {
+                result = .failure(error)
+            }
+            Task { @MainActor in
+                completion(result)
+            }
+        }
+    }
+
     func checkpointAndClose() {
         queue.sync {
             persistence.checkpointAndClose()
         }
     }
 
-    func reopen(at url: URL) throws -> [TodoTask] {
+    func reopen(at url: URL) throws -> TodoStoreState {
         try queue.sync {
             try persistence.reopen(at: url)
-            let reloaded = try persistence.fetchTasks(includeArchived: true)
-            tasks = reloaded
-            return reloaded
+            let reloadedTasks = try persistence.fetchTasks(includeArchived: true)
+            let reloadedLists = try persistence.fetchLists()
+            tasks = reloadedTasks
+            lists = reloadedLists
+            return TodoStoreState(tasks: reloadedTasks, lists: reloadedLists)
         }
     }
 
-    func reload(completion: @escaping @MainActor (Result<[TodoTask], Error>) -> Void) {
+    func reload(completion: @escaping @MainActor (Result<TodoStoreState, Error>) -> Void) {
         queue.async { [weak self] in
             guard let self else { return }
-            let result = Result { try self.persistence.fetchTasks(includeArchived: true) }
-            if case .success(let tasks) = result {
-                self.tasks = tasks
+            let result = Result {
+                TodoStoreState(
+                    tasks: try self.persistence.fetchTasks(includeArchived: true),
+                    lists: try self.persistence.fetchLists()
+                )
+            }
+            if case .success(let state) = result {
+                self.tasks = state.tasks
+                self.lists = state.lists
             }
             Task { @MainActor in
                 completion(result)

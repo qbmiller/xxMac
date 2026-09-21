@@ -435,6 +435,14 @@
 "todo.view.quadrants" = "四象限";
 "todo.view.all" = "全部";
 "todo.view.today" = "今日";
+"todo.list.section" = "我的清单";
+"todo.list.new" = "新建清单";
+"todo.list.rename" = "重命名清单";
+"todo.list.delete" = "删除清单";
+"todo.list.delete_title" = "删除这个清单？";
+"todo.list.delete_message" = "清单中的任务不会删除，将变为未指定清单。";
+"todo.list.unassigned" = "未指定清单";
+"todo.list.name_placeholder" = "清单名称";
 "todo.status.todo" = "待办";
 "todo.status.in_progress" = "进行中";
 "todo.status.completed" = "已完成";
@@ -480,6 +488,7 @@
 "todo.editor.notes" = "备注";
 "todo.editor.status" = "状态";
 "todo.editor.quadrant" = "四象限";
+"todo.editor.list" = "清单";
 "todo.editor.deadline" = "截止时间";
 "todo.editor.deadline_date" = "日期";
 "todo.editor.deadline_time" = "时间";

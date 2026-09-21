@@ -55,6 +55,29 @@ enum TodoSort: String, CaseIterable, Codable, Identifiable {
     var id: String { rawValue }
 }
 
+struct TodoList: Identifiable, Codable, Equatable, Hashable {
+    var id: UUID
+    var name: String
+    var createdAt: Date
+    var updatedAt: Date
+    var rank: Double
+
+    static func makeNew(
+        id: UUID = UUID(),
+        name: String,
+        now: Date = Date(),
+        rank: Double = TodoRankPolicy.spacing
+    ) -> TodoList {
+        TodoList(
+            id: id,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            createdAt: now,
+            updatedAt: now,
+            rank: rank
+        )
+    }
+}
+
 enum TodoTodaySection: String, CaseIterable, Identifiable {
     case overdue
     case todayOpen
@@ -74,6 +97,7 @@ struct TodoTask: Identifiable, Codable, Equatable, Hashable {
     var notes: String
     var status: TodoStatus
     var quadrant: TodoQuadrant
+    var listID: UUID?
     var dueAt: Date?
     var createdAt: Date
     var updatedAt: Date
@@ -97,6 +121,7 @@ struct TodoTask: Identifiable, Codable, Equatable, Hashable {
             notes: notes,
             status: .todo,
             quadrant: .notImportantNotUrgent,
+            listID: nil,
             dueAt: nil,
             createdAt: now,
             updatedAt: now,
@@ -152,6 +177,7 @@ struct TodoTaskDraft: Equatable {
     var notes: String
     var status: TodoStatus
     var quadrant: TodoQuadrant
+    var listID: UUID?
     var dueAt: Date?
 
     init(
@@ -159,12 +185,14 @@ struct TodoTaskDraft: Equatable {
         notes: String = "",
         status: TodoStatus = .todo,
         quadrant: TodoQuadrant = .notImportantNotUrgent,
+        listID: UUID? = nil,
         dueAt: Date? = nil
     ) {
         self.title = title
         self.notes = notes
         self.status = status
         self.quadrant = quadrant
+        self.listID = listID
         self.dueAt = dueAt
     }
 
@@ -174,6 +202,7 @@ struct TodoTaskDraft: Equatable {
             notes: task.notes,
             status: task.status,
             quadrant: task.quadrant,
+            listID: task.listID,
             dueAt: task.dueAt
         )
     }
@@ -200,6 +229,7 @@ struct TodoTaskDraft: Equatable {
         updated.notes = notes
         updated.status = status
         updated.quadrant = quadrant
+        updated.listID = listID
         updated.dueAt = normalizedDueAt(calendar: calendar)
         return updated
     }
@@ -250,6 +280,13 @@ enum TodoTaskQuery {
         case .completed:
             result = result.filter { $0.status == .completed }.sorted { statusOrder($0, $1) }
         }
+        return search(result, text: searchText)
+    }
+
+    static func tasks(_ tasks: [TodoTask], inList listID: UUID, searchText: String = "") -> [TodoTask] {
+        let result = active(tasks)
+            .filter { $0.listID == listID }
+            .sorted { $0.updatedAt > $1.updatedAt }
         return search(result, text: searchText)
     }
 

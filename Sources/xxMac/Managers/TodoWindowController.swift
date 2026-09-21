@@ -73,6 +73,7 @@ enum TodoWindowBehavior {
     static func apply(to panel: NSPanel) {
         panel.level = .normal
         panel.isFloatingPanel = false
+        panel.collectionBehavior = [.managed]
     }
 }
 
@@ -120,7 +121,6 @@ final class TodoWindowController: NSWindowController, NSWindowDelegate, Observab
         panel.becomesKeyOnlyIfNeeded = false
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.delegate = self
         panel.contentView = NSHostingView(rootView: TodoRootView(store: store, windowController: self))
         window = panel

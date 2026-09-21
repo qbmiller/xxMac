@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodoEditorView: View {
     let navigationTitle: String
+    let lists: [TodoList]
     let onSave: (TodoTaskDraft) -> Void
     let onCancel: () -> Void
 
@@ -20,10 +21,12 @@ struct TodoEditorView: View {
     init(
         title: String,
         draft: TodoTaskDraft,
+        lists: [TodoList],
         onSave: @escaping (TodoTaskDraft) -> Void,
         onCancel: @escaping () -> Void
     ) {
         navigationTitle = title
+        self.lists = lists
         self.onSave = onSave
         self.onCancel = onCancel
 
@@ -76,28 +79,31 @@ struct TodoEditorView: View {
                             }
                     }
 
-                    HStack(alignment: .top, spacing: 16) {
-                        editorField(L10n.t("todo.editor.status")) {
-                            Picker(L10n.t("todo.editor.status"), selection: $draft.status) {
-                                ForEach(TodoStatus.allCases) { status in
-                                    Label(status.localizedTitle, systemImage: status.systemImage).tag(status)
-                                }
+                    editorField(L10n.t("todo.editor.list")) {
+                        Picker(L10n.t("todo.editor.list"), selection: $draft.listID) {
+                            Text(L10n.t("todo.list.unassigned")).tag(nil as UUID?)
+                            ForEach(lists) { list in
+                                Label(list.name, systemImage: "folder").tag(Optional(list.id))
                             }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 220, alignment: .leading)
+                    }
 
-                        editorField(L10n.t("todo.editor.quadrant")) {
-                            Picker(L10n.t("todo.editor.quadrant"), selection: $draft.quadrant) {
-                                ForEach(TodoQuadrant.allCases) { quadrant in
-                                    Label(quadrant.localizedTitle, systemImage: quadrant.systemImage).tag(quadrant)
-                                }
+                    editorField(L10n.t("todo.editor.status")) {
+                        Picker(L10n.t("todo.editor.status"), selection: $draft.status) {
+                            ForEach(TodoStatus.allCases) { status in
+                                Label(status.localizedTitle, systemImage: status.systemImage).tag(status)
                             }
-                            .labelsHidden()
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: 220, alignment: .leading)
+                    }
+
+                    editorField(L10n.t("todo.editor.quadrant")) {
+                        TodoQuadrantSelector(selection: $draft.quadrant)
                     }
 
                     Toggle(isOn: $hasDeadline) {
@@ -191,5 +197,67 @@ struct TodoEditorView: View {
             result.dueAt = nil
         }
         onSave(result)
+    }
+}
+
+private struct TodoQuadrantSelector: View {
+    @Binding var selection: TodoQuadrant
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(TodoQuadrant.allCases) { quadrant in
+                let isSelected = selection == quadrant
+                Button {
+                    selection = quadrant
+                } label: {
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(spacing: 6) {
+                            Image(systemName: quadrant.systemImage)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 26, height: 26)
+                                .background(
+                                    quadrant.tintColor,
+                                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                )
+
+                            Spacer(minLength: 0)
+
+                            if isSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(quadrant.tintColor)
+                            }
+                        }
+
+                        Text(quadrant.localizedTitle)
+                            .font(.caption.weight(isSelected ? .semibold : .medium))
+                            .foregroundStyle(isSelected ? quadrant.tintColor : .primary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(9)
+                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
+                    .background(
+                        quadrant.tintColor.opacity(isSelected ? 0.16 : 0.055),
+                        in: RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .stroke(
+                                isSelected
+                                    ? quadrant.tintColor.opacity(0.9)
+                                    : Color(nsColor: .separatorColor).opacity(0.7),
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .accessibilityElement(children: .contain)
     }
 }

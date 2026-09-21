@@ -12,11 +12,13 @@ final class TodoWindowFramePolicyTests: XCTestCase {
         )
         panel.level = .floating
         panel.isFloatingPanel = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         TodoWindowBehavior.apply(to: panel)
 
         XCTAssertEqual(panel.level, .normal)
         XCTAssertFalse(panel.isFloatingPanel)
+        XCTAssertEqual(panel.collectionBehavior, [.managed])
     }
 
     func testFrameStateStoresCompactAndBoardFramesIndependently() {
@@ -64,5 +66,18 @@ final class TodoWindowFramePolicyTests: XCTestCase {
         XCTAssertEqual(compact.midY, visibleFrame.midY, accuracy: 0.001)
         XCTAssertEqual(board.midX, visibleFrame.midX, accuracy: 0.001)
         XCTAssertEqual(board.midY, visibleFrame.midY, accuracy: 0.001)
+    }
+
+    func testQuadrantColumnsFitNarrowAvailableWidthWithoutOverflow() {
+        let availableWidth: CGFloat = 420
+
+        let columnWidth = TodoQuadrantLayoutPolicy.columnWidth(for: availableWidth)
+
+        XCTAssertEqual(columnWidth, 205, accuracy: 0.001)
+        XCTAssertEqual(
+            columnWidth * 2 + TodoQuadrantLayoutPolicy.columnSpacing,
+            availableWidth,
+            accuracy: 0.001
+        )
     }
 }

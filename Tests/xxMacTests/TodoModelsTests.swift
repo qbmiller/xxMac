@@ -15,6 +15,7 @@ final class TodoModelsTests: XCTestCase {
         XCTAssertEqual(task.title, "Write release notes")
         XCTAssertEqual(task.status, .todo)
         XCTAssertEqual(task.quadrant, .notImportantNotUrgent)
+        XCTAssertNil(task.listID)
         XCTAssertNil(task.dueAt)
         XCTAssertNil(task.completedAt)
         XCTAssertNil(task.archivedAt)
@@ -68,6 +69,19 @@ final class TodoModelsTests: XCTestCase {
         XCTAssertEqual(TodoTaskQuery.archived([active, archived]).map(\.id), [archived.id])
     }
 
+    func testTasksCanBeFilteredByCustomList() {
+        let now = date(2026, 9, 5, 9, 0)
+        let listID = UUID()
+        var assigned = TodoTask.makeNew(title: "Assigned", now: now)
+        assigned.listID = listID
+        let unassigned = TodoTask.makeNew(title: "Unassigned", now: now)
+
+        XCTAssertEqual(
+            TodoTaskQuery.tasks([assigned, unassigned], inList: listID).map(\.id),
+            [assigned.id]
+        )
+    }
+
     func testTodayGroupsOverdueOpenTodayOpenAndTodayCompleted() {
         let now = date(2026, 9, 5, 12, 0)
         let overdue = task("Overdue", due: date(2026, 9, 4, 18, 0), now: now)
@@ -116,6 +130,7 @@ final class TodoModelsTests: XCTestCase {
 
         XCTAssertEqual(draft.status, .todo)
         XCTAssertEqual(draft.quadrant, .notImportantNotUrgent)
+        XCTAssertNil(draft.listID)
         XCTAssertNil(draft.dueAt)
         XCTAssertFalse(draft.canSave)
 
@@ -152,6 +167,7 @@ final class TodoModelsTests: XCTestCase {
         draft.notes = "New note"
         draft.status = .inProgress
         draft.quadrant = .importantUrgent
+        draft.listID = UUID()
         draft.dueAt = deadlineComponents.date
 
         let updated = draft.applying(to: original, calendar: calendar)
@@ -161,6 +177,7 @@ final class TodoModelsTests: XCTestCase {
         XCTAssertEqual(updated.notes, "New note")
         XCTAssertEqual(updated.status, .inProgress)
         XCTAssertEqual(updated.quadrant, .importantUrgent)
+        XCTAssertEqual(updated.listID, draft.listID)
         XCTAssertEqual(calendar.component(.second, from: updated.dueAt!), 0)
         XCTAssertEqual(updated.createdAt, original.createdAt)
         XCTAssertEqual(updated.updatedAt, original.updatedAt)

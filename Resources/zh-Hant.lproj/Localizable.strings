@@ -435,6 +435,14 @@
 "todo.view.quadrants" = "四象限";
 "todo.view.all" = "全部";
 "todo.view.today" = "今日";
+"todo.list.section" = "我的清單";
+"todo.list.new" = "新增清單";
+"todo.list.rename" = "重新命名清單";
+"todo.list.delete" = "刪除清單";
+"todo.list.delete_title" = "刪除這個清單？";
+"todo.list.delete_message" = "清單中的任務不會刪除，將變為未指定清單。";
+"todo.list.unassigned" = "未指定清單";
+"todo.list.name_placeholder" = "清單名稱";
 "todo.status.todo" = "待辦";
 "todo.status.in_progress" = "進行中";
 "todo.status.completed" = "已完成";
@@ -480,6 +488,7 @@
 "todo.editor.notes" = "備註";
 "todo.editor.status" = "狀態";
 "todo.editor.quadrant" = "四象限";
+"todo.editor.list" = "清單";
 "todo.editor.deadline" = "截止時間";
 "todo.editor.deadline_date" = "日期";
 "todo.editor.deadline_time" = "時間";

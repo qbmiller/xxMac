@@ -34,6 +34,57 @@ final class TodoStoreTests: XCTestCase {
         _ = cancellables
     }
 
+    func testCreateAndRenameListPersistNormalizedName() async throws {
+        let persistence = TodoPersistenceFake()
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+        let listID = UUID()
+        store.createList(name: "  Work  ", id: listID)
+        try await waitUntil { store.lists.count == 1 }
+
+        XCTAssertEqual(store.lists.first?.id, listID)
+        XCTAssertEqual(store.lists.first?.name, "Work")
+
+        store.renameList(id: listID, name: "  Personal  ")
+        try await waitUntil { store.lists.first?.name == "Personal" }
+        XCTAssertEqual(try persistence.fetchLists().first?.name, "Personal")
+    }
+
+    func testCreateTaskAssignsSelectedCustomList() async throws {
+        let list = TodoList.makeNew(name: "Work", now: now)
+        let persistence = TodoPersistenceFake(lists: [list])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.create(
+            title: "Assigned",
+            notes: "",
+            quadrant: .importantUrgent,
+            status: .todo,
+            dueAt: nil,
+            listID: list.id
+        )
+        try await waitUntil { store.tasks.count == 1 }
+
+        XCTAssertEqual(store.tasks.first?.listID, list.id)
+        XCTAssertEqual(persistence.tasks.first?.listID, list.id)
+    }
+
+    func testDeleteListKeepsTasksAndClearsTheirAssignment() async throws {
+        let list = TodoList.makeNew(name: "Work", now: now)
+        var assigned = makeTask(title: "Keep assigned task")
+        assigned.listID = list.id
+        let unassigned = makeTask(title: "Keep unassigned task")
+        let persistence = TodoPersistenceFake(tasks: [assigned, unassigned], lists: [list])
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+
+        store.deleteList(id: list.id)
+        try await waitUntil { store.lists.isEmpty }
+
+        XCTAssertEqual(store.tasks.count, 2)
+        XCTAssertTrue(store.tasks.allSatisfy { $0.listID == nil })
+        XCTAssertEqual(persistence.tasks.count, 2)
+        XCTAssertTrue(persistence.tasks.allSatisfy { $0.listID == nil })
+    }
+
     func testFailedWriteLeavesPublishedSnapshotUnchanged() async throws {
         let original = makeTask(title: "Original")
         let persistence = TodoPersistenceFake(tasks: [original])
@@ -402,19 +453,49 @@ private final class LockedEvents {
 private final class TodoPersistenceFake: TodoPersisting {
     private let lock = NSLock()
     private var storage: [TodoTask]
+    private var listStorage: [TodoList]
     var onInsert: (() -> Void)?
     var updateError: Error?
     private(set) var checkpointCount = 0
     private(set) var reopenedURLs: [URL] = []
 
-    init(tasks: [TodoTask] = []) {
+    init(tasks: [TodoTask] = [], lists: [TodoList] = []) {
         storage = tasks
+        listStorage = lists
     }
 
     var tasks: [TodoTask] {
         lock.lock()
         defer { lock.unlock() }
         return storage
+    }
+
+    func fetchLists() throws -> [TodoList] {
+        lock.lock()
+        defer { lock.unlock() }
+        return listStorage
+    }
+
+    func insertList(_ list: TodoList) throws {
+        lock.lock()
+        listStorage.append(list)
+        lock.unlock()
+    }
+
+    func updateList(_ list: TodoList) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let index = listStorage.firstIndex(where: { $0.id == list.id }) else { return }
+        listStorage[index] = list
+    }
+
+    func deleteList(id: UUID) throws {
+        lock.lock()
+        listStorage.removeAll { $0.id == id }
+        for index in storage.indices where storage[index].listID == id {
+            storage[index].listID = nil
+        }
+        lock.unlock()
     }
 
     func fetchTasks(includeArchived: Bool) throws -> [TodoTask] {

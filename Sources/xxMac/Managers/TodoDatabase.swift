@@ -2,6 +2,10 @@ import Foundation
 import SQLite3
 
 protocol TodoPersisting: AnyObject {
+    func fetchLists() throws -> [TodoList]
+    func insertList(_ list: TodoList) throws
+    func updateList(_ list: TodoList) throws
+    func deleteList(id: UUID) throws
     func fetchTasks(includeArchived: Bool) throws -> [TodoTask]
     func insert(_ task: TodoTask) throws
     func update(_ task: TodoTask) throws
@@ -30,7 +34,7 @@ enum TodoDatabaseError: LocalizedError, Equatable {
 }
 
 final class TodoDatabase: TodoPersisting {
-    private static let schemaVersion: Int32 = 2
+    private static let schemaVersion: Int32 = 3
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
     private let queue = DispatchQueue(label: "com.macefficiency.todo.database", qos: .userInitiated)
@@ -50,12 +54,77 @@ final class TodoDatabase: TodoPersisting {
         checkpointAndClose()
     }
 
+    func fetchLists() throws -> [TodoList] {
+        try queue.sync {
+            let statement = try prepare(
+                "SELECT id, name, created_at, updated_at, rank FROM todo_lists ORDER BY rank ASC, created_at ASC;",
+                operation: "prepare list fetch"
+            )
+            defer { sqlite3_finalize(statement) }
+
+            var lists: [TodoList] = []
+            while true {
+                switch sqlite3_step(statement) {
+                case SQLITE_ROW:
+                    lists.append(try decodeList(from: statement))
+                case SQLITE_DONE:
+                    return lists
+                default:
+                    throw sqliteError(operation: "fetch lists")
+                }
+            }
+        }
+    }
+
+    func insertList(_ list: TodoList) throws {
+        try queue.sync {
+            let statement = try prepare(
+                "INSERT INTO todo_lists (id, name, created_at, updated_at, rank) VALUES (?, ?, ?, ?, ?);",
+                operation: "prepare list insert"
+            )
+            defer { sqlite3_finalize(statement) }
+            bindText(list.id.uuidString, to: statement, index: 1)
+            bindText(list.name, to: statement, index: 2)
+            sqlite3_bind_double(statement, 3, list.createdAt.timeIntervalSince1970)
+            sqlite3_bind_double(statement, 4, list.updatedAt.timeIntervalSince1970)
+            sqlite3_bind_double(statement, 5, list.rank)
+            try finish(statement, operation: "insert list")
+        }
+    }
+
+    func updateList(_ list: TodoList) throws {
+        try queue.sync {
+            let statement = try prepare(
+                "UPDATE todo_lists SET name = ?, updated_at = ?, rank = ? WHERE id = ?;",
+                operation: "prepare list update"
+            )
+            defer { sqlite3_finalize(statement) }
+            bindText(list.name, to: statement, index: 1)
+            sqlite3_bind_double(statement, 2, list.updatedAt.timeIntervalSince1970)
+            sqlite3_bind_double(statement, 3, list.rank)
+            bindText(list.id.uuidString, to: statement, index: 4)
+            try finish(statement, operation: "update list")
+        }
+    }
+
+    func deleteList(id: UUID) throws {
+        try queue.sync {
+            let statement = try prepare(
+                "DELETE FROM todo_lists WHERE id = ?;",
+                operation: "prepare list delete"
+            )
+            defer { sqlite3_finalize(statement) }
+            bindText(id.uuidString, to: statement, index: 1)
+            try finish(statement, operation: "delete list")
+        }
+    }
+
     func fetchTasks(includeArchived: Bool) throws -> [TodoTask] {
         try queue.sync {
             let archivedClause = includeArchived ? "" : "WHERE archived_at IS NULL"
             let sql = """
             SELECT id, title, notes, status, quadrant, due_at, created_at, updated_at,
-                   completed_at, status_before_completion, archived_at, quadrant_rank, status_rank
+                   completed_at, status_before_completion, archived_at, quadrant_rank, status_rank, list_id
             FROM todo_tasks
             \(archivedClause)
             ORDER BY created_at ASC, id ASC;
@@ -82,8 +151,8 @@ final class TodoDatabase: TodoPersisting {
             let sql = """
             INSERT INTO todo_tasks (
                 id, title, notes, status, quadrant, due_at, created_at, updated_at,
-                completed_at, status_before_completion, archived_at, quadrant_rank, status_rank
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                completed_at, status_before_completion, archived_at, quadrant_rank, status_rank, list_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """
             let statement = try prepare(sql, operation: "prepare insert")
             defer { sqlite3_finalize(statement) }
@@ -161,7 +230,7 @@ final class TodoDatabase: TodoPersisting {
         UPDATE todo_tasks SET
             title = ?, notes = ?, status = ?, quadrant = ?, due_at = ?,
             created_at = ?, updated_at = ?, completed_at = ?, status_before_completion = ?,
-            archived_at = ?, quadrant_rank = ?, status_rank = ?
+            archived_at = ?, quadrant_rank = ?, status_rank = ?, list_id = ?
         WHERE id = ?;
         """
         let statement = try prepare(sql, operation: "prepare update")
@@ -178,7 +247,8 @@ final class TodoDatabase: TodoPersisting {
         bindDate(task.archivedAt, to: statement, index: 10)
         sqlite3_bind_double(statement, 11, task.quadrantRank)
         sqlite3_bind_double(statement, 12, task.statusRank)
-        bindText(task.id.uuidString, to: statement, index: 13)
+        bindOptionalText(task.listID?.uuidString, to: statement, index: 13)
+        bindText(task.id.uuidString, to: statement, index: 14)
         try finish(statement, operation: "update task")
     }
 
@@ -225,6 +295,18 @@ final class TodoDatabase: TodoPersisting {
             try execute("PRAGMA foreign_keys=ON;", operation: "enable foreign keys")
             try execute(
                 """
+                CREATE TABLE IF NOT EXISTS todo_lists (
+                    id TEXT PRIMARY KEY NOT NULL,
+                    name TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    updated_at REAL NOT NULL,
+                    rank REAL NOT NULL
+                );
+                """,
+                operation: "create todo lists table"
+            )
+            try execute(
+                """
                 CREATE TABLE IF NOT EXISTS todo_tasks (
                     id TEXT PRIMARY KEY NOT NULL,
                     title TEXT NOT NULL,
@@ -238,12 +320,14 @@ final class TodoDatabase: TodoPersisting {
                     status_before_completion TEXT,
                     archived_at REAL,
                     quadrant_rank REAL NOT NULL,
-                    status_rank REAL NOT NULL
+                    status_rank REAL NOT NULL,
+                    list_id TEXT REFERENCES todo_lists(id) ON DELETE SET NULL
                 );
                 """,
                 operation: "create todo table"
             )
             try ensureStatusBeforeCompletionColumn()
+            try ensureTaskListIDColumn()
             try execute(
                 "CREATE INDEX IF NOT EXISTS idx_todo_status ON todo_tasks(archived_at, status, status_rank);",
                 operation: "create status index"
@@ -251,6 +335,10 @@ final class TodoDatabase: TodoPersisting {
             try execute(
                 "CREATE INDEX IF NOT EXISTS idx_todo_quadrant ON todo_tasks(archived_at, quadrant, quadrant_rank);",
                 operation: "create quadrant index"
+            )
+            try execute(
+                "CREATE INDEX IF NOT EXISTS idx_todo_list ON todo_tasks(list_id, archived_at, updated_at);",
+                operation: "create task list index"
             )
             try execute(
                 "CREATE INDEX IF NOT EXISTS idx_todo_due_at ON todo_tasks(due_at);",
@@ -278,6 +366,24 @@ final class TodoDatabase: TodoPersisting {
         try execute(
             "ALTER TABLE todo_tasks ADD COLUMN status_before_completion TEXT;",
             operation: "migrate todo schema to version 2"
+        )
+    }
+
+    private func ensureTaskListIDColumn() throws {
+        let statement = try prepare("PRAGMA table_info(todo_tasks);", operation: "inspect todo list schema")
+        var hasColumn = false
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if text(at: 1, from: statement) == "list_id" {
+                hasColumn = true
+                break
+            }
+        }
+        sqlite3_finalize(statement)
+        guard !hasColumn else { return }
+
+        try execute(
+            "ALTER TABLE todo_tasks ADD COLUMN list_id TEXT REFERENCES todo_lists(id) ON DELETE SET NULL;",
+            operation: "migrate todo schema to version 3"
         )
     }
 
@@ -332,6 +438,7 @@ final class TodoDatabase: TodoPersisting {
         bindDate(task.archivedAt, to: statement, index: 11)
         sqlite3_bind_double(statement, 12, task.quadrantRank)
         sqlite3_bind_double(statement, 13, task.statusRank)
+        bindOptionalText(task.listID?.uuidString, to: statement, index: 14)
     }
 
     private func bindText(_ value: String, to statement: OpaquePointer, index: Int32) {
@@ -378,6 +485,7 @@ final class TodoDatabase: TodoPersisting {
             notes: notes,
             status: status,
             quadrant: quadrant,
+            listID: text(at: 13, from: statement).flatMap(UUID.init(uuidString:)),
             dueAt: date(at: 5, from: statement),
             createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 6)),
             updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 7)),
@@ -386,6 +494,22 @@ final class TodoDatabase: TodoPersisting {
             archivedAt: date(at: 10, from: statement),
             quadrantRank: sqlite3_column_double(statement, 11),
             statusRank: sqlite3_column_double(statement, 12)
+        )
+    }
+
+    private func decodeList(from statement: OpaquePointer) throws -> TodoList {
+        guard let idText = text(at: 0, from: statement), let id = UUID(uuidString: idText) else {
+            throw TodoDatabaseError.invalidRow(column: "list id")
+        }
+        guard let name = text(at: 1, from: statement) else {
+            throw TodoDatabaseError.invalidRow(column: "list name")
+        }
+        return TodoList(
+            id: id,
+            name: name,
+            createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 2)),
+            updatedAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 3)),
+            rank: sqlite3_column_double(statement, 4)
         )
     }
 
