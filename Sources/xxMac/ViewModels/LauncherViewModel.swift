@@ -702,23 +702,7 @@ class LauncherViewModel: ObservableObject {
     }
 
     private func recordQuickShortcutHistory(item: QuickShortcut, query: String) {
-        let subtitle = QuickShortcutManager.shared.subtitle(for: item)
-        let searchItem = SearchItem(
-            title: item.title,
-            subtitle: subtitle,
-            iconName: item.actionType.iconName,
-            type: .quickShortcut,
-            launcherHistorySnapshot: LauncherHistorySnapshot(
-                kind: .quickShortcut,
-                sourceID: item.id.uuidString,
-                title: item.title,
-                subtitle: subtitle,
-                iconName: item.actionType.iconName,
-                query: query
-            ),
-            action: {}
-        )
-        LauncherHistoryManager.shared.record(item: searchItem, query: query)
+        LauncherHistoryManager.shared.recordQuickShortcut(item: item, query: query)
     }
 
 }

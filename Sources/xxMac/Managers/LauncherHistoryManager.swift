@@ -45,6 +45,25 @@ final class LauncherHistoryManager: ObservableObject {
     func record(item: SearchItem, query: String) {
         guard let snapshot = snapshot(for: item, query: query) else { return }
 
+        record(snapshot: snapshot)
+    }
+
+    /// Records a quick shortcut at the point where it is actually executed.
+    /// This is used by command scripts, whose launcher row is replaced by an
+    /// output row before the asynchronous process starts.
+    func recordQuickShortcut(item: QuickShortcut, query: String) {
+        record(snapshot: LauncherHistorySnapshot(
+            kind: .quickShortcut,
+            sourceID: item.id.uuidString,
+            title: item.title,
+            subtitle: QuickShortcutManager.shared.subtitle(for: item),
+            iconName: item.actionType.iconName,
+            query: query.trimmingCharacters(in: .whitespacesAndNewlines)
+        ))
+    }
+
+    private func record(snapshot: LauncherHistorySnapshot) {
+
         let record = LauncherHistoryRecord(
             id: UUID(),
             kind: snapshot.kind,
