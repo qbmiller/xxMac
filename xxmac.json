@@ -1,0 +1,53 @@
+{
+  "categories": [
+    {
+      "id": "tools",
+      "title": "工具",
+      "symbol": "hammer",
+      "items": [
+        {
+          "id": "status-trio",
+          "title": "Status Trio",
+          "description": "将 Wi-Fi、电池和音量整合到一个原生 macOS 状态图标",
+          "url": "https://github.com/lingyired/status-trio",
+          "iconURL": "https://github.com/lingyired.png"
+        },
+        {
+          "id": "neat-download-manager",
+          "title": "Neat Download Manager",
+          "description": "适用于 macOS 和 Windows 的免费下载管理器",
+          "url": "https://www.neatdownloadmanager.com/",
+          "iconURL": "https://www.neatdownloadmanager.com/favicon.ico"
+        },
+        {
+          "id": "qingjian",
+          "title": "青简 Qingjian",
+          "description": "在日常输入时显示候选词译词的跨平台输入法",
+          "url": "https://github.com/qingjian-team/qingjian",
+          "iconURL": "https://github.com/qingjian-team.png"
+        }
+      ]
+    },
+    {
+      "id": "websites",
+      "title": "网站",
+      "symbol": "globe",
+      "items": [
+        {
+          "id": "v2ex",
+          "title": "V2EX",
+          "description": "技术与创意话题社区",
+          "url": "https://www.v2ex.com/",
+          "iconURL": "https://www.v2ex.com/favicon.ico"
+        },
+        {
+          "id": "linux-do",
+          "title": "Linux.do",
+          "description": "技术交流社区",
+          "url": "https://linux.do/",
+          "iconURL": "https://linux.do/favicon.ico"
+        }
+      ]
+    }
+  ]
+}

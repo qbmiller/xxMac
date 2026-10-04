@@ -423,4 +423,23 @@ final class LauncherViewModelTests: XCTestCase {
         wait(for: [openedSettings], timeout: 1)
         XCTAssertFalse(didRun)
     }
+
+    func testOptionReturnCopiesSelectedAppName() {
+        let viewModel = LauncherViewModel()
+        viewModel.mode = .launcher
+        viewModel.results = [
+            SearchItem(
+                title: "Example App",
+                subtitle: "/Applications/Example App.app",
+                iconName: "app.fill",
+                type: .app,
+                action: {}
+            )
+        ]
+
+        NSPasteboard.general.clearContents()
+        viewModel.executeSelection(copyName: true)
+
+        XCTAssertEqual(NSPasteboard.general.string(forType: .string), "Example App")
+    }
 }

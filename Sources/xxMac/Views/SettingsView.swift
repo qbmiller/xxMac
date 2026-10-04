@@ -23,10 +23,12 @@ struct SettingsView: View {
     @State private var selectedFunction: ToolFunction? = ToolOption.allTools.first?.functions.first
     @State private var selectedSnippetCollectionID: SnippetCollection.ID?
     @State private var selectedQuickShortcutID: QuickShortcut.ID?
+    @State private var selectedRecommendationCategoryID: String?
     @State private var isToolSidebarVisible = true
     @State private var monitor: Any?
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var snippetManager = SnippetManager.shared
+    @StateObject private var recommendations = RecommendationsStore()
 
     init(initialTool: ToolType? = nil) {
         let tool = initialTool.flatMap { type in
@@ -61,6 +63,8 @@ struct SettingsView: View {
         .id(localization.language)
         .onAppear {
             setupWindowCloseMonitor()
+            recommendations.load()
+            Task { await recommendations.refresh() }
             ensureSelection()
         }
         .onDisappear {
@@ -68,7 +72,11 @@ struct SettingsView: View {
         }
         .onChange(of: selectedTool) { newValue in
             // When tool changes, select the first function of that tool
-            if let tool = newValue, tool.type == .snippets {
+            if newValue?.type == .recommendations {
+                recommendations.load()
+                Task { await recommendations.refresh() }
+                ensureRecommendationCategorySelection()
+            } else if let tool = newValue, tool.type == .snippets {
                 ensureSnippetCollectionSelection()
                 selectedQuickShortcutID = nil
             } else if let tool = newValue, tool.type == .quickShortcut {
@@ -79,6 +87,14 @@ struct SettingsView: View {
         }
         .onChange(of: snippetManager.collections) { _ in
             ensureSnippetCollectionSelection()
+        }
+        .onChange(of: recommendations.categories.map(\.id)) { _ in
+            ensureRecommendationCategorySelection()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .configDirectoryDidChange)) { _ in
+            recommendations.load()
+            Task { await recommendations.refresh() }
+            ensureRecommendationCategorySelection()
         }
         .onChange(of: QuickShortcutManager.shared.items) { _ in
             ensureQuickShortcutSelection()
@@ -199,7 +215,17 @@ struct SettingsView: View {
     @ViewBuilder
     private var secondaryContent: some View {
         if let tool = selectedTool {
-            if tool.type == .snippets {
+            if tool.type == .recommendations {
+                List(selection: $selectedRecommendationCategoryID) {
+                    ForEach(recommendations.categories) { category in
+                        Label(category.title, systemImage: category.symbol ?? "square.grid.2x2")
+                            .padding(.vertical, 4)
+                            .tag(category.id)
+                    }
+                }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+            } else if tool.type == .snippets {
                 SnippetCollectionSidebar(selection: $selectedSnippetCollectionID)
             } else if tool.type == .quickShortcut {
                 QuickShortcutItemsSidebar(selection: $selectedQuickShortcutID)
@@ -235,7 +261,12 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var detailContent: some View {
-        if selectedTool?.type == .snippets {
+        if selectedTool?.type == .recommendations {
+            RecommendationsView(
+                store: recommendations,
+                category: recommendations.categories.first { $0.id == selectedRecommendationCategoryID }
+            )
+        } else if selectedTool?.type == .snippets {
             SnippetsSettingsView(selectedCollectionID: $selectedSnippetCollectionID)
         } else if selectedTool?.type == .quickShortcut {
             QuickShortcutDetailView(selectedItemID: $selectedQuickShortcutID)
@@ -256,6 +287,7 @@ struct SettingsView: View {
         }
         ensureSnippetCollectionSelection()
         ensureQuickShortcutSelection()
+        ensureRecommendationCategorySelection()
     }
 
     private func selectTool(_ toolType: ToolType) {
@@ -282,6 +314,12 @@ struct SettingsView: View {
         if selectedQuickShortcutID == nil ||
             !QuickShortcutManager.shared.items.contains(where: { $0.id == selectedQuickShortcutID }) {
             selectedQuickShortcutID = QuickShortcutManager.shared.items.first?.id
+        }
+    }
+
+    private func ensureRecommendationCategorySelection() {
+        if !recommendations.categories.contains(where: { $0.id == selectedRecommendationCategoryID }) {
+            selectedRecommendationCategoryID = recommendations.categories.first?.id
         }
     }
     
@@ -338,6 +376,7 @@ private struct SettingsSidebarLabel: View {
 private extension ToolType {
     var settingsTint: Color {
         switch self {
+        case .recommendations: return .orange
         case .common: return .gray
         case .search: return .blue
         case .window: return .indigo

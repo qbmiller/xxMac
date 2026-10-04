@@ -854,7 +854,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             return true
         case 36: // Enter
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            launcherViewModel.executeSelection(revealInFinder: modifiers.contains(.command))
+            launcherViewModel.executeSelection(
+                revealInFinder: modifiers.contains(.command),
+                copyName: modifiers.contains(.option) && !modifiers.contains(.command)
+            )
             return true
         case 51, 117: // Delete / Forward Delete
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)

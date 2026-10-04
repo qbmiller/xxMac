@@ -111,6 +111,9 @@ struct CommonSettingsView: View {
                     Text(L10n.t("common.config_directory_desc"))
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    Text(L10n.t("common.recommendations_config_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
                     Text(configDirectoryManager.currentDirectory.path)
                         .font(.caption)

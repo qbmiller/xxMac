@@ -647,7 +647,7 @@ class LauncherViewModel: ObservableObject {
         selectPage(offset: -5)
     }
     
-    func executeSelection(revealInFinder: Bool = false) {
+    func executeSelection(revealInFinder: Bool = false, copyName: Bool = false) {
         if mode == .clipboard,
            ClipboardManager.shared.activeTab == .snippets,
            revealInFinder {
@@ -665,7 +665,7 @@ class LauncherViewModel: ObservableObject {
         }
 
         let item = results[selectedIndex]
-        if mode == .launcher, !revealInFinder {
+        if mode == .launcher, !revealInFinder, !(copyName && item.type == .app) {
             LauncherHistoryManager.shared.record(item: item, query: query)
         }
 
@@ -676,6 +676,9 @@ class LauncherViewModel: ObservableObject {
 
         if revealInFinder, item.type == .app {
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: item.subtitle)])
+        } else if copyName, item.type == .app {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(item.title, forType: .string)
         } else {
             item.action()
         }

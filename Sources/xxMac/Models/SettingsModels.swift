@@ -125,6 +125,7 @@ extension NSEvent.ModifierFlags: @retroactive Codable {
 // MARK: - Tool Types
 
 enum ToolType: String, CaseIterable, Identifiable {
+    case recommendations = "tool.recommendations"
     case common = "tool.common"
     case search = "tool.search"
     case window = "tool.window"
@@ -144,6 +145,7 @@ enum ToolType: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
+        case .recommendations: return "star"
         case .common: return "gearshape.2"
         case .search: return "magnifyingglass"
         case .window: return "macwindow"
@@ -263,6 +265,7 @@ struct ToolOption: Identifiable, Hashable {
     var id: String { type.rawValue }
     
     static let allTools: [ToolOption] = [
+        ToolOption(type: .recommendations, functions: []),
         ToolOption(type: .common, functions: [
             ToolFunction(type: .commonConfig),
             ToolFunction(type: .commonPermissions),

@@ -199,6 +199,7 @@
 "clipboard.unpin" = "取消置頂";
 
 "launcher.search_placeholder" = "搜尋應用、命令...";
+"launcher.copy_name" = "複製名稱";
 "launcher.search_clipboard_placeholder" = "搜尋剪貼簿歷史...";
 "search_general.desc" = "配置啟動器搜尋和最近操作歷史。";
 "launcher_history.subtitle_format" = "最近操作 • %@";
@@ -229,6 +230,8 @@
 "lock_ai.unlock_reason" = "解鎖 LockJob 並恢復螢幕";
 
 "tool.common" = "通用";
+"tool.recommendations" = "推薦";
+"common.recommendations_config_desc" = "推薦頁從設定的 Cloudflare HTTPS JSON 位址取得分類與項目；recommendations.json 是上次成功取得內容的離線快取。遠端位址保存在 preferences.json，快取會隨設定目錄遷移。";
 "tool.search" = "搜尋";
 "tool.window" = "視窗管理";
 "tool.shortcut_detective" = "快速鍵偵測";

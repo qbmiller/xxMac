@@ -199,6 +199,7 @@
 "clipboard.unpin" = "Unpin";
 
 "launcher.search_placeholder" = "Search apps, commands...";
+"launcher.copy_name" = "Copy Name";
 "launcher.search_clipboard_placeholder" = "Search clipboard history...";
 "search_general.desc" = "Configure launcher search and recent action history.";
 "launcher_history.subtitle_format" = "Recent action • %@";
@@ -229,6 +230,8 @@
 "lock_ai.unlock_reason" = "Unlock LockJob and restore the screen";
 
 "tool.common" = "Common";
+"tool.recommendations" = "Recommendations";
+"common.recommendations_config_desc" = "Recommendations load from the configured Cloudflare HTTPS JSON URL. recommendations.json caches the last successful response for offline use. The URL lives in preferences.json, and the cache moves with the configuration directory.";
 "tool.search" = "Search";
 "tool.window" = "Window Management";
 "tool.shortcut_detective" = "Shortcut Detective";

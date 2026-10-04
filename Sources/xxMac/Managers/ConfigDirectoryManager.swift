@@ -51,6 +51,10 @@ final class ConfigDirectoryManager: ObservableObject {
         currentDirectory.appendingPathComponent("preferences.json")
     }
 
+    var recommendationsURL: URL {
+        currentDirectory.appendingPathComponent("recommendations.json")
+    }
+
     var appSearchIndexURL: URL {
         currentDirectory.appendingPathComponent("app-search-index.json")
     }
@@ -216,6 +220,7 @@ final class ConfigDirectoryManager: ObservableObject {
         let fileNames = [
             "manifest.json",
             "preferences.json",
+            "recommendations.json",
             "app-search-index.json",
             "clipboard.db",
             "clipboard.db-wal",

@@ -9,6 +9,7 @@ struct LauncherView: View {
     @ObservedObject private var clipboardManager = ClipboardManager.shared
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var isCommandPressed = false
+    @State private var isOptionPressed = false
 
     private func focusSearch() {
         NotificationCenter.default.post(name: NSNotification.Name("LauncherSearchFieldFocusRequested"), object: nil)
@@ -106,7 +107,11 @@ struct LauncherView: View {
                     searchID: viewModel.searchID,
                     fontSize: scaledText(36),
                     onSubmit: {
-                        viewModel.executeSelection(revealInFinder: NSEvent.modifierFlags.contains(.command))
+                        let modifiers = NSEvent.modifierFlags
+                        viewModel.executeSelection(
+                            revealInFinder: modifiers.contains(.command),
+                            copyName: modifiers.contains(.option) && !modifiers.contains(.command)
+                        )
                     },
                     onCancel: {
                         NotificationCenter.default.post(name: NSNotification.Name("CloseLauncher"), object: nil)
@@ -194,6 +199,7 @@ struct LauncherView: View {
                                         item: item,
                                         isSelected: index == viewModel.selectedIndex,
                                         showsRevealInFinderAction: false,
+                                        showsCopyNameAction: false,
                                         favoriteActionMode: clipboardManager.activeTab == .favorites ? .remove : .favorite,
                                         previewFavoriteActive: isCommandPressed && index == viewModel.selectedIndex,
                                         commandHintKey: clipboardManager.activeTab == .snippets && isCommandPressed && index == viewModel.selectedIndex ? "clipboard.edit_command_hint" : nil,
@@ -246,6 +252,7 @@ struct LauncherView: View {
                                     item: item,
                                     isSelected: index == viewModel.selectedIndex,
                                     showsRevealInFinderAction: isCommandPressed && item.type == .app,
+                                    showsCopyNameAction: isOptionPressed && !isCommandPressed && item.type == .app,
                                     favoriteActionMode: .favorite,
                                     previewFavoriteActive: false,
                                     commandHintKey: nil,
@@ -293,11 +300,13 @@ struct LauncherView: View {
         }
         .onAppear {
             isCommandPressed = NSEvent.modifierFlags.contains(.command)
+            isOptionPressed = NSEvent.modifierFlags.contains(.option)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
             isCommandPressed = false
+            isOptionPressed = false
         }
-        .background(ModifierKeyMonitor(isCommandPressed: $isCommandPressed))
+        .background(ModifierKeyMonitor(isCommandPressed: $isCommandPressed, isOptionPressed: $isOptionPressed))
     }
 }
 
@@ -506,6 +515,7 @@ struct SearchResultRow: View {
     let item: SearchItem
     let isSelected: Bool
     let showsRevealInFinderAction: Bool
+    let showsCopyNameAction: Bool
     let favoriteActionMode: ClipboardFavoriteActionMode
     let previewFavoriteActive: Bool
     let commandHintKey: String?
@@ -617,6 +627,14 @@ struct SearchResultRow: View {
                             .font(.system(size: scaledText(14), weight: .semibold))
                     }
                     .foregroundColor(.white.opacity(0.72))
+                } else if showsCopyNameAction {
+                    HStack(spacing: scaled(6)) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: scaled(16), weight: .semibold))
+                        Text(L10n.t("launcher.copy_name"))
+                            .font(.system(size: scaledText(14), weight: .semibold))
+                    }
+                    .foregroundColor(.white.opacity(0.72))
                 } else {
                     Image(systemName: "return")
                         .font(.system(size: scaled(18), weight: .semibold))
@@ -705,12 +723,14 @@ private struct ClipboardCommandHintStack: View {
 
 private struct ModifierKeyMonitor: NSViewRepresentable {
     @Binding var isCommandPressed: Bool
+    @Binding var isOptionPressed: Bool
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
         context.coordinator.monitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged, .keyDown, .keyUp]) { event in
             DispatchQueue.main.async {
                 isCommandPressed = event.modifierFlags.contains(.command)
+                isOptionPressed = event.modifierFlags.contains(.option)
             }
             return event
         }

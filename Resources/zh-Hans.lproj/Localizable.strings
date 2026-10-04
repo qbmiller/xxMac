@@ -199,6 +199,7 @@
 "clipboard.unpin" = "取消置顶";
 
 "launcher.search_placeholder" = "搜索应用、命令...";
+"launcher.copy_name" = "复制名字";
 "launcher.search_clipboard_placeholder" = "搜索剪贴板历史...";
 "search_general.desc" = "配置启动器搜索和最近操作历史。";
 "launcher_history.subtitle_format" = "最近操作 • %@";
@@ -229,6 +230,8 @@
 "lock_ai.unlock_reason" = "解锁 LockJob 并恢复屏幕";
 
 "tool.common" = "通用";
+"tool.recommendations" = "推荐";
+"common.recommendations_config_desc" = "推荐页从设置的 Cloudflare HTTPS JSON 地址获取分类和条目；recommendations.json 是上次成功获取内容的离线缓存。远程地址保存在 preferences.json，缓存会随配置目录迁移。";
 "tool.search" = "搜索";
 "tool.window" = "窗口管理";
 "tool.shortcut_detective" = "快捷键侦测";
