@@ -274,6 +274,43 @@ final class LauncherViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.query, "")
     }
 
+    func testSelectingBrowserSearchHistoryRestoresSearchWithoutClosingLauncher() {
+        let viewModel = LauncherViewModel()
+        var actionRan = false
+        var closeCount = 0
+        let observer = NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("CloseLauncher"),
+            object: nil,
+            queue: nil
+        ) { _ in closeCount += 1 }
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        viewModel.mode = .launcher
+        viewModel.results = [SearchItem(
+            title: "bm liba",
+            subtitle: "Google Chrome",
+            iconName: "bookmark",
+            type: .launcherHistory,
+            launcherHistorySnapshot: LauncherHistorySnapshot(
+                kind: .browserSearch,
+                sourceID: "bookmarks",
+                title: "bm liba",
+                subtitle: "Google Chrome",
+                iconName: "bookmark",
+                query: "bm liba"
+            ),
+            launcherInputText: "bm liba",
+            action: { actionRan = true }
+        )]
+
+        XCTAssertEqual(viewModel.searchFieldText, "bm liba")
+        viewModel.executeSelection()
+
+        XCTAssertEqual(viewModel.query, "bm liba")
+        XCTAssertEqual(closeCount, 0)
+        XCTAssertFalse(actionRan)
+    }
+
     func testDebouncerOnlyRunsLatestScheduledAction() {
         let debouncer = LauncherCommandDebouncer(delay: 0.02)
         let latestRan = expectation(description: "latest action ran")

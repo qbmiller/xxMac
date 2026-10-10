@@ -166,7 +166,14 @@ class LauncherViewModel: ObservableObject {
     }
     
     @objc func onCloseLauncher() {
+        recordCurrentBrowserSearch()
         resetToDefaultState()
+    }
+
+    func recordCurrentBrowserSearch() {
+        guard mode == .launcher,
+              let request = BrowserSearchManager.shared.activationRequest(for: query) else { return }
+        LauncherHistoryManager.shared.recordBrowserSearch(request: request, input: query)
     }
     
     @objc func onToggleLauncher() {
@@ -522,6 +529,14 @@ class LauncherViewModel: ObservableObject {
                         subtitle: "\(BrowserSearchManager.shared.preferences.browser.displayName) · \(record.url.host ?? record.url.absoluteString)",
                         iconName: request.mode == .bookmarks ? "bookmark" : "clock.arrow.circlepath",
                         type: request.mode == .bookmarks ? .bookmark : .browserHistory,
+                        launcherHistorySnapshot: LauncherHistorySnapshot(
+                            kind: request.mode == .bookmarks ? .bookmark : .browserHistory,
+                            sourceID: record.url.absoluteString,
+                            title: record.title,
+                            subtitle: "\(BrowserSearchManager.shared.preferences.browser.displayName) · \(record.url.host ?? record.url.absoluteString)",
+                            iconName: request.mode == .bookmarks ? "bookmark" : "clock.arrow.circlepath",
+                            query: self.query.trimmingCharacters(in: .whitespacesAndNewlines)
+                        ),
                         action: { BrowserSearchManager.shared.open(record.url) }
                     )
                 }
@@ -665,6 +680,11 @@ class LauncherViewModel: ObservableObject {
         }
 
         let item = results[selectedIndex]
+        if item.type == .launcherHistory,
+           item.launcherHistorySnapshot?.kind == .browserSearch {
+            query = item.launcherHistorySnapshot?.query ?? ""
+            return
+        }
         if mode == .launcher, !revealInFinder, !(copyName && item.type == .app) {
             LauncherHistoryManager.shared.record(item: item, query: query)
         }

@@ -62,6 +62,19 @@ final class LauncherHistoryManager: ObservableObject {
         ))
     }
 
+    func recordBrowserSearch(request: BrowserSearchRequest, input: String) {
+        let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !request.query.isEmpty else { return }
+        record(snapshot: LauncherHistorySnapshot(
+            kind: .browserSearch,
+            sourceID: request.mode == .bookmarks ? "bookmarks" : "history",
+            title: trimmedInput,
+            subtitle: BrowserSearchManager.shared.preferences.browser.displayName,
+            iconName: request.mode == .bookmarks ? "bookmark" : "clock.arrow.circlepath",
+            query: trimmedInput
+        ))
+    }
+
     private func record(snapshot: LauncherHistorySnapshot) {
 
         let record = LauncherHistoryRecord(
@@ -185,6 +198,7 @@ final class LauncherHistoryManager: ObservableObject {
     }
 
     private func historySubtitle(for record: LauncherHistoryRecord) -> String {
+        if record.kind == .browserSearch { return record.subtitle }
         if record.query.isEmpty {
             return L10n.f("launcher_history.subtitle_format", record.subtitle)
         }
@@ -202,6 +216,11 @@ final class LauncherHistoryManager: ObservableObject {
         case .calculator:
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(record.title, forType: .string)
+        case .bookmark, .browserHistory:
+            guard let url = URL(string: record.sourceID) else { return }
+            BrowserSearchManager.shared.open(url)
+        case .browserSearch:
+            break
         }
     }
 

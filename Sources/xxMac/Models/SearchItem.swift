@@ -19,6 +19,9 @@ enum LauncherHistoryKind: String, Codable, Hashable {
     case windowAction
     case quickShortcut
     case calculator
+    case bookmark
+    case browserHistory
+    case browserSearch
 }
 
 struct LauncherHistorySnapshot: Codable, Hashable {

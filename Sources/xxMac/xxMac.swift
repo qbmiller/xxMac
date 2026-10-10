@@ -1353,6 +1353,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
             return
         }
 
+        launcherViewModel.recordCurrentBrowserSearch()
+
         launcherPanel.orderOut(nil)
         resetLauncherPanelPresentation()
         AccessibilityManager.shared.restoreSuspendedTextInputFocus()
