@@ -1092,6 +1092,8 @@ struct LockAISettingsView: View {
 
 struct LockAIScreenSettingsView: View {
     @ObservedObject private var manager = LockAIManager.shared
+    @State private var isRefreshing = false
+    @State private var refreshSucceeded: Bool?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -1099,9 +1101,39 @@ struct LockAIScreenSettingsView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
+            Text(L10n.t("lock_ai.remote_messages_desc"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+
             VStack(alignment: .leading, spacing: 16) {
-                TextField(L10n.t("lock_ai.status_text"), text: $manager.statusText)
+                TextField(L10n.t("lock_ai.custom_text"), text: $manager.statusText)
                     .textFieldStyle(.roundedBorder)
+
+                Toggle(L10n.t("lock_ai.lock_custom_text"), isOn: $manager.isCustomTextLocked)
+
+                HStack(spacing: 10) {
+                    Button {
+                        isRefreshing = true
+                        refreshSucceeded = nil
+                        Task {
+                            refreshSucceeded = await manager.refreshRemoteMessages()
+                            isRefreshing = false
+                        }
+                    } label: {
+                        Label(L10n.t("lock_ai.refresh_messages"), systemImage: "arrow.clockwise")
+                    }
+                    .disabled(isRefreshing)
+
+                    if isRefreshing {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+
+                if let refreshSucceeded {
+                    Text(L10n.t(refreshSucceeded ? "lock_ai.refresh_success" : "lock_ai.refresh_failure"))
+                        .font(.caption)
+                        .foregroundColor(refreshSucceeded ? .secondary : .red)
+                }
             }
             .padding()
             .background(Color(NSColor.controlBackgroundColor))
@@ -1110,6 +1142,29 @@ struct LockAIScreenSettingsView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.gray.opacity(0.2), lineWidth: 1)
             )
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text(L10n.t("lock_ai.json_messages"))
+                    .font(.headline)
+
+                HStack(alignment: .center, spacing: 12) {
+                    Text(manager.selectedRemoteMessage.isEmpty
+                         ? L10n.t("lock_ai.no_messages") : manager.selectedRemoteMessage)
+                        .font(.subheadline)
+                        .foregroundColor(manager.selectedRemoteMessage.isEmpty ? .secondary : .primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Button {
+                        manager.selectRandomRemoteMessage()
+                    } label: {
+                        Image(systemName: "shuffle")
+                    }
+                    .help(L10n.t("lock_ai.random_message"))
+                    .accessibilityLabel(L10n.t("lock_ai.random_message"))
+                    .disabled(manager.remoteMessages.isEmpty)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
         }

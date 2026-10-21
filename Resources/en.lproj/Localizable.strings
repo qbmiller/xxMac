@@ -223,6 +223,16 @@
 "lock_ai.hotkey" = "Lock Hotkey";
 "lock_ai.screen_desc" = "Customize what appears on the LockJob cover screen.";
 "lock_ai.status_text" = "Status Text";
+"lock_ai.fallback_text" = "Offline Fallback Text";
+"lock_ai.custom_text" = "Custom Text";
+"lock_ai.lock_custom_text" = "Lock Custom Text";
+"lock_ai.remote_messages_desc" = "Remote JSON is checked every 24 hours. Unless custom text is locked, each LockJob cover picks a random message.";
+"lock_ai.refresh_messages" = "Update JSON";
+"lock_ai.random_message" = "Pick Random";
+"lock_ai.json_messages" = "JSON Message Preview";
+"lock_ai.no_messages" = "No cached messages";
+"lock_ai.refresh_success" = "JSON updated";
+"lock_ai.refresh_failure" = "Update failed; existing cache kept";
 "lock_ai.lock_now" = "LockJob Now";
 "lock_ai.note" = "Unlock with Touch ID or your Mac password. The cover window takes over foreground input; grant Accessibility permission if you need stronger app-level input blocking.";
 "lock_ai.cover_hint" = "Press Return or click, then unlock with Touch ID / password";
@@ -232,6 +242,7 @@
 "tool.common" = "Common";
 "tool.recommendations" = "Recommendations";
 "common.recommendations_config_desc" = "Recommendations load from the configured Cloudflare HTTPS JSON URL. recommendations.json caches the last successful response for offline use. The URL lives in preferences.json, and the cache moves with the configuration directory.";
+"common.lockjob_config_desc" = "LockJob loads messages from Cloudflare. lockjob-messages.json is its daily offline cache. The custom text, lock setting, and current preview message live in preferences.json; both files move with the configuration directory.";
 "tool.search" = "Search";
 "tool.window" = "Window Management";
 "tool.shortcut_detective" = "Shortcut Detective";

@@ -223,6 +223,16 @@
 "lock_ai.hotkey" = "锁定快捷键";
 "lock_ai.screen_desc" = "定制 LockJob 遮罩屏幕上显示的内容。";
 "lock_ai.status_text" = "状态文字";
+"lock_ai.fallback_text" = "离线兜底文字";
+"lock_ai.custom_text" = "自定义文字";
+"lock_ai.lock_custom_text" = "锁定自定义文字";
+"lock_ai.remote_messages_desc" = "远端 JSON 每 24 小时检查更新；未锁定自定义文字时，每次进入 LockJob 随机显示一条。";
+"lock_ai.refresh_messages" = "更新 JSON";
+"lock_ai.random_message" = "随机更换";
+"lock_ai.json_messages" = "JSON 文案预览";
+"lock_ai.no_messages" = "暂无缓存文案";
+"lock_ai.refresh_success" = "JSON 已更新";
+"lock_ai.refresh_failure" = "更新失败，保留现有缓存";
 "lock_ai.lock_now" = "立即 LockJob";
 "lock_ai.note" = "解锁使用 Touch ID 或本机密码。遮罩窗口会接管前台输入；若要阻断其他应用级输入，请确保已授予辅助功能权限。";
 "lock_ai.cover_hint" = "按回车或点击后使用 Touch ID / 密码解锁";
@@ -232,6 +242,7 @@
 "tool.common" = "通用";
 "tool.recommendations" = "推荐";
 "common.recommendations_config_desc" = "推荐页从设置的 Cloudflare HTTPS JSON 地址获取分类和条目；recommendations.json 是上次成功获取内容的离线缓存。远程地址保存在 preferences.json，缓存会随配置目录迁移。";
+"common.lockjob_config_desc" = "LockJob 从 Cloudflare 获取文案；lockjob-messages.json 是每日更新的离线缓存。自定义文字、锁定状态和当前预览文案保存在 preferences.json，随配置目录迁移。";
 "tool.search" = "搜索";
 "tool.window" = "窗口管理";
 "tool.shortcut_detective" = "快捷键侦测";

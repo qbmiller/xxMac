@@ -27,7 +27,7 @@ xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具�
 | 快捷指令脚本 | 在启动器里用关键词执行本地命令脚本，支持无参、`{query}` 单参数和 `argv` 多参数模式；输入稳定约 400 毫秒后执行，连续输入时只执行最后一次待处理内容。复杂脚本可放在配置目录的 `quick/` 下复用。 | Alfred Workflows |
 | 浏览器搜索 | 在启动器中用 `bm` 搜索当前 Chrome/Edge Profile 的书签，用 `bh` 搜索历史记录；浏览器和两个关键词均可在“搜索 > 浏览器搜索”配置。 | Alfred Browser Bookmarks |
 | 更新检查 | 可在“关于”中手动检查，也可选择关闭、每天、每周或每月自动检查，默认每周。“关于”页显示的 GitHub Releases 地址可点击并由默认浏览器打开。自动检查不会弹窗；发现新版本后，启动器右侧显示红色更新按钮，点击打开 GitHub Releases。 | Sparkle |
-| LockJob | 一键遮住所有屏幕并阻止系统睡眠，Claude、Codex、构建、下载和 SSH 会话继续运行；显示时间和自定义状态文字，支持 Touch ID 或本机密码解锁。 | 锁屏遮罩 |
+| LockJob | 一键遮住所有屏幕并阻止系统睡眠，Claude、Codex、构建、下载和 SSH 会话继续运行；显示时间、随机远端文案或锁定的自定义文字，支持 Touch ID 或本机密码解锁。 | 锁屏遮罩 |
 | 多语言 | 已有简体中文、繁体中文、英文资源结构。 | - |
 
 <p align="center">
@@ -143,6 +143,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 
 ## 配置与数据
 
+- LockJob 成功获取 [`https://cf.xiaomi318.com/xxmac/lockjob.json`](https://cf.xiaomi318.com/xxmac/lockjob.json) 后，每隔 24 小时检查更新，并将数组缓存到配置目录的 `lockjob-messages.json`。“LockJob > 屏幕定制”在下方仅预览一条 JSON 文案，旁边的随机按钮可换一条；“更新 JSON”可跳过时间限制。未勾选“锁定自定义文字”时，每次进入 LockJob 都会从缓存中自动随机选一条；勾选后遮罩只显示输入框文字。没有缓存时使用自定义文字。修改仓库根目录的 [`lockjob.json`](lockjob.json) 后运行 `make sync-lockjob`，即可发布到 `blog` R2 桶，无需重建应用。缓存、预览文案、自定义文字和锁定状态会随配置目录迁移。
 - 默认配置目录是 `~/Library/Application Support/xxMac`，可在“通用 > 配置”里修改。修改后会把当前配置、应用索引缓存、剪贴板 SQLite 数据库、待办 SQLite 数据库和图片缓存迁移到新目录，并删除旧目录中的 xxMac 数据。
 - 右上角状态栏入口默认显示；如果图标异常消失，或希望隐藏状态栏入口，可在“通用 > 配置”里切换“显示在右上角状态栏”。该区域提供状态栏诊断信息和“刷新/重建”按钮，用于确认 `NSStatusItem` 是否已创建、可见并挂载到系统状态栏。
 - 配置目录可以是本地目录，也可以是 iCloud Drive、Dropbox 等同步服务下保持本地可用的目录；不建议选择系统目录、App 包内目录或临时移动磁盘路径。

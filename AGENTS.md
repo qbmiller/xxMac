@@ -8,6 +8,7 @@ macos工具集合，类似alfred，有启动器。 README.md 是项目内容介�
 - 不需要在github 操作东西 尤其 Issue。只需要管好本项目 . github人工操作提交发版等
 - 新增加的功能，要补全到readme.md 里
 - 新增或调整左侧工具功能时，要同步检查“通用 > 配置目录”，功能是否有需要记录的东西，写在里面.
+- 推荐工具目录以仓库根目录 `xxmac.json` 为源文件；修改推荐内容后执行 `make syncjson` 同步到 `https://cf.xiaomi318.com/xxmac/xxmac.json`。`~/Library/Application Support/xxMac/recommendations.json` 只是远端成功响应的本地缓存，不直接编辑它作为发布源。
 - ref/ 目录下是别的开源项目，开发时候参考的，不作为项目代码用
 
 ## 构建与验证

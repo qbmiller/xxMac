@@ -55,6 +55,10 @@ final class ConfigDirectoryManager: ObservableObject {
         currentDirectory.appendingPathComponent("recommendations.json")
     }
 
+    var lockJobMessagesURL: URL {
+        currentDirectory.appendingPathComponent("lockjob-messages.json")
+    }
+
     var appSearchIndexURL: URL {
         currentDirectory.appendingPathComponent("app-search-index.json")
     }
@@ -221,6 +225,7 @@ final class ConfigDirectoryManager: ObservableObject {
             "manifest.json",
             "preferences.json",
             "recommendations.json",
+            "lockjob-messages.json",
             "app-search-index.json",
             "clipboard.db",
             "clipboard.db-wal",

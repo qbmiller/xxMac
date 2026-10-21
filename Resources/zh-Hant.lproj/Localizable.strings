@@ -223,6 +223,16 @@
 "lock_ai.hotkey" = "鎖定快速鍵";
 "lock_ai.screen_desc" = "自訂 LockJob 遮罩螢幕上顯示的內容。";
 "lock_ai.status_text" = "狀態文字";
+"lock_ai.fallback_text" = "離線備用文字";
+"lock_ai.custom_text" = "自訂文字";
+"lock_ai.lock_custom_text" = "鎖定自訂文字";
+"lock_ai.remote_messages_desc" = "遠端 JSON 每 24 小時檢查更新；未鎖定自訂文字時，每次進入 LockJob 隨機顯示一則。";
+"lock_ai.refresh_messages" = "更新 JSON";
+"lock_ai.random_message" = "隨機更換";
+"lock_ai.json_messages" = "JSON 文案預覽";
+"lock_ai.no_messages" = "暫無快取文案";
+"lock_ai.refresh_success" = "JSON 已更新";
+"lock_ai.refresh_failure" = "更新失敗，保留現有快取";
 "lock_ai.lock_now" = "立即 LockJob";
 "lock_ai.note" = "解鎖使用 Touch ID 或本機密碼。遮罩視窗會接管前台輸入；若要阻斷其他應用層級輸入，請確保已授予輔助使用權限。";
 "lock_ai.cover_hint" = "按 Return 或點擊後使用 Touch ID / 密碼解鎖";
@@ -232,6 +242,7 @@
 "tool.common" = "通用";
 "tool.recommendations" = "推薦";
 "common.recommendations_config_desc" = "推薦頁從設定的 Cloudflare HTTPS JSON 位址取得分類與項目；recommendations.json 是上次成功取得內容的離線快取。遠端位址保存在 preferences.json，快取會隨設定目錄遷移。";
+"common.lockjob_config_desc" = "LockJob 從 Cloudflare 取得文案；lockjob-messages.json 是每日更新的離線快取。自訂文字、鎖定狀態及目前預覽文案保存在 preferences.json，並隨設定目錄遷移。";
 "tool.search" = "搜尋";
 "tool.window" = "視窗管理";
 "tool.shortcut_detective" = "快速鍵偵測";

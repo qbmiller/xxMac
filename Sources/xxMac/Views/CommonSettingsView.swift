@@ -114,6 +114,9 @@ struct CommonSettingsView: View {
                     Text(L10n.t("common.recommendations_config_desc"))
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    Text(L10n.t("common.lockjob_config_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
                     Text(configDirectoryManager.currentDirectory.path)
                         .font(.caption)
@@ -403,6 +406,8 @@ struct CommonSettingsView: View {
         let calendarMenuBarIconStyle: String?
         let calendarMenuBarDisplayMode: String?
         let lockAIStatusText: String?
+        let lockAICustomTextLocked: Bool?
+        let lockAISelectedRemoteMessage: String?
     }
     
     private func collectConfigurations() throws -> AppConfiguration {
@@ -435,7 +440,9 @@ struct CommonSettingsView: View {
             calendarFirstWeekday: store.intObject(forKey: CalendarPreferencesKey.firstWeekday),
             calendarMenuBarIconStyle: store.string(forKey: CalendarPreferencesKey.menuBarIconStyle),
             calendarMenuBarDisplayMode: store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode),
-            lockAIStatusText: store.string(forKey: "LockAIStatusText")
+            lockAIStatusText: store.string(forKey: "LockAIStatusText"),
+            lockAICustomTextLocked: store.boolObject(forKey: "LockAICustomTextLocked"),
+            lockAISelectedRemoteMessage: store.string(forKey: "LockAISelectedRemoteMessage")
         )
     }
     
@@ -560,6 +567,12 @@ struct CommonSettingsView: View {
 
         if let lockAIStatusText = config.lockAIStatusText {
             LockAIManager.shared.statusText = lockAIStatusText
+        }
+        if let lockAICustomTextLocked = config.lockAICustomTextLocked {
+            LockAIManager.shared.isCustomTextLocked = lockAICustomTextLocked
+        }
+        if let lockAISelectedRemoteMessage = config.lockAISelectedRemoteMessage {
+            LockAIManager.shared.restoreSelectedRemoteMessage(lockAISelectedRemoteMessage)
         }
     }
 }

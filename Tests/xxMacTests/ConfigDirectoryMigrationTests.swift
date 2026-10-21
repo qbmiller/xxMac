@@ -24,6 +24,7 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         try Data("prefs".utf8).write(to: manager.preferencesURL)
         try Data("index".utf8).write(to: manager.appSearchIndexURL)
         try Data("recommendations".utf8).write(to: manager.recommendationsURL)
+        try Data("lockjob".utf8).write(to: manager.lockJobMessagesURL)
         try Data("db".utf8).write(to: manager.clipboardDatabaseURL)
         try Data("wal".utf8).write(to: manager.currentDirectory.appendingPathComponent("clipboard.db-wal"))
         try Data("todo-db".utf8).write(to: manager.currentDirectory.appendingPathComponent("todo.db"))
@@ -44,6 +45,7 @@ final class ConfigDirectoryMigrationTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: manager.preferencesURL, encoding: .utf8), "prefs")
         XCTAssertEqual(try String(contentsOf: manager.appSearchIndexURL, encoding: .utf8), "index")
         XCTAssertEqual(try String(contentsOf: manager.recommendationsURL, encoding: .utf8), "recommendations")
+        XCTAssertEqual(try String(contentsOf: manager.lockJobMessagesURL, encoding: .utf8), "lockjob")
         XCTAssertEqual(try String(contentsOf: manager.clipboardDatabaseURL, encoding: .utf8), "db")
         XCTAssertEqual(
             try String(contentsOf: manager.currentDirectory.appendingPathComponent("clipboard.db-wal"), encoding: .utf8),

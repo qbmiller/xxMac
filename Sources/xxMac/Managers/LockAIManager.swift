@@ -4,6 +4,7 @@ import CoreGraphics
 import LocalAuthentication
 import SwiftUI
 
+@MainActor
 final class LockAIManager: ObservableObject {
     static let shared = LockAIManager()
 
@@ -11,33 +12,93 @@ final class LockAIManager: ObservableObject {
     @Published var statusText: String {
         didSet { PreferencesStore.shared.set(statusText, forKey: Self.statusTextKey) }
     }
+    @Published var isCustomTextLocked: Bool {
+        didSet { PreferencesStore.shared.set(isCustomTextLocked, forKey: Self.customTextLockedKey) }
+    }
     @Published var unlockMessage: String?
+    @Published private(set) var displayStatusText: String
+    @Published private(set) var selectedRemoteMessage: String {
+        didSet { PreferencesStore.shared.set(selectedRemoteMessage, forKey: Self.selectedRemoteMessageKey) }
+    }
+    @Published private(set) var remoteMessages: [String]
 
     private static let statusTextKey = "LockAIStatusText"
+    private static let customTextLockedKey = "LockAICustomTextLocked"
+    private static let selectedRemoteMessageKey = "LockAISelectedRemoteMessage"
+    private let messagesStore = LockJobMessagesStore()
+    private var lockID = UUID()
     private var windows: [NSWindow] = []
     private var activityToken: NSObjectProtocol?
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
 
     private init() {
-        statusText = PreferencesStore.shared.string(forKey: Self.statusTextKey) ?? AppDefaultSettings.LockAI.statusText
+        let fallbackText = PreferencesStore.shared.string(forKey: Self.statusTextKey) ?? AppDefaultSettings.LockAI.statusText
+        statusText = fallbackText
+        isCustomTextLocked = PreferencesStore.shared.boolObject(forKey: Self.customTextLockedKey) ?? false
+        displayStatusText = fallbackText
+        let savedMessage = PreferencesStore.shared.string(forKey: Self.selectedRemoteMessageKey) ?? ""
+        selectedRemoteMessage = messagesStore.messages.contains(savedMessage)
+            ? savedMessage : (messagesStore.randomMessage() ?? "")
+        remoteMessages = messagesStore.messages
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenParametersDidChange),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        Task {
+            await messagesStore.refreshIfNeeded()
+            updateRemoteMessages()
+        }
     }
 
     func lock() {
         guard !isLocked else { return }
 
+        lockID = UUID()
+        let currentLockID = lockID
+        if !isCustomTextLocked { selectRandomRemoteMessage() }
+        displayStatusText = isCustomTextLocked || selectedRemoteMessage.isEmpty ? statusText : selectedRemoteMessage
+        let hadMessages = !remoteMessages.isEmpty
+        Task { [weak self] in
+            guard let self else { return }
+            await self.messagesStore.refreshIfNeeded()
+            self.updateRemoteMessages()
+            if !hadMessages && self.isLocked && self.lockID == currentLockID &&
+                !self.isCustomTextLocked && !self.selectedRemoteMessage.isEmpty {
+                self.displayStatusText = self.selectedRemoteMessage
+            }
+        }
         beginActivity()
         createCoverWindows()
         startInputBlocking()
         isLocked = true
         unlockMessage = nil
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func refreshRemoteMessages() async -> Bool {
+        let succeeded = await messagesStore.refresh(force: true)
+        updateRemoteMessages()
+        return succeeded
+    }
+
+    func selectRandomRemoteMessage() {
+        guard !remoteMessages.isEmpty else { return }
+        let alternatives = remoteMessages.filter { $0 != selectedRemoteMessage }
+        selectedRemoteMessage = (alternatives.isEmpty ? remoteMessages : alternatives).randomElement() ?? selectedRemoteMessage
+    }
+
+    private func updateRemoteMessages() {
+        remoteMessages = messagesStore.messages
+        if !remoteMessages.isEmpty && !remoteMessages.contains(selectedRemoteMessage) {
+            selectRandomRemoteMessage()
+        }
+    }
+
+    func restoreSelectedRemoteMessage(_ message: String) {
+        selectedRemoteMessage = message
     }
 
     func unlock() {
@@ -226,7 +287,7 @@ private struct LockAICoverView: View {
                     Text(timeText)
                         .font(.system(size: 74, weight: .medium, design: .rounded))
                         .foregroundStyle(.white)
-                    Text(manager.statusText)
+                    Text(manager.displayStatusText)
                         .font(.title2.weight(.medium))
                         .foregroundStyle(.white.opacity(0.78))
                 }
