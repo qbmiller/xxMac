@@ -904,7 +904,8 @@ final class CalendarMenuBarController {
     }
 }
 
-private enum CalendarMenuBarIconRenderer {
+@MainActor
+enum CalendarMenuBarIconRenderer {
     static func image(displayMode: CalendarMenuBarDisplayMode, style: CalendarMenuBarIconStyle, locale: Locale) -> NSImage {
         switch displayMode {
         case .calendar:
@@ -987,14 +988,16 @@ private enum CalendarMenuBarIconRenderer {
 
     private static func drawTwoLineIcon(title: String, subtitle: String) -> NSImage {
         let size = NSSize(width: 24, height: 22)
-        let image = NSImage(size: size, flipped: false) { rect in
-            NSColor.labelColor.setFill()
+        return rasterizedIcon(size: size) { rect in
+            NSColor.black.setFill()
             NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 2.5, yRadius: 2.5).fill()
 
-            let titleFont = NSFont.monospacedSystemFont(ofSize: 9, weight: .bold)
-            let subtitleFont = NSFont.monospacedSystemFont(ofSize: 10, weight: .bold)
-            let titleAttributes: [NSAttributedString.Key: Any] = [.font: titleFont]
-            let subtitleAttributes: [NSAttributedString.Key: Any] = [.font: subtitleFont]
+            // Titles can contain Chinese weekdays and lunar dates; use the
+            // regular system font cascade rather than a Latin monospaced font.
+            let titleFont = NSFont.systemFont(ofSize: 9, weight: .bold)
+            let subtitleFont = NSFont.systemFont(ofSize: 10, weight: .bold)
+            let titleAttributes: [NSAttributedString.Key: Any] = [.font: titleFont, .foregroundColor: NSColor.black]
+            let subtitleAttributes: [NSAttributedString.Key: Any] = [.font: subtitleFont, .foregroundColor: NSColor.black]
             let titleString = NSAttributedString(string: title, attributes: titleAttributes)
             let subtitleString = NSAttributedString(string: subtitle, attributes: subtitleAttributes)
             let titleSize = titleString.size()
@@ -1004,28 +1007,54 @@ private enum CalendarMenuBarIconRenderer {
             titleString.draw(at: CGPoint(x: (rect.width - titleSize.width) / 2, y: 10.5))
             subtitleString.draw(at: CGPoint(x: (rect.width - subtitleSize.width) / 2, y: 1.3))
             NSGraphicsContext.current?.compositingOperation = .sourceOver
-            return true
         }
-        image.isTemplate = true
-        return image
     }
 
     private static func drawSingleLineIcon(_ title: String) -> NSImage {
         let size = NSSize(width: 24, height: 22)
-        let image = NSImage(size: size, flipped: false) { rect in
-            NSColor.labelColor.setFill()
+        return rasterizedIcon(size: size) { rect in
+            NSColor.black.setFill()
             NSBezierPath(roundedRect: rect.insetBy(dx: 2.5, dy: 2.5), xRadius: 2.5, yRadius: 2.5).fill()
 
             let font = NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .bold)
-            let string = NSAttributedString(string: title, attributes: [.font: font])
+            let string = NSAttributedString(string: title, attributes: [.font: font, .foregroundColor: NSColor.black])
             let textSize = string.size()
 
             NSGraphicsContext.current?.compositingOperation = .destinationOut
             string.draw(at: CGPoint(x: (rect.width - textSize.width) / 2, y: (rect.height - textSize.height) / 2 - 0.5))
             NSGraphicsContext.current?.compositingOperation = .sourceOver
-            return true
         }
+    }
+
+    /// Status-bar snapshots may redraw an NSCustomImageRep long after creation.
+    /// Keep font resolution and text layout on the main actor, outside that redraw
+    /// path (which raised an uncaught CoreText exception on macOS 26).
+    private static func rasterizedIcon(size: NSSize, draw: (CGRect) -> Void) -> NSImage {
+        let image = NSImage(size: size)
         image.isTemplate = true
+        let scale = 2
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: Int(size.width) * scale,
+            pixelsHigh: Int(size.height) * scale,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ), let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
+            return image
+        }
+        bitmap.size = size
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSGraphicsContext.current = context
+        context.cgContext.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
+        context.cgContext.clear(CGRect(origin: .zero, size: size))
+        draw(CGRect(origin: .zero, size: size))
+        image.addRepresentation(bitmap)
         return image
     }
 }

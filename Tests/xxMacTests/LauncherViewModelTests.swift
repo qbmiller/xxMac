@@ -3,6 +3,48 @@ import AppKit
 @testable import xxMac
 
 final class LauncherViewModelTests: XCTestCase {
+    func testMarkedTextArrowKeyIsNotHandledByLauncherPanel() {
+        let panel = FloatingPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 100),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 400, height: 40))
+        panel.contentView = textField
+        LauncherSearchFieldFocus.focus(textField)
+        guard let editor = textField.currentEditor() as? NSTextView else {
+            return XCTFail("Expected an active search field editor")
+        }
+
+        var handledKeyCodes: [UInt16] = []
+        panel.keyDownHandler = { event in
+            handledKeyCodes.append(event.keyCode)
+            return true
+        }
+        let downArrow = NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: panel.windowNumber,
+            context: nil,
+            characters: "",
+            charactersIgnoringModifiers: "",
+            isARepeat: false,
+            keyCode: 125
+        )!
+
+        editor.setMarkedText("pin", selectedRange: NSRange(location: 3, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        XCTAssertTrue(editor.hasMarkedText())
+        panel.sendEvent(downArrow)
+        XCTAssertTrue(handledKeyCodes.isEmpty)
+
+        editor.unmarkText()
+        panel.sendEvent(downArrow)
+        XCTAssertEqual(handledKeyCodes, [125])
+    }
+
     func testCommandSpaceDoesNotOpenClipboardImagePreviewDuringMarkedTextInput() {
         XCTAssertFalse(
             LauncherSpaceKeyPolicy.shouldOpenImagePreview(
@@ -241,6 +283,27 @@ final class LauncherViewModelTests: XCTestCase {
 
         XCTAssertEqual(textField.stringValue, "img")
         XCTAssertEqual(editor.selectedRange, NSRange(location: 3, length: 0))
+    }
+
+    func testSearchFieldTextUpdatePreservesMarkedText() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 100),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 400, height: 40))
+        window.contentView = textField
+        LauncherSearchFieldFocus.focus(textField)
+        guard let editor = textField.currentEditor() as? NSTextView else {
+            return XCTFail("Expected an active search field editor")
+        }
+
+        editor.setMarkedText("pin", selectedRange: NSRange(location: 3, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        LauncherSearchFieldTextSync.update(textField, text: "old query")
+
+        XCTAssertTrue(editor.hasMarkedText())
+        XCTAssertNotEqual(textField.stringValue, "old query")
     }
 
     func testSearchFieldTextDisplaysSelectedHistoryInputWithoutChangingQuery() {

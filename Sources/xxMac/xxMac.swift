@@ -151,6 +151,10 @@ class FloatingPanel: NSPanel {
     
     override func sendEvent(_ event: NSEvent) {
         if event.type == .keyDown {
+            if (firstResponder as? NSTextView)?.hasMarkedText() == true {
+                super.sendEvent(event)
+                return
+            }
             if let handler = keyDownHandler, handler(event) {
                 return
             }

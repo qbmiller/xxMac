@@ -10,10 +10,10 @@ final class RecommendationsStoreTests: XCTestCase {
             defaults: UserDefaults(suiteName: UUID().uuidString)!,
             applicationSupportURL: root
         )
-        let store = RecommendationsStore(configDirectory: manager, preferences: try PreferencesStore(configDirectoryManager: manager))
+        let store = RecommendationsStore(configDirectory: manager)
 
         store.load()
-        XCTAssertEqual(store.sourceURL, "https://cf.xiaomi318.com/xxmac/xxmac.json")
+        XCTAssertEqual(RecommendationsStore.sourceURL, "https://cf.xiaomi318.com/xxmac/xxmac.json")
         XCTAssertTrue(FileManager.default.fileExists(atPath: manager.recommendationsURL.path))
         XCTAssertEqual(store.categories.map(\.id), ["tools", "websites"])
 
@@ -36,7 +36,7 @@ final class RecommendationsStoreTests: XCTestCase {
         let invalid = Data("{ invalid".utf8)
         try invalid.write(to: manager.recommendationsURL)
 
-        let store = RecommendationsStore(configDirectory: manager, preferences: try PreferencesStore(configDirectoryManager: manager))
+        let store = RecommendationsStore(configDirectory: manager)
         store.load()
         XCTAssertNotNil(store.error)
         XCTAssertEqual(try Data(contentsOf: manager.recommendationsURL), invalid)
@@ -54,12 +54,9 @@ final class RecommendationsStoreTests: XCTestCase {
         let session = URLSession(configuration: configuration)
         let store = RecommendationsStore(
             configDirectory: manager,
-            session: session,
-            preferences: try PreferencesStore(configDirectoryManager: manager)
+            session: session
         )
         store.load()
-        XCTAssertThrowsError(try store.setSourceURL("http://example.com/recommendations.json"))
-        try store.setSourceURL("https://example.pages.dev/recommendations.json")
 
         let remote = Data("""
         {"categories":[{"id":"new","title":"新分类","items":[]}]}

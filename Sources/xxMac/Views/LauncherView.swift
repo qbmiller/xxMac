@@ -324,6 +324,7 @@ enum LauncherSearchFieldFocus {
 
 enum LauncherSearchFieldTextSync {
     static func update(_ textField: NSTextField, text: String) {
+        guard (textField.currentEditor() as? NSTextView)?.hasMarkedText() != true else { return }
         guard textField.stringValue != text else { return }
 
         textField.stringValue = text
@@ -422,6 +423,7 @@ private struct LauncherSearchField: NSViewRepresentable {
             textView: NSTextView,
             doCommandBy commandSelector: Selector
         ) -> Bool {
+            guard !textView.hasMarkedText() else { return false }
             switch commandSelector {
             case #selector(NSResponder.moveDown(_:)):
                 parent.onMoveDown()

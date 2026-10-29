@@ -36,28 +36,21 @@ final class RecommendationsStore: ObservableObject {
     @Published private(set) var categories: [RecommendationCategory] = []
     @Published private(set) var error: String?
     @Published private(set) var isRefreshing = false
-    @Published private(set) var sourceURL: String
 
     private let configDirectory: ConfigDirectoryManager
     private let session: URLSession
-    private let preferences: PreferencesStore
-    private static let sourceKey = "RecommendationsSourceURL"
-    private static let defaultSourceURL = "https://cf.xiaomi318.com/xxmac/xxmac.json"
+    static let sourceURL = "https://cf.xiaomi318.com/xxmac/xxmac.json"
     private var refreshID = UUID()
 
     init(
         configDirectory: ConfigDirectoryManager = .shared,
-        session: URLSession = .shared,
-        preferences: PreferencesStore = .shared
+        session: URLSession = .shared
     ) {
         self.configDirectory = configDirectory
         self.session = session
-        self.preferences = preferences
-        sourceURL = preferences.string(forKey: Self.sourceKey) ?? Self.defaultSourceURL
     }
 
     func load() {
-        sourceURL = preferences.string(forKey: Self.sourceKey) ?? Self.defaultSourceURL
         let fileURL = configDirectory.recommendationsURL
         do {
             if !FileManager.default.fileExists(atPath: fileURL.path) {
@@ -84,19 +77,8 @@ final class RecommendationsStore: ObservableObject {
         }
     }
 
-    func setSourceURL(_ value: String) throws {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.scheme?.lowercased() == "https", url.host != nil else {
-            throw URLError(.badURL)
-        }
-        sourceURL = trimmed
-        refreshID = UUID()
-        preferences.set(trimmed, forKey: Self.sourceKey)
-        error = nil
-    }
-
     func refresh() async {
-        guard let url = URL(string: sourceURL), url.scheme?.lowercased() == "https", url.host != nil else { return }
+        guard let url = URL(string: Self.sourceURL) else { return }
         let requestID = UUID()
         refreshID = requestID
         isRefreshing = true
@@ -135,9 +117,6 @@ struct RecommendationsView: View {
     @ObservedObject var store: RecommendationsStore
     let category: RecommendationCategory?
     @State private var layout: RecommendationLayout = .grid
-    @State private var showingSourceSheet = false
-    @State private var sourceDraft = ""
-    @State private var sourceError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -166,16 +145,8 @@ struct RecommendationsView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
-                .disabled(store.isRefreshing || store.sourceURL.isEmpty)
+                .disabled(store.isRefreshing)
                 .help("从 Cloudflare 重新获取推荐")
-                Button {
-                    sourceDraft = store.sourceURL
-                    sourceError = nil
-                    showingSourceSheet = true
-                } label: {
-                    Image(systemName: "link")
-                }
-                .help("设置 Cloudflare JSON 地址")
             }
             .padding(.horizontal, 24)
             .frame(height: 58)
@@ -202,35 +173,6 @@ struct RecommendationsView: View {
             } else {
                 emptyState("暂无推荐", detail: "刷新远程推荐数据", symbol: "star")
             }
-        }
-        .sheet(isPresented: $showingSourceSheet) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Cloudflare 推荐数据").font(.headline)
-                TextField("https://example.pages.dev/recommendations.json", text: $sourceDraft)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 480)
-                Text("更新远程文件后，打开推荐页或点击刷新即可获取最新内容。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let sourceError {
-                    Text(sourceError).font(.caption).foregroundStyle(.red)
-                }
-                HStack {
-                    Spacer()
-                    Button("取消") { showingSourceSheet = false }
-                    Button("保存并刷新") {
-                        do {
-                            try store.setSourceURL(sourceDraft)
-                            showingSourceSheet = false
-                            Task { await store.refresh() }
-                        } catch {
-                            sourceError = "请输入有效的 HTTPS JSON 地址"
-                        }
-                    }
-                    .keyboardShortcut(.defaultAction)
-                }
-            }
-            .padding(24)
         }
     }
 

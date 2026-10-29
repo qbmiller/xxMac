@@ -80,6 +80,8 @@ xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具�
 
 浏览器搜索首次根据 macOS 默认浏览器选择 Chrome 或 Microsoft Edge，之后可在设置中手动覆盖。xxMac 读取浏览器 `Local State` 中最近使用的 Profile；首版不合并或提供 Profile 选择。默认输入 `bm 关键词` 搜索书签、`bh 关键词` 搜索历史，只输入 `bm` 或 `bh` 可查看候选；两个关键词都可以自定义，并且不能彼此重复或与已启用的快捷指令重复。回车始终使用设置中选择的浏览器打开结果。
 
+在启动器中使用输入法组合文字时，方向键用于选择输入法候选词；确认文字后，方向键才切换启动器搜索结果。
+
 ## 快速开始
 
 前置要求：
@@ -144,6 +146,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 ## 配置与数据
 
 - LockJob 成功获取 [`https://cf.xiaomi318.com/xxmac/lockjob.json`](https://cf.xiaomi318.com/xxmac/lockjob.json) 后，每隔 24 小时检查更新，并将数组缓存到配置目录的 `lockjob-messages.json`。“LockJob > 屏幕定制”在下方仅预览一条 JSON 文案，旁边的随机按钮可换一条；“更新 JSON”可跳过时间限制。未勾选“锁定自定义文字”时，每次进入 LockJob 都会从缓存中自动随机选一条；勾选后遮罩只显示输入框文字。没有缓存时使用自定义文字。修改仓库根目录的 [`lockjob.json`](lockjob.json) 后运行 `make sync-lockjob`，即可发布到 `blog` R2 桶，无需重建应用。缓存、预览文案、自定义文字和锁定状态会随配置目录迁移。
+- 推荐页打开或手动刷新时固定获取 [`https://cf.xiaomi318.com/xxmac/xxmac.json`](https://cf.xiaomi318.com/xxmac/xxmac.json)，不提供修改数据源地址的入口。最近一次成功响应会缓存到配置目录的 `recommendations.json`，远程请求失败时继续显示上次保存的推荐内容。
 - 默认配置目录是 `~/Library/Application Support/xxMac`，可在“通用 > 配置”里修改。修改后会把当前配置、应用索引缓存、剪贴板 SQLite 数据库、待办 SQLite 数据库和图片缓存迁移到新目录，并删除旧目录中的 xxMac 数据。
 - 右上角状态栏入口默认显示；如果图标异常消失，或希望隐藏状态栏入口，可在“通用 > 配置”里切换“显示在右上角状态栏”。该区域提供状态栏诊断信息和“刷新/重建”按钮，用于确认 `NSStatusItem` 是否已创建、可见并挂载到系统状态栏。
 - 配置目录可以是本地目录，也可以是 iCloud Drive、Dropbox 等同步服务下保持本地可用的目录；不建议选择系统目录、App 包内目录或临时移动磁盘路径。
