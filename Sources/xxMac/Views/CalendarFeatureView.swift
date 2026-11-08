@@ -143,7 +143,7 @@ struct CalendarFeatureView: View {
             }
         }
         .padding()
-        .frame(minWidth: 390, idealWidth: 430, maxWidth: .infinity, minHeight: showsSettings ? 560 : 420, alignment: .top)
+        .frame(minWidth: 390, idealWidth: 430, maxWidth: .infinity, minHeight: showsSettings ? 560 : nil, alignment: .top)
     }
 
     private var monthDays: [Date] {
@@ -826,8 +826,19 @@ final class CalendarMenuBarController {
 
     private func configurePopover() {
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 430, height: 460)
-        popover.contentViewController = NSHostingController(rootView: CalendarFeatureView())
+        installPopoverContent()
+    }
+
+    private func installPopoverContent() {
+        let controller = NSHostingController(rootView: CalendarFeatureView())
+        popover.contentViewController = controller
+
+        // Measure the SwiftUI hierarchy at the popover's fixed width so its
+        // height follows the actual content (including the optional lunar line).
+        controller.view.setFrameSize(NSSize(width: 430, height: 1))
+        controller.view.layoutSubtreeIfNeeded()
+        let measuredHeight = max(controller.view.fittingSize.height, 1)
+        popover.contentSize = NSSize(width: 430, height: measuredHeight)
     }
 
     private func observeChanges() {
@@ -870,7 +881,7 @@ final class CalendarMenuBarController {
 
     private func showPopover(_ sender: Any?) {
         guard let button = sender as? NSStatusBarButton else { return }
-        popover.contentViewController = NSHostingController(rootView: CalendarFeatureView())
+        installPopoverContent()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.becomeKey()
         startEventMonitor()
