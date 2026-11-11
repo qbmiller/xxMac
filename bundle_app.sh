@@ -192,6 +192,14 @@ case "$INSTALL_RESPONSE" in
 
         echo "正在重新加载待办小组件..."
         killall "$WIDGET_PROCESS_NAME" 2>/dev/null || true
+        # Reload extension metadata as well as its timeline. WidgetKit's host
+        # caches supported families, so restarting only the extension leaves
+        # the gallery showing the previous set of sizes after a local update.
+        /usr/bin/pluginkit -a "$APPLICATIONS_APP_PATH/Contents/PlugIns/TodoWidgetExtension.appex" || {
+            echo "警告：小组件重新注册失败，请重新登录后检查小组件库。"
+        }
+        killall chronod 2>/dev/null || true
+        killall NotificationCenter 2>/dev/null || true
 
         if ! open "$APPLICATIONS_APP_PATH"; then
             echo "应用已替换，但重新打开失败：$APPLICATIONS_APP_PATH"
