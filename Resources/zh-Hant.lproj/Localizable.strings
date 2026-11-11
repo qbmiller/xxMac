@@ -524,7 +524,7 @@
 "todo.widget_settings.appearance" = "小工具顯示";
 "todo.widget_settings.font_size" = "小工具字體大小";
 "todo.widget_settings.font_size_desc" = "調整任務、分類和截止時間的字體大小。";
-"todo.widget_settings.page_size_format" = "目前字號每頁最多顯示 %d 項任務。";
+"todo.widget_settings.page_size_format" = "目前字號：中型每頁最多 %d 項，大型每頁最多 %d 項。";
 "todo.widget_settings.save_failed" = "儲存小工具設定失敗：%@";
 "todo.settings.window" = "視窗與快速鍵";
 "todo.settings.hotkey" = "開啟或隱藏待辦";
@@ -540,3 +540,8 @@
 "todo.settings.storage" = "本機儲存";
 "todo.settings.storage_desc" = "任務只儲存在此 SQLite 資料庫中，本版本不包含 iCloud 同步。";
 "todo.settings.reveal_database" = "在 Finder 中顯示資料庫";
+
+"calendar.choose_month" = "選擇年月";
+"calendar.year" = "年";
+"calendar.month" = "月";
+"common.calendar_config_desc" = "日曆偏好儲存在 preferences.json。農曆日期由系統自動計算；節日規則、節氣及除夕日期表和年度放假/補班資料隨應用內建，放假/補班以 calendar_holidays.json 為準，不會推算未來年度。年月選擇僅用於目前瀏覽，不儲存。";

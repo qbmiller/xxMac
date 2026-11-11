@@ -507,16 +507,33 @@ private enum CalendarFestivalStore {
 
 private struct CalendarHeaderView: View {
     @Binding var displayedMonth: Date
+    @State private var showsMonthPicker = false
 
     let locale: Locale
     let onToday: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
-            Text(displayedMonth, format: .dateTime.locale(locale).year().month(.wide))
-                .font(.title2)
-                .fontWeight(.semibold)
+            Button {
+                showsMonthPicker = true
+            } label: {
+                HStack(spacing: 4) {
+                    Text(displayedMonth, format: .dateTime.locale(locale).year().month(.wide))
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                }
                 .foregroundStyle(.red)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.t("calendar.choose_month"))
+            .popover(isPresented: $showsMonthPicker, arrowEdge: .bottom) {
+                CalendarMonthPickerView(date: displayedMonth, locale: locale) { date in
+                    displayedMonth = date
+                    showsMonthPicker = false
+                }
+            }
 
             Spacer()
 

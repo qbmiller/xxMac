@@ -78,6 +78,30 @@ final class TodoWidgetFileStoreTests: XCTestCase {
         XCTAssertEqual(try store.readPageIndex(), 0)
     }
 
+    func testLargeWidgetPaginationClampsBeforeMovingAfterSizeChange() throws {
+        let store = TodoWidgetFileStore(directoryURL: temporaryDirectory)
+        let items = (0..<60).map { index in
+            TodoWidgetItem(id: UUID(), title: "Task \(index)", category: .todo, dueAt: nil)
+        }
+        try store.writeSnapshot(
+            TodoWidgetSnapshot(
+                generatedAt: Date(timeIntervalSince1970: 100),
+                nextRefreshAt: Date(timeIntervalSince1970: 200),
+                totalIncompleteCount: items.count,
+                items: items
+            )
+        )
+
+        XCTAssertEqual(try store.movePage(by: 10), 5)
+        // A large widget has three pages, so Previous must move from page 2 to 1.
+        XCTAssertEqual(try store.movePage(by: -1, isLarge: true), 1)
+        XCTAssertEqual(try store.movePage(by: 1, isLarge: true), 2)
+        XCTAssertEqual(try store.movePage(by: 1, isLarge: true), 2)
+        let pageSize = TodoWidgetLayout.pageSize(fontSize: 9, isLarge: true)
+        XCTAssertEqual(TodoWidgetPagination.items(items, pageIndex: 2, pageSize: pageSize).count, 10)
+        XCTAssertEqual(try store.movePage(by: -10, isLarge: true), 0)
+    }
+
     func testFontSizePersistsAndPageMovementPreservesIt() throws {
         let store = TodoWidgetFileStore(directoryURL: temporaryDirectory)
         let items = (0..<18).map { index in

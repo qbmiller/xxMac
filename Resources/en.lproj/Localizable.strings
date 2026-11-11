@@ -524,7 +524,7 @@
 "todo.widget_settings.appearance" = "Widget Appearance";
 "todo.widget_settings.font_size" = "Widget font size";
 "todo.widget_settings.font_size_desc" = "Adjust the task, category, and deadline font size.";
-"todo.widget_settings.page_size_format" = "The current font size shows up to %d tasks per page.";
+"todo.widget_settings.page_size_format" = "At the current font size: up to %d tasks per medium page, %d per large page.";
 "todo.widget_settings.save_failed" = "Unable to save widget settings: %@";
 "todo.settings.window" = "Window and Shortcut";
 "todo.settings.hotkey" = "Open or hide Todo";
@@ -540,3 +540,8 @@
 "todo.settings.storage" = "Local Storage";
 "todo.settings.storage_desc" = "Tasks are stored only in this SQLite database. iCloud sync is not included in this release.";
 "todo.settings.reveal_database" = "Reveal Database";
+
+"calendar.choose_month" = "Choose Year and Month";
+"calendar.year" = "Year";
+"calendar.month" = "Month";
+"common.calendar_config_desc" = "Calendar preferences are stored in preferences.json. Lunar dates are calculated by the system. Festival rules, solar-term and Lunar New Year’s Eve date tables, and annual holiday/workday data are bundled with the app. Holiday/workday arrangements come from calendar_holidays.json; future years are not inferred. The month selection is temporary and is not saved.";

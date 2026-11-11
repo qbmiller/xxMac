@@ -118,6 +118,10 @@ struct CommonSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
+                    Text(L10n.t("common.calendar_config_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
                     Text(configDirectoryManager.currentDirectory.path)
                         .font(.caption)
                         .foregroundColor(.secondary)

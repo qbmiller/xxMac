@@ -18,8 +18,8 @@ public enum TodoWidgetLayout {
         clampedFontSize(fontSize) + 2
     }
 
-    public static func pageSize(fontSize: Int) -> Int {
-        max(1, 110 / rowHeight(fontSize: fontSize))
+    public static func pageSize(fontSize: Int, isLarge: Bool = false) -> Int {
+        max(1, (isLarge ? 280 : 110) / rowHeight(fontSize: fontSize))
     }
 }
 

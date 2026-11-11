@@ -10,11 +10,12 @@ struct TodoWidget: Widget {
         }
         .configurationDisplayName(LocalizedStringKey("widget.title"))
         .description(LocalizedStringKey("widget.description"))
-        .supportedFamilies([.systemMedium])
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
 
 struct TodoWidgetView: View {
+    @Environment(\.widgetFamily) private var family
     let entry: TodoWidgetEntry
 
     var body: some View {
@@ -81,7 +82,7 @@ struct TodoWidgetView: View {
     }
 
     private var pageSize: Int {
-        TodoWidgetLayout.pageSize(fontSize: entry.fontSize)
+        TodoWidgetLayout.pageSize(fontSize: entry.fontSize, isLarge: family == .systemLarge)
     }
 
     private var pageItems: [TodoWidgetItem] {
@@ -106,7 +107,7 @@ struct TodoWidgetView: View {
     }
 
     private func pageButton(systemName: String, delta: Int, disabled: Bool) -> some View {
-        Button(intent: ChangeTodoPageIntent(delta: delta)) {
+        Button(intent: ChangeTodoPageIntent(delta: delta, isLarge: family == .systemLarge)) {
             Image(systemName: systemName)
                 .font(.system(size: 8, weight: .semibold))
                 .frame(width: 12, height: 12)

@@ -75,6 +75,9 @@ final class TodoWidgetModelsTests: XCTestCase {
         XCTAssertEqual(TodoWidgetLayout.pageSize(fontSize: 9), 10)
         XCTAssertEqual(TodoWidgetLayout.pageSize(fontSize: 11), 8)
         XCTAssertEqual(TodoWidgetLayout.pageSize(fontSize: 13), 7)
+        XCTAssertEqual(TodoWidgetLayout.pageSize(fontSize: 9, isLarge: true), 25)
+        XCTAssertEqual(TodoWidgetLayout.pageSize(fontSize: 11, isLarge: true), 21)
+        XCTAssertEqual(TodoWidgetLayout.pageSize(fontSize: 13, isLarge: true), 18)
     }
 
     func testPresentationStateDecodesMissingFontSizeUsingDefault() throws {

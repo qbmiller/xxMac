@@ -104,13 +104,23 @@ public final class TodoWidgetFileStore: TodoWidgetFileStoring, @unchecked Sendab
     }
 
     public func movePage(by delta: Int) throws -> Int {
+        try movePage(by: delta, isLarge: false)
+    }
+
+    public func movePage(by delta: Int, isLarge: Bool) throws -> Int {
         try withLock {
             let snapshot = try read(TodoWidgetSnapshot.self, from: snapshotURL)
             let current = try readPresentationState()
-            let target = TodoWidgetPagination.clampedPageIndex(
-                current.pageIndex + delta,
+            let pageSize = TodoWidgetLayout.pageSize(fontSize: current.fontSize, isLarge: isLarge)
+            let currentPage = TodoWidgetPagination.clampedPageIndex(
+                current.pageIndex,
                 itemCount: snapshot?.items.count ?? 0,
-                pageSize: TodoWidgetLayout.pageSize(fontSize: current.fontSize)
+                pageSize: pageSize
+            )
+            let target = TodoWidgetPagination.clampedPageIndex(
+                currentPage + delta,
+                itemCount: snapshot?.items.count ?? 0,
+                pageSize: pageSize
             )
             try write(
                 TodoWidgetPresentationState(pageIndex: target, fontSize: current.fontSize),

@@ -19,12 +19,12 @@ struct TodoWidgetProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (TodoWidgetEntry) -> Void) {
-        completion(loadEntry(at: Date(), usePlaceholderWhenEmpty: context.isPreview))
+        completion(loadEntry(at: Date(), usePlaceholderWhenEmpty: context.isPreview, family: context.family))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodoWidgetEntry>) -> Void) {
         let now = Date()
-        let entry = loadEntry(at: now, usePlaceholderWhenEmpty: false)
+        let entry = loadEntry(at: now, usePlaceholderWhenEmpty: false, family: context.family)
         let minimumRefresh = now.addingTimeInterval(60)
         let refreshAt: Date
         if entry.snapshot.items.isEmpty {
@@ -35,11 +35,11 @@ struct TodoWidgetProvider: TimelineProvider {
         completion(Timeline(entries: [entry], policy: .after(refreshAt)))
     }
 
-    private func loadEntry(at date: Date, usePlaceholderWhenEmpty: Bool) -> TodoWidgetEntry {
+    private func loadEntry(at date: Date, usePlaceholderWhenEmpty: Bool, family: WidgetFamily) -> TodoWidgetEntry {
         let store = TodoWidgetFileStore.shared()
         if let snapshot = try? store.readSnapshot() {
             let fontSize = (try? store.readFontSize()) ?? TodoWidgetLayout.defaultFontSize
-            let pageSize = TodoWidgetLayout.pageSize(fontSize: fontSize)
+            let pageSize = TodoWidgetLayout.pageSize(fontSize: fontSize, isLarge: family == .systemLarge)
             let pageIndex = TodoWidgetPagination.clampedPageIndex(
                 (try? store.readPageIndex()) ?? 0,
                 itemCount: snapshot.items.count,

@@ -47,17 +47,22 @@ struct ChangeTodoPageIntent: AppIntent {
     @Parameter(title: "Page Delta")
     var delta: Int
 
+    @Parameter(title: "Large Widget")
+    var isLarge: Bool
+
     init() {
         delta = 0
+        isLarge = false
     }
 
-    init(delta: Int) {
+    init(delta: Int, isLarge: Bool) {
         self.delta = delta
+        self.isLarge = isLarge
     }
 
     func perform() async throws -> some IntentResult {
         let store = TodoWidgetFileStore.shared()
-        _ = try store.movePage(by: delta)
+        _ = try store.movePage(by: delta, isLarge: isLarge)
         WidgetCenter.shared.reloadTimelines(ofKind: TodoWidgetEnvironment.widgetKind)
         return .result()
     }

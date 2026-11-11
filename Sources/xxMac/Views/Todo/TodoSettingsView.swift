@@ -231,7 +231,8 @@ struct TodoWidgetSettingsView: View {
 
                     Text(L10n.f(
                         "todo.widget_settings.page_size_format",
-                        TodoWidgetLayout.pageSize(fontSize: fontSize)
+                        TodoWidgetLayout.pageSize(fontSize: fontSize),
+                        TodoWidgetLayout.pageSize(fontSize: fontSize, isLarge: true)
                     ))
                     .font(.caption)
                     .foregroundStyle(.secondary)
