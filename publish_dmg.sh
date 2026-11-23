@@ -78,7 +78,7 @@ if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
 fi
 
 if [[ -z "$PUBLISH_GITHUB_RELEASE" ]]; then
-  read -r -p "Create GitHub Release after DMG verification? [y/N] " PUBLISH_GITHUB_RELEASE
+  read -r -p "Create GitHub Release with DMG and signed update assets? [y/N] " PUBLISH_GITHUB_RELEASE
 fi
 
 case "$PUBLISH_GITHUB_RELEASE" in
@@ -145,6 +145,10 @@ fi
 DMG_NAME="${DMG_NAME:-${APP_NAME}-${RELEASE_VERSION}.dmg}"
 VOLUME_NAME="${VOLUME_NAME:-${APP_NAME} ${RELEASE_VERSION}}"
 DMG_PATH="${SCRIPT_DIR}/${DMG_NAME}"
+RELEASE_TAG="${RELEASE_TAG:-$RELEASE_VERSION}"
+UPDATE_OUTPUT_DIR="${UPDATE_OUTPUT_DIR:-${SCRIPT_DIR}/.build/update-release}"
+UPDATE_ARCHIVE_PATH="${UPDATE_OUTPUT_DIR}/xxMac-${RELEASE_VERSION}.zip"
+APPCAST_PATH="${UPDATE_OUTPUT_DIR}/appcast.xml"
 
 echo "Release version: $RELEASE_VERSION"
 echo "Release date: $RELEASE_DATE"
@@ -172,6 +176,14 @@ fi
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "Missing ${APP_BUNDLE}. Run bash bundle_app.sh first, or set SKIP_BUILD=0."
+  exit 1
+fi
+
+# Reject stale SKIP_BUILD output instead of publishing a mismatched DMG/feed.
+BUNDLE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist")"
+BUNDLE_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist")"
+if [[ "$BUNDLE_VERSION" != "$RELEASE_VERSION" || "$BUNDLE_BUILD" != "$RELEASE_VERSION" ]]; then
+  echo "App bundle version/build does not match release $RELEASE_VERSION. Rebuild before publishing."
   exit 1
 fi
 
@@ -203,9 +215,19 @@ hdiutil create \
 echo "4) Verify DMG..."
 hdiutil verify "$DMG_PATH"
 
+echo "5) Prepare signed update archive and appcast..."
+UPDATE_APP_PATH="$APP_PATH" UPDATE_OUTPUT_DIR="$UPDATE_OUTPUT_DIR" RELEASE_TAG="$RELEASE_TAG" \
+  bash scripts/prepare_update.sh
+if [[ ! -f "$UPDATE_ARCHIVE_PATH" || ! -f "$APPCAST_PATH" ]]; then
+  echo "Update assets are missing; refusing to publish an incomplete release."
+  exit 1
+fi
+
 echo ""
 echo "Done."
 echo "DMG: $DMG_PATH"
+echo "Update ZIP: $UPDATE_ARCHIVE_PATH"
+echo "Appcast: $APPCAST_PATH"
 echo "Version: $RELEASE_VERSION"
 echo ""
 echo "Install note for locally signed builds:"
@@ -217,6 +239,8 @@ if [[ "$PUBLISH_GITHUB_RELEASE" == "1" ]]; then
   echo "  Tag: $RELEASE_TAG"
   echo "  Title: $GITHUB_RELEASE_TITLE"
   echo "  Asset: $DMG_PATH"
+  echo "  Asset: $UPDATE_ARCHIVE_PATH"
+  echo "  Asset: $APPCAST_PATH"
   echo "  Notes:"
   sed 's/^/    /' "$RELEASE_NOTES_FILE"
   echo "  Source tag: existing tag, or the latest default branch when the tag does not exist"
@@ -228,14 +252,14 @@ if [[ "$PUBLISH_GITHUB_RELEASE" == "1" ]]; then
 
   case "$GITHUB_RELEASE_CONFIRM" in
     y|Y|yes|Yes|YES|1|true|TRUE)
-      echo "5) Create GitHub Release and upload DMG..."
-      "$GH_BIN" release create "$RELEASE_TAG" "$DMG_PATH" \
+      echo "6) Create GitHub Release and upload DMG, update ZIP, and appcast..."
+      "$GH_BIN" release create "$RELEASE_TAG" "$DMG_PATH" "$UPDATE_ARCHIVE_PATH" "$APPCAST_PATH" \
         --title "$GITHUB_RELEASE_TITLE" \
         --notes-file "$RELEASE_NOTES_FILE"
       echo "GitHub Release published: $RELEASE_TAG"
       ;;
     *)
-      echo "GitHub Release skipped. DMG remains at: $DMG_PATH"
+      echo "GitHub Release skipped. DMG and signed update assets remain available locally."
       ;;
   esac
 fi

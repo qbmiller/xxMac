@@ -139,7 +139,11 @@ struct LauncherView: View {
 
                 if let availableVersion = updateManager.availableVersion {
                     Button {
-                        NSWorkspace.shared.open(UpdateManager.releasesURL)
+                        if updateManager.canInstallUpdates {
+                            updateManager.installAvailableUpdate()
+                        } else {
+                            NSWorkspace.shared.open(UpdateManager.releasesURL)
+                        }
                     } label: {
                         Image(systemName: "arrow.down.circle.fill")
                             .font(.system(size: scaled(24), weight: .semibold))

@@ -581,6 +581,21 @@ struct AboutSettingsView: View {
                     .frame(width: 250)
                 }
 
+                Toggle(L10n.t("about.automatic_install"), isOn: $updateManager.automaticInstallation)
+                    .toggleStyle(.switch)
+                    .disabled(!updateManager.canInstallUpdates)
+                    .frame(maxWidth: 400)
+
+                Text(L10n.t(updateManager.canInstallUpdates ? "about.automatic_install_desc" : "about.updater_not_configured"))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 400)
+
+                if updateManager.availableVersion != nil, updateManager.canInstallUpdates {
+                    Button(L10n.t("about.install_update")) { updateManager.installAvailableUpdate() }
+                        .buttonStyle(.borderedProminent)
+                }
+
                 if let message = updateMessage {
                     Text(message)
                         .font(.subheadline)

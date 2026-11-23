@@ -136,6 +136,9 @@ enum AppDefaultSettings {
     }
 
     enum Updates {
+        /// Replacing the running app and restarting requires the user to opt in.
+        static let automaticInstallation = false
+
         /// Automatic update checks run weekly unless the user chooses another interval.
         static let frequency = UpdateCheckFrequency.weekly
     }

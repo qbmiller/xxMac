@@ -85,12 +85,44 @@ fi
 # 6. Embed the widget extension
 cp -R "$WIDGET_PRODUCT" "$EMBEDDED_WIDGET"
 
+# Embed Sparkle's framework, including its installer/launcher helpers.
+SPARKLE_FRAMEWORK=""
+for candidate in .build/artifacts/*/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework; do
+    if [ -d "$candidate" ]; then
+        SPARKLE_FRAMEWORK="$candidate"
+        break
+    fi
+done
+if [ ! -d "$SPARKLE_FRAMEWORK" ]; then
+    echo "Sparkle framework not found: $SPARKLE_FRAMEWORK"
+    exit 1
+fi
+mkdir -p "$APP_BUNDLE/Contents/Frameworks"
+ditto "$SPARKLE_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+install_name_tool -add_rpath @executable_path/../Frameworks "$APP_BUNDLE/Contents/MacOS/$APP_NAME" || exit 1
+
+# Override the embedded update configuration for release builds.
+# The public key is safe to ship. Never put the private key in the app.
+if [ -n "${SPARKLE_PUBLIC_ED_KEY:-}" ]; then
+    /usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $SPARKLE_PUBLIC_ED_KEY" "$APP_BUNDLE/Contents/Info.plist" || exit 1
+fi
+if [ -n "${SPARKLE_FEED_URL:-}" ]; then
+    /usr/libexec/PlistBuddy -c "Set :SUFeedURL $SPARKLE_FEED_URL" "$APP_BUNDLE/Contents/Info.plist" || exit 1
+fi
+
 # 7. Make binaries executable
 chmod +x "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 chmod +x "$EMBEDDED_WIDGET/Contents/MacOS/TodoWidgetExtension"
 
 sign_bundles() {
     local identity="$1"
+    # Sign deepest Sparkle code before its enclosing framework and host.
+    local sparkle="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework/Versions/B"
+    codesign --force --verbose --sign "$identity" "$sparkle/XPCServices/Downloader.xpc" || return 1
+    codesign --force --verbose --sign "$identity" "$sparkle/XPCServices/Installer.xpc" || return 1
+    codesign --force --verbose --sign "$identity" "$sparkle/Autoupdate" || return 1
+    codesign --force --verbose --sign "$identity" "$sparkle/Updater.app" || return 1
+    codesign --force --verbose --sign "$identity" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" || return 1
     codesign --force --verbose --sign "$identity" \
         --entitlements "$WIDGET_ENTITLEMENTS" "$EMBEDDED_WIDGET" || return 1
     codesign --force --verbose --sign "$identity" \

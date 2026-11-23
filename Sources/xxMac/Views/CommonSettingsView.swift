@@ -409,6 +409,8 @@ struct CommonSettingsView: View {
         let calendarFirstWeekday: Int?
         let calendarMenuBarIconStyle: String?
         let calendarMenuBarDisplayMode: String?
+        let updateCheckFrequency: String?
+        let updateAutomaticInstallation: String?
         let lockAIStatusText: String?
         let lockAICustomTextLocked: Bool?
         let lockAISelectedRemoteMessage: String?
@@ -444,6 +446,8 @@ struct CommonSettingsView: View {
             calendarFirstWeekday: store.intObject(forKey: CalendarPreferencesKey.firstWeekday),
             calendarMenuBarIconStyle: store.string(forKey: CalendarPreferencesKey.menuBarIconStyle),
             calendarMenuBarDisplayMode: store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode),
+            updateCheckFrequency: store.string(forKey: UpdatePreferencesKey.frequency),
+            updateAutomaticInstallation: store.string(forKey: UpdatePreferencesKey.automaticInstallation),
             lockAIStatusText: store.string(forKey: "LockAIStatusText"),
             lockAICustomTextLocked: store.boolObject(forKey: "LockAICustomTextLocked"),
             lockAISelectedRemoteMessage: store.string(forKey: "LockAISelectedRemoteMessage")
@@ -452,6 +456,13 @@ struct CommonSettingsView: View {
     
     private func restoreConfigurations(_ config: AppConfiguration) {
         let store = PreferencesStore.shared
+
+        if let value = config.updateCheckFrequency, let frequency = UpdateCheckFrequency(rawValue: value) {
+            UpdateManager.shared.frequency = frequency
+        }
+        if let value = config.updateAutomaticInstallation {
+            UpdateManager.shared.automaticInstallation = value == "true"
+        }
 
         if let showMenuBarItem = config.showMenuBarItem {
             GeneralSettingsManager.shared.showMenuBarItem = showMenuBarItem

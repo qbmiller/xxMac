@@ -150,6 +150,7 @@ final class PreferencesStore {
         "BrowserSearchBookmarkKeyword",
         "BrowserSearchHistoryKeyword",
         "UpdateCheckFrequency",
+        "UpdateAutomaticInstallation",
         "UpdateAvailableVersion",
         "TodoSelectedView",
         "TodoListLayout"

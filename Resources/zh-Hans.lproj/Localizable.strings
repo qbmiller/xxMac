@@ -31,7 +31,7 @@
 "common.indexing_apps" = "正在索引应用...";
 "common.indexed_apps_format" = "已索引 %d 个应用";
 "common.config_directory" = "配置目录";
-"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据、待办数据和图片缓存的位置。修改目录会随其他本地数据一起迁移 todo.db，但“导出配置”不包含任务；可重新生成的 Todo 小组件快照、显示设置、分页状态和待确认完成操作固定保存在 ~/Library/Application Support/xxMac/Widget，不随此目录迁移；待办仅保存在本地，不支持 iCloud 同步。该目录还会自动创建 quick/ 用于放置复杂快捷指令脚本。粘贴操作的开关和每日计数保存在配置中，但生成的文件只写入 Finder 目标文件夹。浏览器书签和历史不存入或迁移到此目录。该目录可以是本地目录或同步服务下保持本地可用的目录。";
+"common.config_directory_desc" = "设置 xxMac 保存配置、应用索引缓存、剪贴板数据、待办数据和图片缓存的位置。修改目录会随其他本地数据一起迁移 todo.db，但“导出配置”不包含任务；可重新生成的 Todo 小组件快照、显示设置、分页状态和待确认完成操作固定保存在 ~/Library/Application Support/xxMac/Widget，不随此目录迁移；待办仅保存在本地，不支持 iCloud 同步。该目录还会自动创建 quick/ 用于放置复杂快捷指令脚本。粘贴操作的开关和每日计数保存在配置中，但生成的文件只写入 Finder 目标文件夹。浏览器书签和历史不存入或迁移到此目录。该目录可以是本地目录或同步服务下保持本地可用的目录。 自动安装开关、检查周期和版本检测状态保存在 preferences.json；Sparkle 下载缓存不随配置目录迁移。";
 "common.set_config_directory" = "设置配置目录...";
 "common.reveal_config_directory" = "在 Finder 中显示";
 "common.reset_config_directory" = "恢复默认目录";
@@ -130,7 +130,7 @@
 "about.update_frequency.weekly" = "每周";
 "about.update_frequency.monthly" = "每月";
 "about.up_to_date_format" = "当前版本 %@ 已是最新。";
-"about.update_available_format" = "发现新版本 %@。请打开上方 GitHub Release 页面下载。";
+"about.update_available_format" = "发现新版本 %@。可使用安装更新按钮，或打开上方 GitHub Release 页面下载。";
 "about.update_check_failed" = "检查更新失败，请稍后重试。";
 "about.copyright" = "© 2026 Miller. 保留所有权利。";
 "launcher.update_available_format" = "发现新版本 %@，打开 GitHub Releases。";
@@ -545,3 +545,11 @@
 "calendar.year" = "年";
 "calendar.month" = "月";
 "common.calendar_config_desc" = "日历偏好保存在 preferences.json。农历日期由系统自动计算；节日规则、节气及除夕日期表和年度放假/补班数据随应用内置，放假/补班以 calendar_holidays.json 为准，不会推算未来年度。年月选择仅用于当前浏览，不保存。";
+
+"about.automatic_install" = "自动安装更新并重启";
+
+"about.automatic_install_desc" = "开启后，按所选周期检测到新版会自动下载、覆盖当前应用并立即重启。下载文件由 Sparkle 管理，不随配置目录迁移。";
+
+"about.updater_not_configured" = "此构建尚未配置更新签名公钥，暂不支持自动安装；仍可检查版本并手动下载。";
+
+"about.install_update" = "下载并安装更新";

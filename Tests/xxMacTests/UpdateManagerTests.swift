@@ -117,6 +117,40 @@ final class UpdateManagerTests: XCTestCase {
         }
     }
 
+    func testAutomaticInstallationIsOptInAndPersists() {
+        let store = TestUpdatePreferenceStore()
+        let installer = TestUpdateInstaller()
+        let manager = UpdateManager(store: store, installer: installer)
+        XCTAssertFalse(manager.automaticInstallation)
+        manager.automaticInstallation = true
+        XCTAssertEqual(store.strings[UpdatePreferencesKey.automaticInstallation], "true")
+        XCTAssertTrue(installer.automaticInstallation)
+        XCTAssertTrue(UpdateManager(store: store).automaticInstallation)
+    }
+
+    func testNewVersionTriggersInstallerOnlyWhenEnabled() async throws {
+        for enabled in [false, true] {
+            let store = TestUpdatePreferenceStore()
+            store.strings[UpdatePreferencesKey.automaticInstallation] = enabled ? "true" : "false"
+            let installer = TestUpdateInstaller()
+            let manager = UpdateManager(store: store, installer: installer,
+                releaseProvider: StubReleaseProvider(result: .success("2.0.0")), currentVersion: "1.0.0")
+            _ = try await manager.checkForUpdates()
+            XCTAssertEqual(installer.backgroundChecks, enabled ? 1 : 0)
+        }
+    }
+
+    func testDisabledChecksNeverTriggerAutomaticInstallation() async throws {
+        let store = TestUpdatePreferenceStore()
+        store.strings[UpdatePreferencesKey.automaticInstallation] = "true"
+        store.strings[UpdatePreferencesKey.frequency] = UpdateCheckFrequency.off.rawValue
+        let installer = TestUpdateInstaller()
+        let manager = UpdateManager(store: store, installer: installer,
+            releaseProvider: StubReleaseProvider(result: .success("2.0.0")), currentVersion: "1.0.0")
+        _ = try await manager.checkForUpdates()
+        XCTAssertEqual(installer.backgroundChecks, 0)
+    }
+
     func testInitializationClearsPersistedVersionThatIsNoLongerNewer() {
         let store = TestUpdatePreferenceStore()
         store.strings[UpdatePreferencesKey.availableVersion] = "1.1.0"
@@ -169,5 +203,17 @@ private final class TestUpdatePreferenceStore: UpdatePreferenceStoring {
     func removeObject(forKey key: String) {
         strings.removeValue(forKey: key)
         doubles.removeValue(forKey: key)
+    }
+}
+
+@MainActor
+private final class TestUpdateInstaller: UpdateInstalling {
+    let isConfigured = true
+    var automaticInstallation = false
+    var checksEnabled = true
+    var backgroundChecks = 0
+    func start() {}
+    func checkForUpdates(automatically: Bool) {
+        if automatically { backgroundChecks += 1 }
     }
 }

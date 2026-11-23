@@ -1,4 +1,4 @@
-.PHONY: build deploy syncjson sync-lockjob
+.PHONY: build deploy prepare-update syncjson sync-lockjob
 
 SYNCJSON_VENV := .build/syncjson-venv
 
@@ -18,3 +18,6 @@ syncjson: $(SYNCJSON_VENV)/.ready
 
 sync-lockjob: $(SYNCJSON_VENV)/.ready
 	$(SYNCJSON_VENV)/bin/python scripts/syncjson.py --lockjob
+
+prepare-update:
+	bash scripts/prepare_update.sh

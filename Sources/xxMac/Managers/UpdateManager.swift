@@ -3,6 +3,7 @@ import Foundation
 
 enum UpdatePreferencesKey {
     static let frequency = "UpdateCheckFrequency"
+    static let automaticInstallation = "UpdateAutomaticInstallation"
     static let lastSuccessfulCheck = "UpdateLastSuccessfulCheck"
     static let availableVersion = "UpdateAvailableVersion"
 }
@@ -122,7 +123,7 @@ private final class UpdateReleaseRedirectDelegate: NSObject, URLSessionTaskDeleg
 
 @MainActor
 final class UpdateManager: ObservableObject {
-    static let shared = UpdateManager()
+    static let shared = UpdateManager(installer: SparkleUpdateInstaller())
     static let releasesURL = URL(string: "https://github.com/qbmiller/xxMac/releases")!
 
     @Published var frequency: UpdateCheckFrequency {
@@ -131,15 +132,33 @@ final class UpdateManager: ObservableObject {
             if frequency == .off {
                 clearAvailableVersion()
             }
+            installer?.checksEnabled = frequency != .off
             guard hasStarted else { return }
             scheduleNextCheck()
             Task { await checkIfNeeded() }
         }
     }
 
+    @Published var automaticInstallation: Bool {
+        didSet {
+            store.set(automaticInstallation ? "true" : "false", forKey: UpdatePreferencesKey.automaticInstallation)
+            installer?.automaticInstallation = automaticInstallation
+            if automaticInstallation, frequency != .off, availableVersion != nil {
+                installer?.checkForUpdates(automatically: true)
+            }
+        }
+    }
+
+    var canInstallUpdates: Bool { installer?.isConfigured == true }
+
+    func installAvailableUpdate() {
+        installer?.checkForUpdates(automatically: false)
+    }
+
     @Published private(set) var availableVersion: String?
     @Published private(set) var isChecking = false
 
+    private let installer: UpdateInstalling?
     private let store: UpdatePreferenceStoring
     private let releaseProvider: UpdateReleaseProviding
     private let currentVersion: String
@@ -151,12 +170,16 @@ final class UpdateManager: ObservableObject {
 
     init(
         store: UpdatePreferenceStoring = PreferencesStore.shared,
+        installer: UpdateInstalling? = nil,
         releaseProvider: UpdateReleaseProviding = GitHubUpdateReleaseProvider(),
         currentVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0",
         now: @escaping () -> Date = Date.init,
         calendar: Calendar = .current
     ) {
         self.store = store
+        self.installer = installer
+        automaticInstallation = store.string(forKey: UpdatePreferencesKey.automaticInstallation)
+            .map { $0 == "true" } ?? AppDefaultSettings.Updates.automaticInstallation
         self.releaseProvider = releaseProvider
         self.currentVersion = currentVersion
         self.now = now
@@ -183,6 +206,9 @@ final class UpdateManager: ObservableObject {
     func start() {
         guard !hasStarted else { return }
         hasStarted = true
+        installer?.automaticInstallation = automaticInstallation
+        installer?.checksEnabled = frequency != .off
+        installer?.start()
         scheduleNextCheck()
         Task { await checkIfNeeded() }
     }
@@ -224,6 +250,9 @@ final class UpdateManager: ObservableObject {
             if frequency != .off {
                 availableVersion = remoteVersion
                 store.set(remoteVersion, forKey: UpdatePreferencesKey.availableVersion)
+                if automaticInstallation {
+                    installer?.checkForUpdates(automatically: true)
+                }
             }
         } else {
             outcome = .upToDate

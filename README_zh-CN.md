@@ -26,7 +26,7 @@ xxMac 是一个安装包约 2 MB 的轻量级 macOS 原生状态栏效率工具�
 | 快捷指令搜索 | 在启动器里用关键词触发网页搜索，例如输入自定义关键词后跟搜索词即可打开 Google、Baidu 或任意 URL 模板；也可勾选为始终显示在启动器候选中。 | Alfred Web Search |
 | 快捷指令脚本 | 在启动器里用关键词执行本地命令脚本，支持无参、`{query}` 单参数和 `argv` 多参数模式；输入稳定约 400 毫秒后执行，连续输入时只执行最后一次待处理内容。复杂脚本可放在配置目录的 `quick/` 下复用。 | Alfred Workflows |
 | 浏览器搜索 | 在启动器中用 `bm` 搜索当前 Chrome/Edge Profile 的书签，用 `bh` 搜索历史记录；浏览器和两个关键词均可在“搜索 > 浏览器搜索”配置。 | Alfred Browser Bookmarks |
-| 更新检查 | 可在“关于”中手动检查，也可选择关闭、每天、每周或每月自动检查，默认每周。“关于”页显示的 GitHub Releases 地址可点击并由默认浏览器打开。自动检查不会弹窗；发现新版本后，启动器右侧显示红色更新按钮，点击打开 GitHub Releases。 | Sparkle |
+| 更新检查 | 可在“关于”中手动检查，也可选择关闭、每天、每周或每月自动检查，默认每周。“关于”页显示的 GitHub Releases 地址可点击并由默认浏览器打开。自动检查不会弹窗；发现新版本后，启动器右侧显示红色更新按钮，点击进入 Sparkle 安装流程。“关于”中开启“自动安装更新并重启”后，会自动下载并校验签名、覆盖应用原位置并立即重启；安装开关默认关闭。 | Sparkle |
 | LockJob | 一键遮住所有屏幕并阻止系统睡眠，Claude、Codex、构建、下载和 SSH 会话继续运行；显示时间、随机远端文案或锁定的自定义文字，支持 Touch ID 或本机密码解锁。 | 锁屏遮罩 |
 | 多语言 | 已有简体中文、繁体中文、英文资源结构。 | - |
 
@@ -115,7 +115,7 @@ make deploy
 
 发布脚本会先打印 `Sources/xxMac/Info.plist` 中记录的当前版本号，并提示输入本次发布版本。版本会写回 `CFBundleShortVersionString` 和 `CFBundleVersion`，最近更新时间会写回 `XXLastUpdated`，生成的 DMG 默认命名为 `xxMac-版本号.dmg`。
 
-输入版本号后，可以选择是否直接发布 GitHub Release。启用后，脚本会先检查 `gh auth status`、提示输入发布标题，然后使用 `${VISUAL:-${EDITOR:-vi}}` 打开临时 Markdown 文件。编辑器退出后会预览发布说明：输入 `e` 可再次编辑，输入 `y` 确认使用，输入 `n` 则取消 GitHub 发布但继续构建本地 DMG。使用 VS Code 时可设置 `EDITOR='code --wait'`。完成 DMG 构建与校验后，脚本会显示最终摘要，再调用 `gh release create`。登录失效时先执行 `gh auth login -h github.com`。脚本不会自动执行 `git commit` 或 `git push`；如果数字版本标签尚不存在，GitHub 会从默认分支的最新提交创建该标签。
+输入版本号后，可以选择是否直接发布 GitHub Release。启用后，脚本会先检查 `gh auth status`、提示输入发布标题，然后使用 `${VISUAL:-${EDITOR:-vi}}` 打开临时 Markdown 文件。编辑器退出后会预览发布说明：输入 `e` 可再次编辑，输入 `y` 确认使用，输入 `n` 则取消 GitHub 发布但继续构建本地 DMG。使用 VS Code 时可设置 `EDITOR='code --wait'`。完成 DMG 构建与校验后，脚本会自动生成签名更新 ZIP 和 `appcast.xml`，显示三份附件的最终摘要，再调用 `gh release create` 一次上传。更新材料生成失败会停止发布。登录失效时先执行 `gh auth login -h github.com`。脚本不会自动执行 `git commit` 或 `git push`；如果数字版本标签尚不存在，GitHub 会从默认分支的最新提交创建该标签。
 
 `bundle_app.sh` 和 `publish_dmg.sh` 默认使用固定签名身份 `qbmiller`，不允许退回 ad-hoc 签名。这样可以让 macOS 辅助功能权限尽量绑定到稳定的 App 身份，减少重新打包后需要删除旧授权并重新添加的情况。需要临时换证书时，可以通过 `SIGNING_IDENTITY` 环境变量覆盖。
 
@@ -131,6 +131,18 @@ open /Applications/xxMac.app
 ```bash
 SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 ```
+
+## 自动更新发版
+
+项目通过官方 SwiftPM 二进制包接入 Sparkle 2.10.1，并固定 SHA-256 校验和。`bundle_app.sh` 会嵌入并逐层签名框架、XPC 服务和安装辅助程序。更新包另用 Ed25519 签名校验，应用只包含公钥；对应私钥保存在本机 macOS 钥匙串的 Sparkle `xxMac` 账户中，不写入仓库。
+
+正式发版仍然只需执行 `make deploy`，输入新版本号、填写发布说明并确认发布。命令会自动生成 DMG、`.build/update-release/xxMac-版本号.zip` 和已签名的 `appcast.xml`，一次上传到同一个 GitHub Release，不必另跑命令或手动补附件。选择不发布时，三份材料都会保留在本地。包括使用 `SKIP_BUILD=1` 时，应用包的版本号和构建号也必须与本次发布版本一致，否则停止发布。
+
+`make prepare-update` 仍保留，用于单独生成本地签名 ZIP 和 feed，不发布。默认更新源是 `https://github.com/qbmiller/xxMac/releases/latest/download/appcast.xml`，更新包下载地址固定使用该版本标签。标签与应用版本不同时，通过 `RELEASE_TAG` 指定；后续每次发版都上传同名 `appcast.xml`。
+
+可用 `SPARKLE_TOOLS_DIR` 指定官方工具目录，`SPARKLE_KEY_ACCOUNT` 指定钥匙串账户，或 `SPARKLE_PRIVATE_KEY_FILE` 指定仓库外的私钥文件。`SPARKLE_DOWNLOAD_URL_PREFIX` 可更换更新包下载位置；更换公钥和更新源时，用 `SPARKLE_PUBLIC_ED_KEY`、`SPARKLE_FEED_URL` 重新打包。换构建机器前，应通过官方 `generate_keys` 工具安全备份私钥；不能随意重建密钥，否则已安装的应用将无法验证后续更新。
+
+“关于”页保留检查周期，另有“自动安装更新并重启”开关（默认关闭）。开启后，定期检查发现新版本即自动下载、校验、覆盖并重启；关闭自动检查会停止后续自动下载和立即重启；Sparkle 已排队的更新仍可能在应用下次退出时安装。也可通过“关于”页或启动器红色按钮手动安装。安装目录没有写权限时，系统可能要求授权。已有用户需要先手动安装一次带此功能的版本。生成本地更新包不代表更新源已发布，完整下载、覆盖和重启仍需使用两个不同版本在发版环境验证。
 
 ## 系统权限
 
@@ -150,7 +162,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 - 默认配置目录是 `~/Library/Application Support/xxMac`，可在“通用 > 配置”里修改。修改后会把当前配置、应用索引缓存、剪贴板 SQLite 数据库、待办 SQLite 数据库和图片缓存迁移到新目录，并删除旧目录中的 xxMac 数据。
 - 右上角状态栏入口默认显示；如果图标异常消失，或希望隐藏状态栏入口，可在“通用 > 配置”里切换“显示在右上角状态栏”。该区域提供状态栏诊断信息和“刷新/重建”按钮，用于确认 `NSStatusItem` 是否已创建、可见并挂载到系统状态栏。
 - 配置目录可以是本地目录，也可以是 iCloud Drive、Dropbox 等同步服务下保持本地可用的目录；不建议选择系统目录、App 包内目录或临时移动磁盘路径。
-- 热键配置、应用快捷启动配置、启动器窗口宽高、整体大小、文字大小与外观、正常待办字体大小、启动器最近操作历史、语言偏好（包括“打开启动器时使用英文输入法”，默认关闭）、快捷指令、浏览器搜索、Snippets、日历偏好和更新检查状态保存在配置目录的 `preferences.json`。启用该语言选项后，启动器打开时会切换到 macOS ABC 英文输入法。更新检查会保存 `UpdateCheckFrequency`、`UpdateLastSuccessfulCheck` 和 `UpdateAvailableVersion`，首次使用默认每周检查。启动器最近操作历史记录应用、窗口命令、快捷指令、浏览器搜索、已打开的书签/历史 URL 和计算器结果的元数据，不记录剪贴板历史或 Snippets 内容；默认最多保留 100 条，可在“搜索 > 通用”配置。日历偏好包含状态栏显示方式，默认使用日历图标，也可切换为 App 图标。首次启动默认值集中在 `Sources/xxMac/AppDefaultSettings.swift`，该文件可用注释说明默认开关。
+- 热键配置、应用快捷启动配置、启动器窗口宽高、整体大小、文字大小与外观、正常待办字体大小、启动器最近操作历史、语言偏好（包括“打开启动器时使用英文输入法”，默认关闭）、快捷指令、浏览器搜索、Snippets、日历偏好和更新检查状态保存在配置目录的 `preferences.json`。启用该语言选项后，启动器打开时会切换到 macOS ABC 英文输入法。更新检查会保存 `UpdateCheckFrequency`、`UpdateLastSuccessfulCheck` 和 `UpdateAvailableVersion`，首次使用默认每周检查。`UpdateAutomaticInstallation` 保存自动安装开关，随配置导入导出；Sparkle 下载缓存不随配置目录迁移。启动器最近操作历史记录应用、窗口命令、快捷指令、浏览器搜索、已打开的书签/历史 URL 和计算器结果的元数据，不记录剪贴板历史或 Snippets 内容；默认最多保留 100 条，可在“搜索 > 通用”配置。日历偏好包含状态栏显示方式，默认使用日历图标，也可切换为 App 图标。首次启动默认值集中在 `Sources/xxMac/AppDefaultSettings.swift`，该文件可用注释说明默认开关。
 - 配置目录下会自动创建 `quick/`，用于放置复杂快捷指令脚本。命令脚本执行时会注入 `XXMAC_HOME`（配置目录）和 `XXMAC_QUICK_HOME`（`quick/` 目录），例如 `python "$XXMAC_QUICK_HOME/xxx/a.py" {query}`。网页搜索快捷指令会把站点图标缓存到 `quick_icons/`，用于设置列表和启动器候选展示；删除快捷指令或修改为其他站点时会清理对应图标缓存。
 - 应用搜索默认覆盖 `/Applications`、`/System/Applications`、`/System/Library/CoreServices`，也支持在设置里添加自定义搜索路径；重建索引时优先复用 macOS Spotlight 发现应用，Spotlight 不可用或没有返回可用结果时自动回退到目录扫描。应用索引缓存保存在配置目录的 `app-search-index.json`，加载前会校验 App bundle 是否仍存在，并过滤已删除应用和 `.app.installing` 临时安装路径。把新 App 拖入这些搜索目录后会自动追加到现有索引，移除 App 后也会剪掉旧索引，不会重建整个索引；也可在“通用 > 配置”里手动点击“索引应用”重建。中文应用名会同时写入原文、全拼和拼音首字母索引；英文应用名也会写入单词首字母索引。
 - 浏览器书签和历史数据库保持在 Chrome/Edge 自己的目录中，xxMac 仅在本机只读访问。历史搜索会在系统临时目录创建唯一副本并在查询结束后立即删除；这些数据不会写入、导出或随迁移进入 xxMac 配置目录。
