@@ -182,8 +182,24 @@ if [ "${INSTALL_TO_APPLICATIONS:-0}" = "1" ]; then
     INSTALL_RESPONSE="y"
     echo "INSTALL_TO_APPLICATIONS=1，自动确认覆盖 ${APPLICATIONS_APP_PATH}。"
 else
-    printf "是否覆盖原文件 %s？[y/N] " "$APPLICATIONS_APP_PATH"
-    read -r INSTALL_RESPONSE
+    # Builds can leave Return presses queued in stdin. Require an explicit answer
+    # instead of treating the first buffered empty line as a declined installation.
+    while true; do
+        printf "是否覆盖原文件 %s？[y/n] " "$APPLICATIONS_APP_PATH"
+        if ! read -r INSTALL_RESPONSE; then
+            INSTALL_RESPONSE=""
+            printf '\n未收到确认输入，跳过覆盖。\n'
+            break
+        fi
+        case "$INSTALL_RESPONSE" in
+            y|Y|yes|Yes|YES|n|N|no|No|NO)
+                break
+                ;;
+            *)
+                echo "请明确输入 y/yes（覆盖）或 n/no（保留），回车不会跳过确认。"
+                ;;
+        esac
+    done
 fi
 
 case "$INSTALL_RESPONSE" in
