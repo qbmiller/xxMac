@@ -2,13 +2,22 @@
 
 [简体中文](README_zh-CN.md) | English
 
-xxMac is a lightweight native macOS status bar productivity tool with an installer of about 2 MB. Built with `SwiftUI + AppKit`, it brings window management, global hotkeys, a launcher, Chinese calendar, shortcut conflict detection, clipboard history, and common productivity workflows into one compact entry point. Its everyday workflow is:
+xxMac is a lightweight, native macOS productivity toolkit built with SwiftUI + AppKit. Launch apps, arrange windows, search your clipboard, manage tasks, and automate everyday actions from your menu bar or a global hotkey.
 
-1. A persistent top-right status bar entry.
-2. A floating launcher panel opened by a global hotkey.
-3. A three-column settings window shown when opening the app directly, with a resizable window and draggable column widths.
+**macOS 13+** · Desktop widgets on macOS 14+ · English / 简体中文 / 繁體中文
 
-## Feature Overview
+[Quick Start](#quick-start) · [Default Hotkeys](#default-hotkeys) · [System Permissions](#system-permissions)
+
+## At a Glance
+
+<p align="center">
+  <img src="docs/images/feature-overview-en.png" width="960" alt="xxMac feature overview: launcher, clipboard, Todo, window management, snippets, shortcuts, browser search, calendar, Finder tools, LockJob and recommendations">
+</p>
+
+## Feature Reference
+
+<details>
+<summary>Expand the complete feature reference</summary>
 
 | Capability | Description | Similar / Alternative |
 | --- | --- | --- |
@@ -30,6 +39,10 @@ xxMac is a lightweight native macOS status bar productivity tool with an install
 | Update Checks | Check GitHub Releases manually or automatically on a daily, weekly, or monthly schedule from About. The GitHub Releases URL shown in About is clickable and opens in the default browser. Automatic checks default to weekly and stay silent; when an update is available, the red launcher button opens the Sparkle installer. Enable “Automatically install updates and restart” in About to download signed updates, replace the installed app, and immediately relaunch. The installation switch defaults to off. | Sparkle |
 | LockJob | Cover all displays and prevent system sleep while Claude, Codex, builds, downloads, and SSH sessions continue running. Shows the time and a random Cloudflare message or locked custom text, and supports Touch ID or local password unlock. | Screen cover |
 | Localization | Includes resource structure for Simplified Chinese, Traditional Chinese, and English. | - |
+
+</details>
+
+## Screenshots
 
 <p align="center">
   <img src="docs/images/003.png" width="49%" alt="">
