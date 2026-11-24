@@ -9,6 +9,7 @@ enum ShortcutAction: Hashable {
     case quickShortcut(UUID)
     case browserBookmarks
     case browserHistory
+    case inputSource(UUID)
 }
 
 enum ShortcutTrigger {

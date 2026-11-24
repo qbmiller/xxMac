@@ -8,6 +8,7 @@ final class CarbonHotKeyRegistration {
     private static let eventTarget = GetApplicationEventTarget()
 
     private struct TapRegistration {
+        let configuration: HotKeyConfiguration
         let keyCode: Int64
         let modifiers: CGEventFlags
         let name: String
@@ -19,6 +20,24 @@ final class CarbonHotKeyRegistration {
         let modifiers: CGEventFlags
         let name: String
         let handler: () -> Void
+    }
+
+    private static var recordingSession: (id: UUID, handler: (HotKeyConfiguration) -> Void, didEnd: () -> Void)?
+
+    static func beginRecording(_ handler: @escaping (HotKeyConfiguration) -> Void, didEnd: @escaping () -> Void = {}) -> UUID {
+        let previous = recordingSession
+        recordingSession = nil
+        previous?.didEnd()
+        let id = UUID()
+        pendingModifierReleases.removeAll()
+        recordingSession = (id, handler, didEnd)
+        return id
+    }
+
+    static func endRecording(_ id: UUID?) {
+        guard let id, let session = recordingSession, session.id == id else { return }
+        recordingSession = nil
+        session.didEnd()
     }
 
     private static var nextID: UInt32 = 1
@@ -50,6 +69,7 @@ final class CarbonHotKeyRegistration {
 
         Self.handlers[id] = handler
         Self.tapRegistrations[id] = TapRegistration(
+            configuration: configuration,
             keyCode: Int64(configuration.key.carbonKeyCode),
             modifiers: Self.cgEventFlags(from: configuration.modifiers),
             name: name,
@@ -228,6 +248,10 @@ final class CarbonHotKeyRegistration {
             return
         }
         lastHandledAt[id] = now
+        if let recordingSession, let registration = tapRegistrations[id] {
+            executeOnMain { recordingSession.handler(registration.configuration) }
+            return
+        }
         let registrationName = name ?? tapRegistrations[id]?.name ?? "unknown"
         logger.notice("fired name=\(registrationName, privacy: .public) source=\(source, privacy: .public) id=\(id)")
         if source == "carbon", let registration = tapRegistrations[id] {

@@ -25,6 +25,7 @@ xxMac is a lightweight, native macOS productivity toolkit built with SwiftUI + A
 | Launcher | Open a translucent overlay with a global hotkey to search apps, run window commands, and pick clipboard history. The panel reacts immediately after hotkey modifiers are released so rapid first-character input is preserved, and closes as soon as an app launch is submitted without waiting for the target app to finish starting. Supports recent action history, keyboard paging, custom background color, opacity, content size, and window width/height. The panel can be dragged by its background and remembers its last position. | Alfred / Spotlight |
 | Launcher Calculator | Type arithmetic expressions such as `4+8`, `(2+3)*4`, or `-3.5/2` directly in the launcher search field to see live results, then press Return to copy the result. | Alfred Calculator / Spotlight |
 | App Quick Launch | Bind independent hotkeys to selected apps. Supports launch, activate, hide, and toggle behavior. Uses the shared global hotkey registration with an Accessibility-authorized event listener fallback when Carbon events are unavailable. Recording temporarily pauses app hotkeys and restores them afterward. | Thor |
+| Input Sources [opt-in] | Automatically switch input sources per app, website, or browser address bar. Supports remembered app choices, a non-activating indicator, direct/cycling shortcuts, and quick rules from the status menu. | Input Source Pro |
 | Window Management | Quickly move the current window to the left/right half, top/bottom half, four corners, center, maximize, resize, or move it across displays. Requires authorization in System Settings > Privacy & Security > Accessibility; after repackaging or moving the app, remove the old app authorization and add the current app again. | ShiftIt |
 | Finder Paste Operations | Press `Command + Shift + V` outside Finder to paste paths for files or folders copied in Finder. With the optional Image to File or Text to File switches enabled under Clipboard > Paste Operations, the same hotkey in Finder saves a raw clipboard image as PNG or plain text as a UTF-8 file in the current folder. Copied files are ignored while Finder is frontmost, so they are never converted or typed back into Finder. | Copy Path / Path Finder |
 | Chinese Calendar | Provides a top-right status bar entry, with Chinese lunar calendar, holidays, solar terms, week numbers, and configurable status bar icon styles. Click the year/month heading to open two scrolling wheels and confirm a jump to another month (1900–2100). Lunar dates are calculated automatically by the system; festival rules and solar-term/New Year’s Eve tables are bundled resources. Annual holidays and compensatory workdays are configured separately in `Resources/calendar_holidays.json` (`1` = workday, `2` = holiday), following the government’s annual announcement; missing years do not receive inferred holiday arrangements. | CalendarX |
@@ -70,6 +71,17 @@ xxMac is a lightweight, native macOS productivity toolkit built with SwiftUI + A
 
 ## 友情链接
 - [亚洲规模最大的大模型 API 网关之一，全球规模仅次于 OpenRouter](https://www.orcarouter.ai/ref/ref_d47b119eebf4f9e2efd8)也长期提供免费模型使用
+
+## Input Sources
+
+Open **Settings > Input Sources** to configure automatic switching, app rules, website rules, indicators, and shortcuts. Automatic switching and indicator triggers default to off.
+
+- App rules can select a fixed source, remember manual choices, or keep the current source. Fixed rules run on context changes and do not repeatedly override a manual selection.
+- Website and address bar rules support Chrome, Edge, and Safari and require Accessibility permission. Priority is address bar > first matching website rule > app rule > default policy. Match an exact domain, domain and subdomains, or a URL prefix with a path boundary. Missing permissions or an unreadable URL fall back to app rules; unavailable input sources keep the current source and show a warning.
+- Returning from the address bar reapplies the page rule, or restores the previous source when no rule specifies one. Browser queries run in the background, only while rules need the frontmost supported browser; stale replies are discarded.
+- Indicators can appear on input-source changes, app switches, or a left-button hold. Customize pointer/fixed-screen position, color, size, abbreviation, and duration. They do not take focus or block clicks. Automatic indicators are suppressed inside xxMac windows; the explicit Preview Indicator button remains available. The indicator reports the system input source; internal Chinese/English modes in third-party IMEs may not be exposed.
+- Record a shortcut and select one source for direct switching or several to cycle in selection order. Internal shortcut conflicts preserve the previous binding. The status menu provides pause, manual source selection, and quick app/website rules. Pause affects automatic switching only.
+- The existing launcher English preference remains under General > Language and takes priority while the launcher is open. Modifier-only shortcuts, punctuation replacement, per-app function-key modes, persistent caret indicators, and terminal-program rules are outside this version.
 
 ## Default Hotkeys
 
@@ -118,7 +130,7 @@ make build
 # Equivalent: bash bundle_app.sh
 ```
 
-After bundling, the script asks whether to replace `/Applications/xxMac.app`; the default is no. Enter `y` or `yes` to close the running xxMac, replace the installed app, re-register the Todo widget extension, restart the widget service and Notification Center to refresh available sizes, and reopen xxMac automatically. Use `INSTALL_TO_APPLICATIONS=1 bash bundle_app.sh` to explicitly skip the prompt and replace it automatically.
+After bundling, the script asks whether to replace `/Applications/xxMac.app` and requires an explicit `y/yes` or `n/no`. Returns queued during the build, blank lines, and invalid answers do not skip confirmation. End-of-input (EOF) safely skips installation. Enter `y` or `yes` to close the running xxMac, replace the installed app, re-register the Todo widget extension, restart the widget service and Notification Center to refresh available sizes, and reopen xxMac automatically. Use `INSTALL_TO_APPLICATIONS=1 bash bundle_app.sh` to explicitly skip the prompt and replace it automatically.
 
 Build a `.dmg` release:
 
@@ -170,6 +182,8 @@ You can check Accessibility authorization under xxMac > General > Permission Set
 If window control, global hotkeys, or clipboard paste-back stop working after repackaging, first check whether the app authorized in the system Accessibility list is the `xxMac.app` at the current path. macOS Accessibility authorization is affected by the app path and signing state, so repackaging or moving the app may require removing the old authorization and adding it again.
 
 ## Configuration and Data
+
+- Input source rules, shortcuts, indicator settings, and remembered manual app choices are stored under `InputSourceSettings` and `InputSourceAppMemory` in `preferences.json`. Both are included in configuration export/import and directory migration. Website URLs are inspected transiently; browsing history and typed content are not stored.
 
 - The default configuration folder is `~/Library/Application Support/xxMac`, and it can be changed from General > Configuration. Changing it moves the current preferences, app index cache, clipboard SQLite database, Todo SQLite database, and image cache to the new folder, then removes xxMac data from the old folder.
 - The Recommendations page always fetches [`https://cf.xiaomi318.com/xxmac/xxmac.json`](https://cf.xiaomi318.com/xxmac/xxmac.json) when opened and on manual refresh. The last successful response is cached as `recommendations.json` in the configuration folder for offline use. If the remote request fails, the last saved catalog stays visible.

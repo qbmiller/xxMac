@@ -21,6 +21,14 @@ enum AppDefaultSettings {
         static let keymapEnabled = false
     }
 
+    enum InputSource {
+        /// Automatic switching and passive indicators are opt-in.
+        static let automaticSwitching = false
+        static let showOnChange = false
+        static let showOnAppSwitch = false
+        static let showOnLongPress = false
+    }
+
     enum Clipboard {
         static let monitoringEnabled = false
         static let manageImages = true

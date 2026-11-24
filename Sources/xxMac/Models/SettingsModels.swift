@@ -130,6 +130,7 @@ enum ToolType: String, CaseIterable, Identifiable {
     case search = "tool.search"
     case window = "tool.window"
     case shortcutDetective = "tool.shortcut_detective"
+    case inputSource = "tool.input_source"
     case clipboard = "tool.clipboard"
     case snippets = "tool.snippets"
     case quickShortcut = "tool.quick_shortcut"
@@ -150,6 +151,7 @@ enum ToolType: String, CaseIterable, Identifiable {
         case .search: return "magnifyingglass"
         case .window: return "macwindow"
         case .shortcutDetective: return "keyboard"
+        case .inputSource: return "globe"
         case .clipboard: return "doc.on.clipboard"
         case .snippets: return "text.quote"
         case .quickShortcut: return "bolt.circle"
@@ -187,6 +189,13 @@ enum FunctionType: String, CaseIterable, Identifiable {
     case shortcutDetectiveGeneral = "function.shortcut.detective"
     case keymap = "function.shortcut.keymap"
     
+    // Input Source
+    case inputSourceGeneral = "function.input_source.general"
+    case inputSourceApps = "function.input_source.apps"
+    case inputSourceWebsites = "function.input_source.websites"
+    case inputSourceIndicator = "function.input_source.indicator"
+    case inputSourceShortcuts = "function.input_source.shortcuts"
+
     // Clipboard
     case clipboardPasteOperations = "function.clipboard.paste_operations"
     case clipboardGeneral = "function.clipboard.general"
@@ -287,6 +296,13 @@ struct ToolOption: Identifiable, Hashable {
         ToolOption(type: .shortcutDetective, functions: [
             ToolFunction(type: .shortcutDetectiveGeneral),
             ToolFunction(type: .keymap)
+        ]),
+        ToolOption(type: .inputSource, functions: [
+            ToolFunction(type: .inputSourceGeneral),
+            ToolFunction(type: .inputSourceApps),
+            ToolFunction(type: .inputSourceWebsites),
+            ToolFunction(type: .inputSourceIndicator),
+            ToolFunction(type: .inputSourceShortcuts)
         ]),
         ToolOption(type: .clipboard, functions: [
             ToolFunction(type: .clipboardPasteOperations),

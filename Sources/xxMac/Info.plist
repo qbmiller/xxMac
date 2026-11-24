@@ -32,7 +32,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>We need accessibility permissions to move and resize windows.</string>
+	<string>xxMac needs accessibility permission to manage windows, support global shortcuts, and detect browser websites and address bar focus for input source rules.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>xxMac needs permission to control Finder to save clipboard images or text in the current folder, and to reopen managed applications.</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>

@@ -381,6 +381,7 @@ private extension ToolType {
         case .search: return .blue
         case .window: return .indigo
         case .shortcutDetective: return .orange
+        case .inputSource: return .blue
         case .clipboard: return .teal
         case .snippets: return .pink
         case .quickShortcut: return .yellow
@@ -713,6 +714,8 @@ struct ConfigurationView: View {
             ShortcutDetectiveSettingsView()
         case .keymap:
             KeymapSettingsView()
+        case .inputSourceGeneral, .inputSourceApps, .inputSourceWebsites, .inputSourceIndicator, .inputSourceShortcuts:
+            InputSourceSettingsView(section: function.type)
         case .clipboardGeneral:
             ClipboardSettingsView()
         case .clipboardPasteOperations:

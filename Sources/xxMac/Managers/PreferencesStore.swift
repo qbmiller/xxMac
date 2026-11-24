@@ -170,7 +170,9 @@ final class PreferencesStore {
         "ClipboardSettings",
         "SnippetSettings",
         "SnippetCollections",
-        "SnippetEntries"
+        "SnippetEntries",
+        "InputSourceSettings",
+        "InputSourceAppMemory"
     ]
 
     private static let boolKeys = [

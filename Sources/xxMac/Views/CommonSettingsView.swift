@@ -122,6 +122,10 @@ struct CommonSettingsView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
+                    Text(L10n.t("common.input_source_config_desc"))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
                     Text(configDirectoryManager.currentDirectory.path)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -337,6 +341,7 @@ struct CommonSettingsView: View {
             do {
                 let data = try Data(contentsOf: url)
                 let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
+                try config.validateInputSources()
                 restoreConfigurations(config)
                 
                 showingImportSuccess = true
@@ -411,9 +416,16 @@ struct CommonSettingsView: View {
         let calendarMenuBarDisplayMode: String?
         let updateCheckFrequency: String?
         let updateAutomaticInstallation: String?
+        let inputSourceSettings: Data?
+        let inputSourceAppMemory: Data?
         let lockAIStatusText: String?
         let lockAICustomTextLocked: Bool?
         let lockAISelectedRemoteMessage: String?
+
+        func validateInputSources() throws {
+            if let inputSourceSettings { _ = try JSONDecoder().decode(InputSourceSettings.self, from: inputSourceSettings) }
+            if let inputSourceAppMemory { _ = try JSONDecoder().decode([String: String].self, from: inputSourceAppMemory) }
+        }
     }
     
     private func collectConfigurations() throws -> AppConfiguration {
@@ -448,6 +460,8 @@ struct CommonSettingsView: View {
             calendarMenuBarDisplayMode: store.string(forKey: CalendarPreferencesKey.menuBarDisplayMode),
             updateCheckFrequency: store.string(forKey: UpdatePreferencesKey.frequency),
             updateAutomaticInstallation: store.string(forKey: UpdatePreferencesKey.automaticInstallation),
+            inputSourceSettings: store.data(forKey: InputSourceAutomationManager.settingsKey),
+            inputSourceAppMemory: store.data(forKey: InputSourceAutomationManager.memoryKey),
             lockAIStatusText: store.string(forKey: "LockAIStatusText"),
             lockAICustomTextLocked: store.boolObject(forKey: "LockAICustomTextLocked"),
             lockAISelectedRemoteMessage: store.string(forKey: "LockAISelectedRemoteMessage")
@@ -579,6 +593,15 @@ struct CommonSettingsView: View {
            let displayMode = CalendarMenuBarDisplayMode(rawValue: rawDisplayMode) {
             CalendarPreferencesStore.shared.menuBarDisplayMode = displayMode
         }
+
+        if let data = config.inputSourceAppMemory,
+           (try? JSONDecoder().decode([String: String].self, from: data)) != nil {
+            store.set(data, forKey: InputSourceAutomationManager.memoryKey)
+        }
+        if let data = config.inputSourceSettings {
+            _ = InputSourceAutomationManager.shared.importSettings(data)
+        }
+        InputSourceAutomationManager.shared.reload()
 
         if let lockAIStatusText = config.lockAIStatusText {
             LockAIManager.shared.statusText = lockAIStatusText

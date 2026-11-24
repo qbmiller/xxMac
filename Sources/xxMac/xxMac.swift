@@ -219,6 +219,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     private var showClipboardHistoryMenuItem: NSMenuItem?
     private var todoMenuItem: NSMenuItem?
     private var lockAIMenuItem: NSMenuItem?
+    private var inputSourceMenuItem: NSMenuItem?
+    private var inputSourceMenuController: InputSourceMenuController?
     private var settingsMenuItem: NSMenuItem?
     private var quitMenuItem: NSMenuItem?
     private var localizationCancellable: AnyCancellable?
@@ -320,6 +322,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         // Request accessibility permissions (critical for hotkeys to work)
         _ = AccessibilityManager.shared.checkAccessibilityPermissions()
         _ = KeymapManager.shared
+        InputSourceAutomationManager.shared.start()
         // if !hasAccessibility {
         //     let alert = NSAlert()
         //     alert.messageText = "Accessibility Permission Required"
@@ -423,6 +426,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         lockAIItem.target = self
         lockAIMenuItem = lockAIItem
         menu.addItem(lockAIItem)
+
+        let inputSourceController = InputSourceMenuController()
+        inputSourceMenuController = inputSourceController
+        let inputSourceItem = NSMenuItem(title: L10n.t("tool.input_source"), action: nil, keyEquivalent: "")
+        inputSourceItem.submenu = inputSourceController.menu
+        inputSourceMenuItem = inputSourceItem
+        menu.addItem(inputSourceItem)
 
         let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
@@ -633,6 +643,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
 
     func menuWillOpen(_ menu: NSMenu) {
         ClipboardManager.shared.captureCurrentFrontmostApp()
+        InputSourceAutomationManager.shared.captureForMenu()
     }
     
     func createLauncherPanel() {
@@ -1075,6 +1086,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         showClipboardHistoryMenuItem?.title = L10n.t("menu.clipboard_history")
         todoMenuItem?.title = L10n.t("menu.todo")
         lockAIMenuItem?.title = L10n.t("menu.lock_ai")
+        inputSourceMenuItem?.title = L10n.t("tool.input_source")
         settingsMenuItem?.title = L10n.t("menu.settings")
         quitMenuItem?.title = L10n.t("menu.quit")
         settingsWindow?.title = L10n.t("window.settings")
@@ -1109,6 +1121,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     }
     
     func openLauncher() {
+        InputSourceAutomationManager.shared.launcherWillOpen()
         if LocalizationManager.shared.launcherDefaultsToEnglishInput {
             InputSourceManager.selectEnglishInputSource()
         }
@@ -1246,6 +1259,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         logFocusState("closeLauncherForPaste.before")
         dismissClipboardImagePreview(refocusLauncher: false)
         launcherPanel.orderOut(nil)
+        InputSourceAutomationManager.shared.launcherDidClose()
         resetLauncherPanelPresentation()
         isOpeningLauncher = false
         pendingLauncherRestore = false
@@ -1345,6 +1359,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         guard launcherPanel != nil, launcherPanel.isVisible else { return }
         ignoreLauncherResignKeyUntil = Date().addingTimeInterval(0.5)
         launcherPanel.orderOut(nil)
+        InputSourceAutomationManager.shared.launcherDidClose()
         resetLauncherPanelPresentation()
         launcherViewModel.onCloseLauncher()
     }
@@ -1360,6 +1375,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         launcherViewModel.recordCurrentBrowserSearch()
 
         launcherPanel.orderOut(nil)
+        InputSourceAutomationManager.shared.launcherDidClose()
         resetLauncherPanelPresentation()
         AccessibilityManager.shared.restoreSuspendedTextInputFocus()
         
@@ -1376,6 +1392,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
     @objc func closeLauncherPanelOnly() {
         dismissClipboardImagePreview(refocusLauncher: false)
         launcherPanel.orderOut(nil)
+        InputSourceAutomationManager.shared.launcherDidClose()
         resetLauncherPanelPresentation()
     }
     
