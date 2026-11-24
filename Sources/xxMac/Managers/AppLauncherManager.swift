@@ -31,19 +31,29 @@ class AppLauncherManager: ObservableObject {
         }
     }
     
-    private var hotKeys: [UUID: HotKey] = [:]
+    private var hotKeys: [UUID: CarbonHotKeyRegistration] = [:]
     private var registeredShortcutIDs = Set<UUID>()
     private let userDefaultsKey = "AppLauncherShortcuts"
+    private let preferencesStore: PreferencesStore
+    private let launchApplication: ((String) -> Void)?
     private var lastOpenFallbackAtByBundleID: [String: Date] = [:]
     private var pauseState = AppLauncherHotKeyPauseState()
     private let openFallbackCooldown: TimeInterval = 3
     
-    private init() {
+    init(preferencesStore: PreferencesStore = .shared, launchApplication: ((String) -> Void)? = nil) {
+        self.preferencesStore = preferencesStore
+        self.launchApplication = launchApplication
         loadShortcuts()
+    }
+
+    deinit {
+        registeredShortcutIDs.forEach {
+            ShortcutRegistryStore.shared.unregister(action: .appLauncher($0))
+        }
     }
     
     private func loadShortcuts() {
-        if let data = PreferencesStore.shared.data(forKey: userDefaultsKey),
+        if let data = preferencesStore.data(forKey: userDefaultsKey),
            let decoded = try? JSONDecoder().decode([AppShortcut].self, from: data) {
             shortcuts = decoded
         }
@@ -66,7 +76,7 @@ class AppLauncherManager: ObservableObject {
     
     private func saveShortcuts() {
         if let encoded = try? JSONEncoder().encode(shortcuts) {
-            PreferencesStore.shared.set(encoded, forKey: userDefaultsKey)
+            preferencesStore.set(encoded, forKey: userDefaultsKey)
         }
     }
     
@@ -135,8 +145,7 @@ class AppLauncherManager: ObservableObject {
             registeredShortcutIDs.insert(shortcut.id)
 
             guard !pauseState.isPaused else { continue }
-            let hotKey = HotKey(key: shortcut.key, modifiers: shortcut.modifiers)
-            hotKey.keyDownHandler = { [weak self] in
+            let hotKey = CarbonHotKeyRegistration(configuration: configuration, name: "appLauncher.\(shortcut.appName)") { [weak self] in
                 self?.launchOrActivateApp(path: shortcut.appPath)
             }
             hotKeys[shortcut.id] = hotKey
@@ -144,7 +153,6 @@ class AppLauncherManager: ObservableObject {
     }
 
     private func deactivateSystemHotKeys() {
-        hotKeys.values.forEach { $0.keyDownHandler = nil }
         hotKeys.removeAll()
     }
 
@@ -173,6 +181,10 @@ class AppLauncherManager: ObservableObject {
     }
     
     private func launchOrActivateApp(path: String) {
+        if let launchApplication {
+            launchApplication(path)
+            return
+        }
         let url = URL(fileURLWithPath: path)
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
