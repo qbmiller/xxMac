@@ -251,12 +251,14 @@ class AccessibilityManager {
         guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
 
-        // Exit true fullscreen first — AX position writes are silently ignored
-        // while AXFullScreen is true.
-        exitFullscreenIfNeeded(window)
-
+        // All work — including fullscreen exit — goes to the background thread
+        // so the main thread never sleeps.
         DispatchQueue.global(qos: .userInteractive).async { [weak self] in
             guard let self else { return }
+            // Exit true fullscreen first. AX position writes are silently
+            // ignored while AXFullScreen is true; the sleep here is intentional
+            // to let the transition animation settle before resizing.
+            self.exitFullscreenIfNeeded(window)
             self.applyTargetFrame(rect, window: window)
         }
     }
