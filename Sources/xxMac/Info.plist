@@ -11,7 +11,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.6</string>
+	<string>1.2.7</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -26,7 +26,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1.2.6</string>
+	<string>1.2.7</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
@@ -48,6 +48,6 @@
 	<key>SUPublicEDKey</key>
 	<string>FIz0dUmrdDsIDwPOXNJB11KNOgIYer0CodYoHLoxzAM=</string>
 	<key>XXLastUpdated</key>
-	<string>2026-11-23</string>
+	<string>2026-11-25</string>
 </dict>
 </plist>

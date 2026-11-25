@@ -73,21 +73,42 @@ struct InputSourceSettingsView: View {
             if manager.settings.appRules.isEmpty { emptyState }
             ForEach($manager.settings.appRules) { $rule in
                 GroupBox {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Toggle(rule.name, isOn: $rule.enabled).font(.headline)
-                            Spacer()
-                            Button(role: .destructive) { manager.settings.appRules.removeAll { $0.id == rule.id } } label: { Image(systemName: "trash") }
-                                .help(L10n.t("general.delete"))
+                    HStack(spacing: 12) {
+                        Toggle(isOn: $rule.enabled) {
+                            HStack(spacing: 6) {
+                                if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: rule.bundleID) {
+                                    Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 20, height: 20)
+                                        .accessibilityHidden(true)
+                                } else {
+                                    Image(systemName: "app")
+                                        .frame(width: 20, height: 20)
+                                        .foregroundColor(.secondary)
+                                        .accessibilityHidden(true)
+                                }
+                                Text(rule.name)
+                            }
                         }
-                        Text(rule.bundleID).font(.caption).foregroundColor(.secondary).textSelection(.enabled)
+                            .lineLimit(1)
+                            .help(rule.name + "\n" + rule.bundleID)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         Picker(L10n.t("input.strategy"), selection: $rule.policy) {
                             ForEach(InputSourceAppPolicy.allCases, id: \.self) { policy in Text(policy.title).tag(policy) }
                         }
+                        .labelsHidden()
+                        .frame(width: 150)
+                        .help(L10n.t("input.strategy"))
                         if rule.policy == .fixed {
                             InputSourcePicker(title: L10n.t("input.source"), selection: $rule.sourceID, sources: manager.sources)
+                                .labelsHidden()
+                                .frame(width: 180)
+                                .help(L10n.t("input.source"))
                         }
-                    }.padding(8)
+                        Button(role: .destructive) { manager.settings.appRules.removeAll { $0.id == rule.id } } label: { Image(systemName: "trash") }
+                            .help(L10n.t("general.delete"))
+                    }.padding(4)
                 }
             }
         }
