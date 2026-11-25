@@ -281,23 +281,37 @@ class AccessibilityManager {
     /// catches up.  Setting size first lets the app render the full-size content
     /// before the window moves, eliminating the white-flash artefact.
     private func applyTargetFrame(_ target: CGRect, window: AXUIElement) {
-        // ── Pass 1: size first, then position ──────────────────────────────────
-        // Size first so the app can begin rendering the full content area before
-        // the window moves into its final position.
-        axSetSize(target.size, window: window)
-        Thread.sleep(forTimeInterval: 0.12)   // let the app commit the resize
-        axSetPosition(target.origin, window: window)
+        // Apply setSize→setPosition up to 4 times and stop as soon as the
+        // window lands within tolerance.  Fixed 2-pass approaches fail on apps
+        // (Chrome, Safari) that animate resize: each AX setSize only moves a
+        // fraction of the remaining distance, so "maximize" needs multiple
+        // attempts to reach the target in one keypress.
+        //
+        // Size is set before position so the app renders the full content area
+        // before the window moves, preventing the white-unrendered-region flash.
+        let tolerance: CGFloat = 2
+        let settleMs: TimeInterval = 0.15   // time for animated apps to commit
 
-        // ── Pass 2: correction ─────────────────────────────────────────────────
-        // Moving can cause macOS to re-clamp the size (window constraints, Dock
-        // avoidance, Stage Manager).  Re-apply both values after a brief settle.
-        Thread.sleep(forTimeInterval: 0.15)
-        axSetSize(target.size, window: window)
-        axSetPosition(target.origin, window: window)
+        for pass in 1...4 {
+            axSetSize(target.size, window: window)
+            Thread.sleep(forTimeInterval: settleMs)
+            axSetPosition(target.origin, window: window)
+            Thread.sleep(forTimeInterval: 0.1)
 
-        // ── Pass 3: edge snap ─────────────────────────��────────────────────────
-        // Close any ≤4 pt gap between the window and the intended screen edge.
-        Thread.sleep(forTimeInterval: 0.1)
+            if let actual = getWindowFrame(window) {
+                let close = abs(actual.width  - target.width)    <= tolerance
+                         && abs(actual.height - target.height)   <= tolerance
+                         && abs(actual.origin.x - target.origin.x) <= tolerance
+                         && abs(actual.origin.y - target.origin.y) <= tolerance
+                if close {
+                    NSLog("[AccessibilityManager] applyFrame converged after %d pass(es)", pass)
+                    break
+                }
+                NSLog("[AccessibilityManager] pass %d: actual=%@ target=%@",
+                      pass, NSStringFromRect(actual), NSStringFromRect(target))
+            }
+        }
+
         snapToScreenEdges(target: target, window: window)
     }
 
