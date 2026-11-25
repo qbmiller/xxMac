@@ -93,8 +93,10 @@ struct CalendarFeatureView: View {
     let showsSettings: Bool
     let onPinChanged: ((Bool) -> Void)?
     let onOpenTodo: (() -> Void)?
+    let onAlmanacVisibilityChanged: ((Bool) -> Void)?
 
     @State private var isPinned = false
+    @StateObject private var almanacPresentation: CalendarAlmanacPresentation
     @ObservedObject private var todoStore: TodoStore
     @State private var displayedMonth = Date()
     @State private var selectedDate = Date()
@@ -105,12 +107,16 @@ struct CalendarFeatureView: View {
         showsSettings: Bool = false,
         todoStore: TodoStore? = nil,
         onPinChanged: ((Bool) -> Void)? = nil,
-        onOpenTodo: (() -> Void)? = nil
+        onOpenTodo: (() -> Void)? = nil,
+        almanacPresentation: CalendarAlmanacPresentation? = nil,
+        onAlmanacVisibilityChanged: ((Bool) -> Void)? = nil
     ) {
         self.showsSettings = showsSettings
         self.todoStore = todoStore ?? .shared
         self.onPinChanged = onPinChanged
         self.onOpenTodo = onOpenTodo
+        _almanacPresentation = StateObject(wrappedValue: almanacPresentation ?? CalendarAlmanacPresentation())
+        self.onAlmanacVisibilityChanged = onAlmanacVisibilityChanged
     }
 
     private var locale: Locale {
@@ -146,13 +152,24 @@ struct CalendarFeatureView: View {
             } else {
                 Divider()
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(selectedDate, format: selectedDateFormat)
-                        .font(.headline)
-                    if preferences.showLunar {
-                        Text(lunarHint(for: selectedDate))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selectedDate, format: selectedDateFormat)
+                            .font(.headline)
+                        if preferences.showLunar {
+                            Text(lunarHint(for: selectedDate))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    if localization.language != .english {
+                        CalendarAlmanacSummary(
+                            entry: CalendarAlmanacStore.shared.entry(for: selectedDate, calendar: calendar),
+                            isExpanded: almanacPresentation.isPresented
+                        ) {
+                            almanacPresentation.isPresented.toggle()
+                        }
                     }
                 }
 
@@ -177,6 +194,20 @@ struct CalendarFeatureView: View {
         }
         .padding()
         .frame(minWidth: 390, idealWidth: 430, maxWidth: .infinity, minHeight: showsSettings ? 560 : nil, alignment: .top)
+        .background {
+            if !showsSettings && localization.language != .english {
+                CalendarAlmanacAttachment(date: selectedDate, locale: locale, calendar: calendar,
+                    presentation: almanacPresentation,
+                    onMoveDays: { moveSelection(by: .day, value: $0) },
+                    onMoveMonths: { moveSelection(by: .month, value: $0) },
+                    onTogglePin: onPinChanged == nil ? nil : togglePin)
+            }
+        }
+        .onChange(of: almanacPresentation.isPresented) { onAlmanacVisibilityChanged?($0) }
+        .onChange(of: localization.language) { language in
+            if language == .english { almanacPresentation.isPresented = false }
+        }
+        .onDisappear { almanacPresentation.isPresented = false }
     }
 
     private func togglePin() {
@@ -868,12 +899,14 @@ enum LunarCalendarText {
 }
 
 @MainActor
-final class CalendarMenuBarController {
+final class CalendarMenuBarController: NSObject, NSPopoverDelegate {
     private let statusItem: NSStatusItem
     private let contextMenu: NSMenu
     private let popover = NSPopover()
     private let preferences = CalendarPreferencesStore.shared
     private var eventMonitor: Any?
+    private var localEventMonitor: Any?
+    private let almanacPresentation = CalendarAlmanacPresentation()
     private var isPinned = false
     private var cancellables = Set<AnyCancellable>()
     private var timer: Timer?
@@ -881,6 +914,7 @@ final class CalendarMenuBarController {
     init(statusItem: NSStatusItem, contextMenu: NSMenu) {
         self.statusItem = statusItem
         self.contextMenu = contextMenu
+        super.init()
         configureStatusItem()
         configurePopover()
         observeChanges()
@@ -892,6 +926,7 @@ final class CalendarMenuBarController {
         if let eventMonitor {
             NSEvent.removeMonitor(eventMonitor)
         }
+        if let localEventMonitor { NSEvent.removeMonitor(localEventMonitor) }
         timer?.invalidate()
     }
 
@@ -938,6 +973,7 @@ final class CalendarMenuBarController {
 
     private func configurePopover() {
         popover.behavior = .transient
+        popover.delegate = self
         installPopoverContent()
     }
 
@@ -946,11 +982,15 @@ final class CalendarMenuBarController {
             onPinChanged: { [weak self] pinned in
                 guard let self else { return }
                 self.isPinned = pinned
-                self.popover.behavior = pinned ? .applicationDefined : .transient
+                self.updatePopoverBehavior()
             },
             onOpenTodo: { [weak self] in
                 self?.closePopover()
                 TodoWindowController.shared.show()
+            },
+            almanacPresentation: almanacPresentation,
+            onAlmanacVisibilityChanged: { [weak self] _ in
+                self?.updatePopoverBehavior()
             }
         ))
         // Follow intrinsic height changes when switching between empty and
@@ -1023,9 +1063,19 @@ final class CalendarMenuBarController {
 
     private func closePopover() {
         isPinned = false
+        almanacPresentation.isPresented = false
         popover.close()
         popover.behavior = .transient
         stopEventMonitor()
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        almanacPresentation.isPresented = false
+        stopEventMonitor()
+    }
+
+    private func updatePopoverBehavior() {
+        popover.behavior = isPinned || almanacPresentation.isPresented ? .applicationDefined : .transient
     }
 
     private func startEventMonitor() {
@@ -1036,12 +1086,27 @@ final class CalendarMenuBarController {
                 self.closePopover()
             }
         }
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self, !self.isPinned, self.almanacPresentation.isPresented else { return event }
+            // The status button's mouseUp action owns toggling. Closing on its
+            // mouseDown would let that action immediately reopen the calendar.
+            if event.window === self.statusItem.button?.window { return event }
+            let root = self.popover.contentViewController?.view.window
+            var window = event.window
+            while let current = window {
+                if current === root { return event }
+                window = current.parent
+            }
+            self.closePopover()
+            return event
+        }
     }
 
     private func stopEventMonitor() {
-        guard let eventMonitor else { return }
-        NSEvent.removeMonitor(eventMonitor)
+        if let eventMonitor { NSEvent.removeMonitor(eventMonitor) }
         self.eventMonitor = nil
+        if let localEventMonitor { NSEvent.removeMonitor(localEventMonitor) }
+        localEventMonitor = nil
     }
 }
 

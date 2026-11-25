@@ -544,7 +544,7 @@
 "calendar.choose_month" = "選擇年月";
 "calendar.year" = "年";
 "calendar.month" = "月";
-"common.calendar_config_desc" = "日曆偏好儲存在 preferences.json。農曆日期由系統自動計算；節日規則、節氣及除夕日期表和年度放假/補班資料隨應用內建，放假/補班以 calendar_holidays.json 為準，不會推算未來年度。年月選擇僅用於目前瀏覽，不儲存。 日曆中的待辦直接讀寫現有 todo.db，與 Todo 主視窗及小元件共用資料，不新增檔案。快速新增預設截止於所選日 18:00。清單固定高度、內部捲動；選取日期、顯示已完成及固定彈窗僅於本次瀏覽有效，不儲存。";
+"common.calendar_config_desc" = "日曆偏好儲存在 preferences.json。農曆日期由系統自動計算；節日規則、節氣及除夕日期表和年度放假/補班資料隨應用內建，放假/補班以 calendar_holidays.json 為準，不會推算未來年度。年月選擇僅用於目前瀏覽，不儲存。 日曆中的待辦直接讀寫現有 todo.db，與 Todo 主視窗及小元件共用資料，不新增檔案。快速新增預設截止於所選日 18:00。清單固定高度、內部捲動；選取日期、顯示已完成及固定彈窗僅於本次瀏覽有效，不儲存。 黃曆資料由 cnlunar 離線產生，內建於應用 Resources/Almanac，支援 1901-02-19 至 2099-12-31；無需 Python、背景程序或連網，不在設定目錄新增檔案。黃曆展開狀態僅於本次瀏覽有效。";
 
 "about.automatic_install" = "自動安裝更新並重新啟動";
 
@@ -650,3 +650,21 @@
 "calendar.todo.retry" = "重試";
 "calendar.pin" = "固定日曆（⌘P）";
 "calendar.unpin" = "取消固定（⌘P）";
+
+// Offline calendar almanac
+"calendar.almanac.title" = "黃曆";
+"calendar.almanac.good" = "宜";
+"calendar.almanac.bad" = "忌";
+"calendar.almanac.toggle" = "展開或收合黃曆詳情";
+"calendar.almanac.close" = "關閉黃曆詳情";
+"calendar.almanac.unavailable" = "暫無黃曆資料";
+"calendar.almanac.range" = "支援 1901-02-19 至 2099-12-31";
+"calendar.almanac.source" = "黃曆資料：cnlunar · 民俗參考";
+"calendar.almanac.god" = "值神";
+"calendar.almanac.officer" = "建除十二神";
+"calendar.almanac.clash" = "生肖沖煞";
+"calendar.almanac.good_gods" = "吉神宜趨";
+"calendar.almanac.bad_gods" = "凶煞宜忌";
+"calendar.almanac.level" = "宜忌等第";
+"calendar.almanac.peng" = "彭祖百忌";
+"calendar.almanac.nayin" = "納音";
