@@ -5,3 +5,4 @@ ref/
 xxMac.app/
 *.dmg
 .worktrees/
+docs/design-previews

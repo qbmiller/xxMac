@@ -544,7 +544,7 @@
 "calendar.choose_month" = "Choose Year and Month";
 "calendar.year" = "Year";
 "calendar.month" = "Month";
-"common.calendar_config_desc" = "Calendar preferences are stored in preferences.json. Lunar dates are calculated by the system. Festival rules, solar-term and Lunar New Year’s Eve date tables, and annual holiday/workday data are bundled with the app. Holiday/workday arrangements come from calendar_holidays.json; future years are not inferred. The month selection is temporary and is not saved.";
+"common.calendar_config_desc" = "Calendar preferences are stored in preferences.json. Lunar dates are calculated by the system. Festival rules, solar-term and Lunar New Year’s Eve date tables, and annual holiday/workday data are bundled with the app. Holiday/workday arrangements come from calendar_holidays.json; future years are not inferred. The month selection is temporary and is not saved. Calendar tasks use the existing todo.db shared with Todo and its widget; no extra files are created. Quick-added tasks are due at 18:00 on the selected day. The list scrolls within a fixed height. The selected date, completed-task visibility, and popover pin are session-only.";
 
 "about.automatic_install" = "Automatically install updates and restart";
 
@@ -633,3 +633,20 @@
 "general.delete" = "Delete";
 "general.save" = "Save";
 "input.use_current_for_website" = "Use Current Source for This Website";
+
+/* Calendar Todo */
+"calendar.todo.title" = "Daily Todo";
+"calendar.todo.open_count" = "%d pending";
+"calendar.todo.add" = "Add task";
+"calendar.todo.placeholder" = "Due at 18:00 on selected day; Enter to save";
+"calendar.todo.empty" = "No tasks for this day";
+"calendar.todo.hide_completed" = "Hide completed";
+"calendar.todo.show_completed" = "Show completed";
+"calendar.todo.open" = "Open Todo";
+"calendar.todo.reopen" = "Reopen";
+"calendar.todo.complete" = "Complete";
+"calendar.todo.defer" = "Move to tomorrow (keep time)";
+"calendar.todo.has_tasks" = "Has pending tasks";
+"calendar.todo.retry" = "Retry";
+"calendar.pin" = "Pin calendar (⌘P)";
+"calendar.unpin" = "Unpin calendar (⌘P)";

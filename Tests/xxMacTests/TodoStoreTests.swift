@@ -1,4 +1,6 @@
+import AppKit
 import Combine
+import SwiftUI
 import Foundation
 import UserNotifications
 import XCTest
@@ -7,6 +9,95 @@ import XCTest
 @MainActor
 final class TodoStoreTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    func testCalendarDeferralPreservesLatestEditsAndReconcilesNotifications() async throws {
+        var original = TodoTask.makeNew(title: "Original", now: now)
+        original.dueAt = now
+        let persistence = TodoPersistenceFake(tasks: [original])
+        let notifications = TodoNotificationSpy()
+        let store = TodoStore(persistence: persistence, notifications: notifications, now: { self.now })
+        var edited = original
+        edited.title = "Edited before deferral"
+        edited.notes = "Must survive"
+        store.save(edited)
+        store.deferToTomorrow(id: original.id)
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now)!
+        try await waitUntil { store.tasks.first?.dueAt == tomorrow }
+        XCTAssertEqual(store.tasks.first?.title, edited.title)
+        XCTAssertEqual(store.tasks.first?.notes, edited.notes)
+        XCTAssertEqual(persistence.tasks, store.tasks)
+        XCTAssertEqual(notifications.reconciliations.count, 2)
+    }
+
+    func testCalendarDeferralFailureKeepsDeadlineAndDoesNotNotify() async throws {
+        var original = TodoTask.makeNew(title: "Original", now: now)
+        original.dueAt = now
+        let persistence = TodoPersistenceFake(tasks: [original])
+        persistence.updateError = NSError(domain: "test", code: 1)
+        let notifications = TodoNotificationSpy()
+        let store = TodoStore(persistence: persistence, notifications: notifications, now: { self.now })
+        store.deferToTomorrow(id: original.id)
+        try await waitUntil { store.errorMessage != nil }
+        XCTAssertEqual(store.tasks, [original])
+        XCTAssertTrue(notifications.reconciliations.isEmpty)
+    }
+
+    func testCalendarEmptyListIsCompactAndPopulatedListHeightIsBounded() {
+        let emptyStore = TodoStore(persistence: TodoPersistenceFake(), notifications: TodoNotificationSpy())
+        let tasks = (0..<40).map { index -> TodoTask in
+            var task = TodoTask.makeNew(title: "Calendar task \(index)", now: now)
+            task.dueAt = now
+            return task
+        }
+        let fullStore = TodoStore(persistence: TodoPersistenceFake(tasks: tasks), notifications: TodoNotificationSpy())
+        func height(_ store: TodoStore) -> CGFloat {
+            let host = NSHostingView(rootView: CalendarTodoListView(
+                store: store, selectedDate: now, calendar: .current,
+                locale: Locale(identifier: "zh_CN"), onOpenTodo: {}
+            ))
+            host.setFrameSize(NSSize(width: 398, height: 1))
+            host.layoutSubtreeIfNeeded()
+            return host.fittingSize.height
+        }
+        let singleStore = TodoStore(
+            persistence: TodoPersistenceFake(tasks: Array(tasks.prefix(1))), notifications: TodoNotificationSpy()
+        )
+        XCTAssertLessThan(height(emptyStore), height(fullStore) - 100)
+        XCTAssertEqual(height(singleStore), height(fullStore), accuracy: 1)
+        XCTAssertLessThan(height(fullStore), 300)
+        XCTAssertGreaterThan(height(fullStore), 182)
+    }
+
+    func testCalendarPanelFitsCompactHeight() {
+        let store = TodoStore(persistence: TodoPersistenceFake(), notifications: TodoNotificationSpy())
+        let host = NSHostingView(rootView: CalendarFeatureView(todoStore: store, onPinChanged: { _ in }))
+        host.setFrameSize(NSSize(width: 430, height: 1))
+        host.layoutSubtreeIfNeeded()
+        XCTAssertLessThan(host.fittingSize.height, 760)
+        XCTAssertGreaterThan(host.fittingSize.height, 500)
+    }
+
+    func testQuickAddReportsFailureAndCanRetryWithoutLosingTheTitle() async throws {
+        let persistence = TodoPersistenceFake()
+        persistence.insertError = NSError(domain: "test", code: 2)
+        let store = TodoStore(persistence: persistence, notifications: TodoNotificationSpy(), now: { self.now })
+        var result: Result<Void, Error>?
+        let title = "Keep this quick-add draft"
+        store.create(title: title, notes: "", quadrant: .notImportantNotUrgent, status: .todo, dueAt: now) {
+            result = $0
+        }
+        try await waitUntil { result != nil }
+        guard case .failure = result else { return XCTFail("Expected persistence error") }
+        XCTAssertTrue(store.tasks.isEmpty)
+        persistence.insertError = nil
+        result = nil
+        store.create(title: title, notes: "", quadrant: .notImportantNotUrgent, status: .todo, dueAt: now) {
+            result = $0
+        }
+        try await waitUntil { result != nil }
+        guard case .success = result else { return XCTFail("Expected successful retry") }
+        XCTAssertEqual(store.tasks.map(\.title), [title])
+    }
 
     func testCreatePersistsBeforePublishingTask() async throws {
         let events = LockedEvents()
@@ -455,6 +546,7 @@ private final class TodoPersistenceFake: TodoPersisting {
     private var storage: [TodoTask]
     private var listStorage: [TodoList]
     var onInsert: (() -> Void)?
+    var insertError: Error?
     var updateError: Error?
     private(set) var checkpointCount = 0
     private(set) var reopenedURLs: [URL] = []
@@ -505,6 +597,7 @@ private final class TodoPersistenceFake: TodoPersisting {
     }
 
     func insert(_ task: TodoTask) throws {
+        if let insertError { throw insertError }
         onInsert?()
         lock.lock()
         storage.append(task)

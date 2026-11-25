@@ -250,23 +250,23 @@ class AccessibilityManager {
         guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
         
-        // Position
-        var position = CGPoint(x: rect.origin.x, y: rect.origin.y)
-        if let positionValue = AXValueCreate(.cgPoint, &position) {
-            let result = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
-            if result != .success {
-                NSLog("[AccessibilityManager] failed to set window position: %@", String(describing: result))
+        WindowFrameWriter.apply(rect, setSize: { requestedSize in
+            var size = requestedSize
+            if let sizeValue = AXValueCreate(.cgSize, &size) {
+                let result = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+                if result != .success {
+                    NSLog("[AccessibilityManager] failed to set window size: %@", String(describing: result))
+                }
             }
-        }
-        
-        // Size
-        var size = CGSize(width: rect.size.width, height: rect.size.height)
-        if let sizeValue = AXValueCreate(.cgSize, &size) {
-            let result = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
-            if result != .success {
-                NSLog("[AccessibilityManager] failed to set window size: %@", String(describing: result))
+        }, setPosition: { requestedPosition in
+            var position = requestedPosition
+            if let positionValue = AXValueCreate(.cgPoint, &position) {
+                let result = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+                if result != .success {
+                    NSLog("[AccessibilityManager] failed to set window position: %@", String(describing: result))
+                }
             }
-        }
+        })
     }
     
     // Actions

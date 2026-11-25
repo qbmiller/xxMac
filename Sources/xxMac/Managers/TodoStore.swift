@@ -83,13 +83,14 @@ final class TodoStore: ObservableObject {
         quadrant: TodoQuadrant,
         status: TodoStatus,
         dueAt: Date?,
-        listID: UUID? = nil
+        listID: UUID? = nil,
+        completion: ((Result<Void, Error>) -> Void)? = nil
     ) {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
         let timestamp = now()
 
-        submit { tasks, persistence in
+        submit({ tasks, persistence in
             let quadrantRank = Self.rankAtEnd(
                 tasks.filter { $0.archivedAt == nil && $0.quadrant == quadrant }.map(\.quadrantRank)
             )
@@ -112,6 +113,8 @@ final class TodoStore: ObservableObject {
             try persistence.insert(task)
             tasks.append(task)
             return TodoStoreChange(old: nil, new: task)
+        }) { result in
+            completion?(result.map { _ in () })
         }
     }
 
@@ -187,6 +190,26 @@ final class TodoStore: ObservableObject {
                 updated.completedAt = old.completedAt
                 updated.statusBeforeCompletion = old.statusBeforeCompletion
             }
+            try persistence.update(updated)
+            tasks[index] = updated
+            return TodoStoreChange(old: old, new: updated)
+        }
+    }
+
+    /// Mutate the worker's latest snapshot so a calendar action cannot overwrite
+    /// edits queued from the Todo window or Widget.
+    func deferToTomorrow(id: UUID, calendar: Calendar = .current) {
+        let timestamp = now()
+        submit { tasks, persistence in
+            guard let index = tasks.firstIndex(where: { $0.id == id }),
+                  tasks[index].archivedAt == nil, tasks[index].status != .completed,
+                  let dueAt = CalendarTodoQuery.deferredDeadline(
+                    tasks[index].dueAt, now: timestamp, calendar: calendar
+                  ) else { return nil }
+            let old = tasks[index]
+            var updated = old
+            updated.dueAt = dueAt
+            updated.updatedAt = timestamp
             try persistence.update(updated)
             tasks[index] = updated
             return TodoStoreChange(old: old, new: updated)

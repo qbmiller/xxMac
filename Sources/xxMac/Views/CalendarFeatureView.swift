@@ -91,14 +91,26 @@ final class CalendarPreferencesStore: ObservableObject {
 
 struct CalendarFeatureView: View {
     let showsSettings: Bool
+    let onPinChanged: ((Bool) -> Void)?
+    let onOpenTodo: (() -> Void)?
 
+    @State private var isPinned = false
+    @ObservedObject private var todoStore: TodoStore
     @State private var displayedMonth = Date()
     @State private var selectedDate = Date()
     @ObservedObject private var localization = LocalizationManager.shared
     @ObservedObject private var preferences = CalendarPreferencesStore.shared
 
-    init(showsSettings: Bool = false) {
+    init(
+        showsSettings: Bool = false,
+        todoStore: TodoStore? = nil,
+        onPinChanged: ((Bool) -> Void)? = nil,
+        onOpenTodo: (() -> Void)? = nil
+    ) {
         self.showsSettings = showsSettings
+        self.todoStore = todoStore ?? .shared
+        self.onPinChanged = onPinChanged
+        self.onOpenTodo = onOpenTodo
     }
 
     private var locale: Locale {
@@ -113,7 +125,7 @@ struct CalendarFeatureView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             CalendarMonthView(
                 displayedMonth: $displayedMonth,
                 selectedDate: $selectedDate,
@@ -122,6 +134,9 @@ struct CalendarFeatureView: View {
                 monthDays: monthDays,
                 showsWeekNumbers: preferences.showWeekNumbers,
                 showsLunar: preferences.showLunar,
+                daysWithTasks: CalendarTodoQuery.daysWithOpenTasks(todoStore.tasks, calendar: calendar),
+                isPinned: isPinned,
+                onTogglePin: onPinChanged == nil ? nil : togglePin,
                 onToday: showToday
             )
 
@@ -140,10 +155,39 @@ struct CalendarFeatureView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                CalendarTodoListView(
+                    store: todoStore,
+                    selectedDate: selectedDate,
+                    calendar: calendar,
+                    locale: locale,
+                    onOpenTodo: {
+                        if let onOpenTodo { onOpenTodo() }
+                        else { TodoWindowController.shared.show() }
+                    }
+                )
             }
+        }
+        .background {
+            CalendarKeyboardNavigation(
+                onMoveDays: { moveSelection(by: .day, value: $0) },
+                onMoveMonths: { moveSelection(by: .month, value: $0) },
+                onTogglePin: onPinChanged == nil ? nil : togglePin
+            )
         }
         .padding()
         .frame(minWidth: 390, idealWidth: 430, maxWidth: .infinity, minHeight: showsSettings ? 560 : nil, alignment: .top)
+    }
+
+    private func togglePin() {
+        isPinned.toggle()
+        onPinChanged?(isPinned)
+    }
+
+    private func moveSelection(by component: Calendar.Component, value: Int) {
+        guard let next = calendar.date(byAdding: component, value: value, to: selectedDate) else { return }
+        selectedDate = next
+        displayedMonth = next
     }
 
     private var monthDays: [Date] {
@@ -187,6 +231,9 @@ private struct CalendarMonthView: View {
     let monthDays: [Date]
     let showsWeekNumbers: Bool
     let showsLunar: Bool
+    let daysWithTasks: Set<Date>
+    let isPinned: Bool
+    let onTogglePin: (() -> Void)?
     let onToday: () -> Void
 
     private var columns: [GridItem] {
@@ -199,10 +246,12 @@ private struct CalendarMonthView: View {
             CalendarHeaderView(
                 displayedMonth: $displayedMonth,
                 locale: locale,
+                isPinned: isPinned,
+                onTogglePin: onTogglePin,
                 onToday: onToday
             )
 
-            LazyVGrid(columns: columns, spacing: 6) {
+            LazyVGrid(columns: columns, spacing: 4) {
                 if showsWeekNumbers {
                     Text("#")
                         .font(.caption)
@@ -225,21 +274,24 @@ private struct CalendarMonthView: View {
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundStyle(.red)
-                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .frame(maxWidth: .infinity, minHeight: 44)
                     }
 
                     ForEach(row.dates, id: \.self) { date in
-                        CalendarDayCell(
-                            date: date,
-                            displayedMonth: displayedMonth,
-                            selectedDate: selectedDate,
-                            calendar: calendar,
-                            locale: locale,
-                            showsLunar: showsLunar
-                        )
-                        .onTapGesture {
+                        Button {
                             selectedDate = date
+                        } label: {
+                            CalendarDayCell(
+                                date: date,
+                                displayedMonth: displayedMonth,
+                                selectedDate: selectedDate,
+                                calendar: calendar,
+                                locale: locale,
+                                showsLunar: showsLunar,
+                                hasTasks: daysWithTasks.contains(calendar.startOfDay(for: date))
+                            )
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -510,6 +562,8 @@ private struct CalendarHeaderView: View {
     @State private var showsMonthPicker = false
 
     let locale: Locale
+    let isPinned: Bool
+    let onTogglePin: (() -> Void)?
     let onToday: () -> Void
 
     var body: some View {
@@ -536,6 +590,16 @@ private struct CalendarHeaderView: View {
             }
 
             Spacer()
+
+            if let onTogglePin {
+                Button(action: onTogglePin) {
+                    Image(systemName: isPinned ? "pin.fill" : "pin")
+                        .foregroundStyle(isPinned ? Color.accentColor : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help(L10n.t(isPinned ? "calendar.unpin" : "calendar.pin"))
+                .accessibilityLabel(L10n.t(isPinned ? "calendar.unpin" : "calendar.pin"))
+            }
 
             Button(action: previousMonth) {
                 Label(L10n.t("calendar.previous_month"), systemImage: "chevron.left")
@@ -571,6 +635,7 @@ private struct CalendarDayCell: View {
     let calendar: Calendar
     let locale: Locale
     let showsLunar: Bool
+    let hasTasks: Bool
 
     var body: some View {
         let isCurrentMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
@@ -604,15 +669,23 @@ private struct CalendarDayCell: View {
                         .lineLimit(1)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
+            .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .frame(maxWidth: .infinity, minHeight: 48)
+        .frame(maxWidth: .infinity, minHeight: 44)
         .overlay {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(isToday || isSelected ? Color.red : Color.clear, lineWidth: 1)
         }
+        .overlay(alignment: .bottom) {
+            Circle()
+                .fill(isSelected ? Color.red : .accentColor)
+                .frame(width: 3, height: 3)
+                .opacity(hasTasks ? 1 : 0)
+                .padding(.bottom, 2)
+        }
         .contentShape(Rectangle())
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue(hasTasks ? L10n.t("calendar.todo.has_tasks") : "")
     }
 
     private var isWeekend: Bool {
@@ -780,6 +853,7 @@ final class CalendarMenuBarController {
     private let popover = NSPopover()
     private let preferences = CalendarPreferencesStore.shared
     private var eventMonitor: Any?
+    private var isPinned = false
     private var cancellables = Set<AnyCancellable>()
     private var timer: Timer?
 
@@ -847,7 +921,20 @@ final class CalendarMenuBarController {
     }
 
     private func installPopoverContent() {
-        let controller = NSHostingController(rootView: CalendarFeatureView())
+        let controller = NSHostingController(rootView: CalendarFeatureView(
+            onPinChanged: { [weak self] pinned in
+                guard let self else { return }
+                self.isPinned = pinned
+                self.popover.behavior = pinned ? .applicationDefined : .transient
+            },
+            onOpenTodo: { [weak self] in
+                self?.closePopover()
+                TodoWindowController.shared.show()
+            }
+        ))
+        // Follow intrinsic height changes when switching between empty and
+        // populated dates instead of retaining the initial popover height.
+        controller.sizingOptions = [.preferredContentSize]
         popover.contentViewController = controller
 
         // Measure the SwiftUI hierarchy at the popover's fixed width so its
@@ -898,6 +985,8 @@ final class CalendarMenuBarController {
 
     private func showPopover(_ sender: Any?) {
         guard let button = sender as? NSStatusBarButton else { return }
+        isPinned = false
+        popover.behavior = .transient
         installPopoverContent()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.becomeKey()
@@ -912,7 +1001,9 @@ final class CalendarMenuBarController {
     }
 
     private func closePopover() {
+        isPinned = false
         popover.close()
+        popover.behavior = .transient
         stopEventMonitor()
     }
 
@@ -920,7 +1011,8 @@ final class CalendarMenuBarController {
         stopEventMonitor()
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             Task { @MainActor in
-                self?.closePopover()
+                guard let self, !self.isPinned else { return }
+                self.closePopover()
             }
         }
     }
@@ -1096,7 +1188,7 @@ final class CalendarWindowController {
     func show() {
         if window == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 460, height: 520),
+                contentRect: NSRect(x: 0, y: 0, width: 460, height: 740),
                 styleMask: [.titled, .closable, .resizable, .miniaturizable],
                 backing: .buffered,
                 defer: false

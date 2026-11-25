@@ -544,7 +544,7 @@
 "calendar.choose_month" = "選擇年月";
 "calendar.year" = "年";
 "calendar.month" = "月";
-"common.calendar_config_desc" = "日曆偏好儲存在 preferences.json。農曆日期由系統自動計算；節日規則、節氣及除夕日期表和年度放假/補班資料隨應用內建，放假/補班以 calendar_holidays.json 為準，不會推算未來年度。年月選擇僅用於目前瀏覽，不儲存。";
+"common.calendar_config_desc" = "日曆偏好儲存在 preferences.json。農曆日期由系統自動計算；節日規則、節氣及除夕日期表和年度放假/補班資料隨應用內建，放假/補班以 calendar_holidays.json 為準，不會推算未來年度。年月選擇僅用於目前瀏覽，不儲存。 日曆中的待辦直接讀寫現有 todo.db，與 Todo 主視窗及小元件共用資料，不新增檔案。快速新增預設截止於所選日 18:00。清單固定高度、內部捲動；選取日期、顯示已完成及固定彈窗僅於本次瀏覽有效，不儲存。";
 
 "about.automatic_install" = "自動安裝更新並重新啟動";
 
@@ -633,3 +633,20 @@
 "general.delete" = "刪除";
 "general.save" = "儲存";
 "input.use_current_for_website" = "將目前輸入法用於此網站";
+
+/* Calendar Todo */
+"calendar.todo.title" = "當日待辦";
+"calendar.todo.open_count" = "%d 項未完成";
+"calendar.todo.add" = "新增待辦";
+"calendar.todo.placeholder" = "新增至所選日 18:00，按 Enter 儲存";
+"calendar.todo.empty" = "這一天暫無待辦";
+"calendar.todo.hide_completed" = "隱藏已完成";
+"calendar.todo.show_completed" = "顯示已完成";
+"calendar.todo.open" = "開啟 Todo";
+"calendar.todo.reopen" = "取消完成";
+"calendar.todo.complete" = "完成";
+"calendar.todo.defer" = "延至明天（保留時間）";
+"calendar.todo.has_tasks" = "有未完成待辦";
+"calendar.todo.retry" = "重試";
+"calendar.pin" = "固定日曆（⌘P）";
+"calendar.unpin" = "取消固定（⌘P）";
