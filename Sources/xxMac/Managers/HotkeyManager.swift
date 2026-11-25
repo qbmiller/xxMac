@@ -237,23 +237,41 @@ class HotKeyManager: ObservableObject {
         ShortcutDetectiveManager.shared.recordHotkeyReception(for: action, hotkeyDisplay: hotkeyDisplay)
 
         let am = AccessibilityManager.shared
+        // AX window operations must run on the main thread for reliability on
+        // macOS 15+. Carbon HotKey callbacks are not guaranteed to arrive on main.
+        let windowOp: (() -> Void)?
         switch action {
-        case .left: am.leftHalf()
-        case .right: am.rightHalf()
-        case .top: am.topHalf()
-        case .bottom: am.bottomHalf()
-        case .topLeft: am.topLeft()
-        case .topRight: am.topRight()
-        case .bottomLeft: am.bottomLeft()
-        case .bottomRight: am.bottomRight()
-        case .center: am.center()
-        case .toggleZoom: am.toggleZoom()
-        case .maximize: am.maximize()
-        case .toggleFullscreen: am.toggleFullscreen()
-        case .increase: am.increase()
-        case .reduce: am.reduce()
-        case .nextScreen: am.nextScreen()
-        case .previousScreen: am.previousScreen()
+        case .left: windowOp = { am.leftHalf() }
+        case .right: windowOp = { am.rightHalf() }
+        case .top: windowOp = { am.topHalf() }
+        case .bottom: windowOp = { am.bottomHalf() }
+        case .topLeft: windowOp = { am.topLeft() }
+        case .topRight: windowOp = { am.topRight() }
+        case .bottomLeft: windowOp = { am.bottomLeft() }
+        case .bottomRight: windowOp = { am.bottomRight() }
+        case .center: windowOp = { am.center() }
+        case .toggleZoom: windowOp = { am.toggleZoom() }
+        case .maximize: windowOp = { am.maximize() }
+        case .toggleFullscreen: windowOp = { am.toggleFullscreen() }
+        case .increase: windowOp = { am.increase() }
+        case .reduce: windowOp = { am.reduce() }
+        case .nextScreen: windowOp = { am.nextScreen() }
+        case .previousScreen: windowOp = { am.previousScreen() }
+        default: windowOp = nil
+        }
+        if let windowOp {
+            if Thread.isMainThread {
+                windowOp()
+            } else {
+                DispatchQueue.main.async(execute: windowOp)
+            }
+            return
+        }
+        switch action {
+        case .left, .right, .top, .bottom, .topLeft, .topRight, .bottomLeft, .bottomRight,
+             .center, .toggleZoom, .maximize, .toggleFullscreen, .increase, .reduce,
+             .nextScreen, .previousScreen:
+            break // already handled above via windowOp
         case .toggleLauncher:
             let showLauncher = {
                 if NSApp.isHidden {

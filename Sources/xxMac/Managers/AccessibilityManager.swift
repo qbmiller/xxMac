@@ -249,7 +249,22 @@ class AccessibilityManager {
     func moveWindow(to rect: CGRect) {
         guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
-        
+
+        // Exit fullscreen before repositioning — AX position writes are silently
+        // ignored on macOS 15+ when the window is in a true-fullscreen state.
+        exitFullscreenIfNeeded(window)
+
+        applyFrame(rect, to: window)
+
+        // Verify the position landed correctly and retry once if it drifted.
+        // On macOS 15/26 with native window tiling the first write can be absorbed
+        // by the system without fully taking effect.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.verifyAndRetryFrame(rect, window: window)
+        }
+    }
+
+    private func applyFrame(_ rect: CGRect, to window: AXUIElement) {
         WindowFrameWriter.apply(rect, setSize: { requestedSize in
             var size = requestedSize
             if let sizeValue = AXValueCreate(.cgSize, &size) {
@@ -267,6 +282,28 @@ class AccessibilityManager {
                 }
             }
         })
+    }
+
+    private func exitFullscreenIfNeeded(_ window: AXUIElement) {
+        var fullscreen: AnyObject?
+        guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &fullscreen) == .success,
+              let isFullscreen = fullscreen as? Bool, isFullscreen else { return }
+        AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, false as CFTypeRef)
+        // Give the transition animation a moment before writing size/position.
+        Thread.sleep(forTimeInterval: 0.35)
+    }
+
+    private func verifyAndRetryFrame(_ target: CGRect, window: AXUIElement) {
+        guard let actual = getWindowFrame(window) else { return }
+        let tolerance: CGFloat = 4
+        let positionOK = abs(actual.origin.x - target.origin.x) <= tolerance
+                      && abs(actual.origin.y - target.origin.y) <= tolerance
+        let sizeOK = abs(actual.size.width - target.size.width) <= tolerance
+                  && abs(actual.size.height - target.size.height) <= tolerance
+        guard !positionOK || !sizeOK else { return }
+        NSLog("[AccessibilityManager] frame drifted — retrying (actual=%@ target=%@)",
+              NSStringFromRect(actual), NSStringFromRect(target))
+        applyFrame(target, to: window)
     }
     
     // Actions
@@ -345,9 +382,17 @@ class AccessibilityManager {
     func toggleZoom() {
         guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
-        let result = AXUIElementPerformAction(window, kAXZoomButtonAttribute as CFString)
+        // kAXZoomButtonAttribute is an attribute, not an action name.
+        // Read the zoom button element first, then press it.
+        var zoomButtonRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(window, kAXZoomButtonAttribute as CFString, &zoomButtonRef) == .success,
+              let zoomButton = zoomButtonRef as! AXUIElement? else {
+            NSLog("[AccessibilityManager] failed to get zoom button element")
+            return
+        }
+        let result = AXUIElementPerformAction(zoomButton, kAXPressAction as CFString)
         if result != .success {
-            NSLog("[AccessibilityManager] failed to toggle zoom: %@", String(describing: result))
+            NSLog("[AccessibilityManager] failed to press zoom button: %@", String(describing: result))
         }
     }
     
@@ -383,45 +428,23 @@ class AccessibilityManager {
     
     func increase() {
         guard ensureAccessibilityPermissions() else { return }
-        guard let window = getFocusedWindow() else { return }
-        var sizeValue: AnyObject?
-        AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue)
-        var size = CGSize.zero
-        AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
-        
-        var posValue: AnyObject?
-        AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posValue)
-        var pos = CGPoint.zero
-        AXValueGetValue(posValue as! AXValue, .cgPoint, &pos)
-        
-        let deltaW = size.width * 0.1
-        let deltaH = size.height * 0.1
-        
-        let newSize = CGSize(width: size.width + deltaW, height: size.height + deltaH)
-        let newPos = CGPoint(x: pos.x - deltaW / 2, y: pos.y - deltaH / 2)
-        
+        guard let window = getFocusedWindow(),
+              let frame = getWindowFrame(window) else { return }
+        let deltaW = frame.width * 0.1
+        let deltaH = frame.height * 0.1
+        let newSize = CGSize(width: frame.width + deltaW, height: frame.height + deltaH)
+        let newPos = CGPoint(x: frame.origin.x - deltaW / 2, y: frame.origin.y - deltaH / 2)
         moveWindow(to: CGRect(origin: newPos, size: newSize))
     }
-    
+
     func reduce() {
         guard ensureAccessibilityPermissions() else { return }
-        guard let window = getFocusedWindow() else { return }
-        var sizeValue: AnyObject?
-        AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue)
-        var size = CGSize.zero
-        AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
-        
-        var posValue: AnyObject?
-        AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posValue)
-        var pos = CGPoint.zero
-        AXValueGetValue(posValue as! AXValue, .cgPoint, &pos)
-        
-        let deltaW = size.width * 0.1
-        let deltaH = size.height * 0.1
-        
-        let newSize = CGSize(width: size.width - deltaW, height: size.height - deltaH)
-        let newPos = CGPoint(x: pos.x + deltaW / 2, y: pos.y + deltaH / 2)
-        
+        guard let window = getFocusedWindow(),
+              let frame = getWindowFrame(window) else { return }
+        let deltaW = frame.width * 0.1
+        let deltaH = frame.height * 0.1
+        let newSize = CGSize(width: frame.width - deltaW, height: frame.height - deltaH)
+        let newPos = CGPoint(x: frame.origin.x + deltaW / 2, y: frame.origin.y + deltaH / 2)
         moveWindow(to: CGRect(origin: newPos, size: newSize))
     }
     
