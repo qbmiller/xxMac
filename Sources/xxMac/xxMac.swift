@@ -408,21 +408,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         menu.delegate = self
 
         let toggleItem = NSMenuItem(title: L10n.t("menu.toggle_launcher"), action: #selector(toggleLauncher), keyEquivalent: "")
+        toggleItem.image = statusMenuIcon("square.grid.2x2.fill", color: .systemBlue)
         toggleItem.target = self
         toggleLauncherMenuItem = toggleItem
         menu.addItem(toggleItem)
 
         let clipboardItem = NSMenuItem(title: L10n.t("menu.clipboard_history"), action: #selector(openClipboardHistoryFromMenu), keyEquivalent: "")
+        clipboardItem.image = statusMenuIcon("doc.on.clipboard.fill", color: .systemPurple)
         clipboardItem.target = self
         showClipboardHistoryMenuItem = clipboardItem
         menu.addItem(clipboardItem)
 
         let todoItem = NSMenuItem(title: L10n.t("menu.todo"), action: #selector(toggleTodoFromMenu), keyEquivalent: "")
+        todoItem.image = statusMenuIcon("checkmark.circle.fill", color: .systemGreen)
         todoItem.target = self
         todoMenuItem = todoItem
         menu.addItem(todoItem)
 
         let lockAIItem = NSMenuItem(title: L10n.t("menu.lock_ai"), action: #selector(lockAI), keyEquivalent: "")
+        lockAIItem.image = statusMenuIcon("lock.fill", color: .systemOrange)
         lockAIItem.target = self
         lockAIMenuItem = lockAIItem
         menu.addItem(lockAIItem)
@@ -430,11 +434,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         let inputSourceController = InputSourceMenuController()
         inputSourceMenuController = inputSourceController
         let inputSourceItem = NSMenuItem(title: L10n.t("tool.input_source"), action: nil, keyEquivalent: "")
+        inputSourceItem.image = statusMenuIcon("keyboard.fill", color: .systemTeal)
         inputSourceItem.submenu = inputSourceController.menu
         inputSourceMenuItem = inputSourceItem
         menu.addItem(inputSourceItem)
 
         let settingsItem = NSMenuItem(title: L10n.t("menu.settings"), action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.image = statusMenuIcon("gearshape.fill", color: .systemGray)
         settingsItem.target = self
         settingsMenuItem = settingsItem
         menu.addItem(settingsItem)
@@ -442,11 +448,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDele
         menu.addItem(NSMenuItem.separator())
 
         let quitItem = NSMenuItem(title: L10n.t("menu.quit"), action: #selector(confirmQuit), keyEquivalent: "q")
+        quitItem.image = statusMenuIcon("power", color: .systemRed)
         quitItem.target = self
         quitMenuItem = quitItem
         menu.addItem(quitItem)
 
         return menu
+    }
+
+    private func statusMenuIcon(_ symbol: String, color: NSColor) -> NSImage? {
+        let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+        // Menu images must retain their palette instead of becoming monochrome templates.
+        image?.isTemplate = false
+        image?.size = NSSize(width: 18, height: 18)
+        return image
     }
 
     @MainActor

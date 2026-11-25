@@ -171,7 +171,7 @@ struct InputSourceSettingsView: View {
                 Text("\(Int(manager.settings.indicatorFontSize)) pt").monospacedDigit().frame(width: 55)
             }
             ColorPicker(L10n.t("input.color"), selection: Binding(get: {
-                let value = UInt64(manager.settings.indicatorColor.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x2563EB
+                let value = UInt64(manager.settings.indicatorColor.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x00C553
                 return Color(red: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255, blue: Double(value & 255) / 255)
             }, set: { color in
                 guard let rgb = NSColor(color).usingColorSpace(.sRGB) else { return }

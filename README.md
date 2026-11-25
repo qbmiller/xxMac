@@ -4,6 +4,8 @@
 
 xxMac is a lightweight, native macOS productivity toolkit built with SwiftUI + AppKit. Launch apps, arrange windows, search your clipboard, manage tasks, and automate everyday actions from your menu bar or a global hotkey.
 
+The status menu uses color-coded SF Symbols for Launcher, Clipboard History, Todo, LockJob, Input Sources, Settings, and Quit.
+
 **macOS 13+** · Desktop widgets on macOS 14+ · English / 简体中文 / 繁體中文
 
 [Quick Start](#quick-start) · [Default Hotkeys](#default-hotkeys) · [System Permissions](#system-permissions)
@@ -79,7 +81,7 @@ Open **Settings > Input Sources** to configure automatic switching, app rules, w
 - App rules display the app icon, name, policy, and source in a compact single row. They can select a fixed source, remember manual choices, or keep the current source. Fixed rules run on context changes and do not repeatedly override a manual selection.
 - Website and address bar rules support Chrome, Edge, and Safari and require Accessibility permission. Priority is address bar > first matching website rule > app rule > default policy. Match an exact domain, domain and subdomains, or a URL prefix with a path boundary. Missing permissions or an unreadable URL fall back to app rules; unavailable input sources keep the current source and show a warning.
 - Returning from the address bar reapplies the page rule, or restores the previous source when no rule specifies one. Browser queries run in the background, only while rules need the frontmost supported browser; stale replies are discarded.
-- Indicators can appear on input-source changes, app switches, or a left-button hold. Customize pointer/fixed-screen position, color, size, abbreviation, and duration. They do not take focus or block clicks. Automatic indicators are suppressed inside xxMac windows; the explicit Preview Indicator button remains available. The indicator reports the system input source; internal Chinese/English modes in third-party IMEs may not be exposed.
+- Indicators can appear on input-source changes, app switches, or a left-button hold. They use a white rounded panel with dark text and an outlined checkmark circle (green by default). Customize pointer/fixed-screen position, checkmark color, size, abbreviation, and duration. They do not take focus or block clicks. Automatic indicators are suppressed inside xxMac windows; the explicit Preview Indicator button remains available. The indicator reports the system input source; internal Chinese/English modes in third-party IMEs may not be exposed.
 - Record a shortcut and select one source for direct switching or several to cycle in selection order. Internal shortcut conflicts preserve the previous binding. The status menu provides pause, manual source selection, and quick app/website rules. Pause affects automatic switching only.
 - The existing launcher English preference remains under General > Language and takes priority while the launcher is open. Modifier-only shortcuts, punctuation replacement, per-app function-key modes, persistent caret indicators, and terminal-program rules are outside this version.
 

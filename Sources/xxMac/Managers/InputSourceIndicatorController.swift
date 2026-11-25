@@ -14,16 +14,33 @@ final class InputSourceIndicatorController: InputSourceIndicatorPresenting {
         let panel = self.panel ?? makePanel()
         self.panel = panel
         let label = NSTextField(labelWithString: settings.indicatorAbbreviated ? String(source.name.prefix(3)) : source.name)
-        label.font = .systemFont(ofSize: CGFloat(min(32, max(12, settings.indicatorFontSize))), weight: .semibold)
-        label.textColor = .white
-        label.alignment = .center
+        let fontSize = CGFloat(min(32, max(12, settings.indicatorFontSize)))
+        label.font = .systemFont(ofSize: fontSize, weight: .medium)
+        label.textColor = NSColor(srgbRed: 0.035, green: 0.035, blue: 0.078, alpha: 1)
+        label.alignment = .left
+        label.lineBreakMode = .byTruncatingTail
         label.sizeToFit()
-        let size = NSSize(width: min(420, max(64, label.frame.width + 32)), height: label.frame.height + 22)
+        let iconSize = fontSize + 6
+        let horizontalPadding: CGFloat = 18
+        let spacing: CGFloat = 12
+        let size = NSSize(width: min(420, max(100, label.frame.width + iconSize + spacing + horizontalPadding * 2)),
+                          height: max(label.frame.height, iconSize) + 28)
         let background = NSView(frame: NSRect(origin: .zero, size: size))
         background.wantsLayer = true
-        background.layer?.cornerRadius = 10
-        background.layer?.backgroundColor = color(settings.indicatorColor).cgColor
-        label.frame = NSRect(x: 16, y: 11, width: size.width - 32, height: size.height - 22)
+        background.layer?.cornerRadius = 14
+        background.layer?.backgroundColor = NSColor.white.cgColor
+        background.layer?.borderWidth = 0.5
+        background.layer?.borderColor = NSColor(white: 0.92, alpha: 1).cgColor
+        let icon = NSImageView(frame: NSRect(x: horizontalPadding, y: (size.height - iconSize) / 2,
+                                            width: iconSize, height: iconSize))
+        icon.image = NSImage(systemSymbolName: "checkmark.circle", accessibilityDescription: nil)
+        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+        icon.contentTintColor = color(settings.indicatorColor)
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        background.addSubview(icon)
+        let labelX = horizontalPadding + iconSize + spacing
+        label.frame = NSRect(x: labelX, y: (size.height - label.frame.height) / 2,
+                             width: size.width - labelX - horizontalPadding, height: label.frame.height)
         background.addSubview(label)
         panel.contentView = background
         let pointer = NSEvent.mouseLocation
@@ -60,8 +77,8 @@ final class InputSourceIndicatorController: InputSourceIndicatorPresenting {
     }
 
     private func color(_ hex: String) -> NSColor {
-        let value = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x2563EB
+        let value = UInt64(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0x00C553
         return NSColor(srgbRed: Double((value >> 16) & 255) / 255, green: Double((value >> 8) & 255) / 255,
-                       blue: Double(value & 255) / 255, alpha: 0.94)
+                       blue: Double(value & 255) / 255, alpha: 1)
     }
 }

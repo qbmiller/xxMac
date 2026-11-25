@@ -104,7 +104,7 @@ struct InputSourceSettings: Codable, Equatable {
     var indicatorPosition: InputSourceIndicatorPosition = .pointer
     var indicatorDuration: Double = 0.9
     var indicatorFontSize: Double = 18
-    var indicatorColor = "#2563EB"
+    var indicatorColor = "#00C553"
     var indicatorAbbreviated = false
 }
 

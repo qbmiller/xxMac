@@ -599,7 +599,7 @@
 "input.abbreviated" = "显示简写（前三个字符）";
 "input.duration" = "停留时长";
 "input.font_size" = "文字大小";
-"input.color" = "提示颜色";
+"input.color" = "对号颜色";
 "input.preview" = "预览提示";
 "input.shortcuts_hint" = "选择一个输入法可直接切换；选择多个时按勾选顺序循环切换。快捷键需包含 Command、Option、Control 或 Shift。";
 "input.add_shortcut" = "添加输入法快捷键";

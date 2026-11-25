@@ -599,7 +599,7 @@
 "input.abbreviated" = "Abbreviate to first three characters";
 "input.duration" = "Duration";
 "input.font_size" = "Text size";
-"input.color" = "Color";
+"input.color" = "Checkmark Color";
 "input.preview" = "Preview Indicator";
 "input.shortcuts_hint" = "Select one source for direct switching, or several to cycle in selection order. Include Command, Option, Control, or Shift.";
 "input.add_shortcut" = "Add Input Source Shortcut";
