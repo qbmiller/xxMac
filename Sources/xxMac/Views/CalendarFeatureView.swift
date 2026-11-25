@@ -580,7 +580,8 @@ private struct CalendarHeaderView: View {
                 }
                 .foregroundStyle(.red)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(CalendarMonthButtonStyle(isExpanded: showsMonthPicker))
+            .focusable(false)
             .help(L10n.t("calendar.choose_month"))
             .popover(isPresented: $showsMonthPicker, arrowEdge: .bottom) {
                 CalendarMonthPickerView(date: displayedMonth, locale: locale) { date in
@@ -625,6 +626,26 @@ private struct CalendarHeaderView: View {
 
     private func nextMonth() {
         displayedMonth = Calendar.current.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+    }
+}
+
+private struct CalendarMonthButtonStyle: ButtonStyle {
+    let isExpanded: Bool
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.red.opacity(configuration.isPressed ? 0.14 : (isHovered || isExpanded ? 0.08 : 0)))
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .onHover { isHovered = $0 }
+            .animation(.easeOut(duration: 0.15), value: isHovered)
+            .animation(.easeOut(duration: 0.15), value: isExpanded)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
