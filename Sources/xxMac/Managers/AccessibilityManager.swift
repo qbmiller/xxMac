@@ -245,43 +245,134 @@ class AccessibilityManager {
         return carbonRect(from: screen.visibleFrame)
     }
 
-    // Resize and move window
+    // Resize and move window.
+    // Runs on a background thread so the main thread stays responsive.
+    // Mirrors ShiftIt's AXWindowDriver: resize → move → resize, retrying each
+    // step until the value converges (or stops improving), then snaps to edges.
     func moveWindow(to rect: CGRect) {
         guard ensureAccessibilityPermissions() else { return }
         guard let window = getFocusedWindow() else { return }
 
-        // Exit fullscreen before repositioning — AX position writes are silently
-        // ignored on macOS 15+ when the window is in a true-fullscreen state.
+        // Exit true fullscreen first — AX position writes are silently ignored
+        // while AXFullScreen is true.  The transition animation takes ~300 ms.
         exitFullscreenIfNeeded(window)
 
-        applyFrame(rect, to: window)
-
-        // Verify the position landed correctly and retry once if it drifted.
-        // On macOS 15/26 with native window tiling the first write can be absorbed
-        // by the system without fully taking effect.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?.verifyAndRetryFrame(rect, window: window)
+        // All AX I/O goes to a serial background queue so we can sleep between
+        // read-verify iterations without freezing the UI.
+        DispatchQueue.global(qos: .userInteractive).async { [weak self] in
+            guard let self else { return }
+            self.convergeFrame(rect, window: window)
         }
     }
 
-    private func applyFrame(_ rect: CGRect, to window: AXUIElement) {
-        WindowFrameWriter.apply(rect, setSize: { requestedSize in
-            var size = requestedSize
-            if let sizeValue = AXValueCreate(.cgSize, &size) {
-                let result = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
-                if result != .success {
-                    NSLog("[AccessibilityManager] failed to set window size: %@", String(describing: result))
-                }
-            }
-        }, setPosition: { requestedPosition in
-            var position = requestedPosition
-            if let positionValue = AXValueCreate(.cgPoint, &position) {
-                let result = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
-                if result != .success {
-                    NSLog("[AccessibilityManager] failed to set window position: %@", String(describing: result))
-                }
-            }
-        })
+    // ---------------------------------------------------------------------------
+    // MARK: - Frame convergence (ShiftIt-style)
+    // ---------------------------------------------------------------------------
+
+    /// Apply `target`, then read back the actual frame and retry until it
+    /// matches or no longer improves.  Follows ShiftIt's resize→move→resize
+    /// pattern so that windows which resist one pass still land correctly.
+    private func convergeFrame(_ target: CGRect, window: AXUIElement) {
+        // 1. resize
+        converge(step: "resize", window: window) { [self] in
+            self.axSetSize(target.size, window: window)
+            Thread.sleep(forTimeInterval: 0.05)
+            let actual = self.getWindowFrame(window)?.size ?? .zero
+            return Int(abs(actual.width - target.size.width) + abs(actual.height - target.size.height))
+        }
+
+        // 2. move
+        converge(step: "move", window: window) { [self] in
+            self.axSetPosition(target.origin, window: window)
+            Thread.sleep(forTimeInterval: 0.05)
+            let actual = self.getWindowFrame(window)?.origin ?? .zero
+            return Int(abs(actual.x - target.origin.x) + abs(actual.y - target.origin.y))
+        }
+
+        // 3. resize again — moving can cause the system to adjust size
+        converge(step: "resize2", window: window) { [self] in
+            self.axSetSize(target.size, window: window)
+            Thread.sleep(forTimeInterval: 0.05)
+            let actual = self.getWindowFrame(window)?.size ?? .zero
+            return Int(abs(actual.width - target.size.width) + abs(actual.height - target.size.height))
+        }
+
+        // 4. edge-snap: re-read the final frame and push any near-zero gaps to 0
+        Thread.sleep(forTimeInterval: 0.1)
+        snapToScreenEdges(target: target, window: window)
+    }
+
+    /// Retry `body` until it returns 0 (converged) or the distance is no
+    /// longer decreasing, matching ShiftIt's untilConverge logic.
+    private func converge(step: String, window: AXUIElement, body: () -> Int) {
+        var prev = Int.max
+        var prevPrev = Int.max
+        for i in 1...6 {
+            let distance = body()
+            NSLog("[AccessibilityManager] converge step=%@ iteration=%d distance=%d", step, i, distance)
+            if distance == 0 { return }
+            if i > 2 && distance >= prev { return }   // not improving
+            if i > 3 && distance >= prevPrev { return }
+            prevPrev = prev
+            prev = distance
+        }
+    }
+
+    /// After convergence, nudge the window so it sits flush against any screen
+    /// edge it was intended to reach (within 4 pt).  This is ShiftIt's
+    /// "anchor" pass: if the AX API left a 1–3 pt gap, close it.
+    private func snapToScreenEdges(target: CGRect, window: AXUIElement) {
+        guard let actual = getWindowFrame(window) else { return }
+        guard let screen = getScreen(containing: actual) else { return }
+        let visibleAX = carbonRect(from: screen.visibleFrame)
+        let tolerance: CGFloat = 4
+
+        var snapped = actual
+
+        // left edge
+        if abs(target.minX - visibleAX.minX) <= tolerance {
+            snapped.origin.x = visibleAX.minX
+        }
+        // top edge (AX: minY = top)
+        if abs(target.minY - visibleAX.minY) <= tolerance {
+            snapped.origin.y = visibleAX.minY
+        }
+        // right edge
+        if abs(target.maxX - visibleAX.maxX) <= tolerance {
+            snapped.origin.x = visibleAX.maxX - snapped.size.width
+        }
+        // bottom edge (AX: maxY = bottom)
+        if abs(target.maxY - visibleAX.maxY) <= tolerance {
+            snapped.origin.y = visibleAX.maxY - snapped.size.height
+        }
+
+        if snapped != actual {
+            NSLog("[AccessibilityManager] edge-snap from %@ to %@",
+                  NSStringFromRect(actual), NSStringFromRect(snapped))
+            axSetPosition(snapped.origin, window: window)
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // MARK: - Low-level AX setters
+    // ---------------------------------------------------------------------------
+
+    private func axSetSize(_ size: CGSize, window: AXUIElement) {
+        var s = size
+        guard let v = AXValueCreate(.cgSize, &s) else { return }
+        let r = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, v)
+        if r != .success {
+            NSLog("[AccessibilityManager] setSize failed: %@", String(describing: r))
+        }
+    }
+
+    private func axSetPosition(_ point: CGPoint, window: AXUIElement) {
+        var p = point
+        guard let v = AXValueCreate(.cgPoint, &p) else { return }
+        let r = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, v)
+        if r != .success {
+            NSLog("[AccessibilityManager] setPosition failed: %@", String(describing: r))
+        }
     }
 
     private func exitFullscreenIfNeeded(_ window: AXUIElement) {
@@ -289,21 +380,8 @@ class AccessibilityManager {
         guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &fullscreen) == .success,
               let isFullscreen = fullscreen as? Bool, isFullscreen else { return }
         AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, false as CFTypeRef)
-        // Give the transition animation a moment before writing size/position.
+        // Give the fullscreen animation a moment to settle before repositioning.
         Thread.sleep(forTimeInterval: 0.35)
-    }
-
-    private func verifyAndRetryFrame(_ target: CGRect, window: AXUIElement) {
-        guard let actual = getWindowFrame(window) else { return }
-        let tolerance: CGFloat = 4
-        let positionOK = abs(actual.origin.x - target.origin.x) <= tolerance
-                      && abs(actual.origin.y - target.origin.y) <= tolerance
-        let sizeOK = abs(actual.size.width - target.size.width) <= tolerance
-                  && abs(actual.size.height - target.size.height) <= tolerance
-        guard !positionOK || !sizeOK else { return }
-        NSLog("[AccessibilityManager] frame drifted — retrying (actual=%@ target=%@)",
-              NSStringFromRect(actual), NSStringFromRect(target))
-        applyFrame(target, to: window)
     }
     
     // Actions
