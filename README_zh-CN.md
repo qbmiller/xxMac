@@ -187,7 +187,7 @@ SIGNING_IDENTITY="Apple Development: Your Name (TEAMID)" bash bundle_app.sh
 
 - 输入法规则、快捷键、提示样式和应用手动输入法记忆分别保存在 `preferences.json` 的 `InputSourceSettings`、`InputSourceAppMemory` 中，支持配置导入导出和目录迁移。网站地址仅在运行时临时读取，不保存浏览历史或输入内容。
 
-- LockJob 成功获取 [`https://cf.xiaomi318.com/xxmac/lockjob.json`](https://cf.xiaomi318.com/xxmac/lockjob.json) 后，每隔 24 小时检查更新，并将数组缓存到配置目录的 `lockjob-messages.json`。“LockJob > 屏幕定制”在下方仅预览一条 JSON 文案，旁边的随机按钮可换一条；“更新 JSON”可跳过时间限制。未勾选“锁定自定义文字”时，每次进入 LockJob 都会从缓存中自动随机选一条；勾选后遮罩只显示输入框文字。没有缓存时使用自定义文字。修改仓库根目录的 [`lockjob.json`](lockjob.json) 后运行 `make sync-lockjob`，即可发布到 `blog` R2 桶，无需重建应用。缓存、预览文案、自定义文字和锁定状态会随配置目录迁移。
+- LockJob 成功获取 [`https://cf.xiaomi318.com/xxmac/lockjob.json`](https://cf.xiaomi318.com/xxmac/lockjob.json) 后，每隔 7 天检查更新，并将数组缓存到配置目录的 `lockjob-messages.json`。“LockJob > 屏幕定制”在下方仅预览一条 JSON 文案，旁边的随机按钮可换一条；“更新 JSON”可跳过时间限制。未勾选“锁定自定义文字”时，每次进入 LockJob 都会从缓存中自动随机选一条；勾选后遮罩只显示输入框文字。没有缓存时使用自定义文字。修改仓库根目录的 [`lockjob.json`](lockjob.json) 后运行 `make sync-lockjob`，即可发布到 `blog` R2 桶，无需重建应用。缓存、预览文案、自定义文字和锁定状态会随配置目录迁移。
 - 推荐页打开或手动刷新时固定获取 [`https://cf.xiaomi318.com/xxmac/xxmac.json`](https://cf.xiaomi318.com/xxmac/xxmac.json)，不提供修改数据源地址的入口。最近一次成功响应会缓存到配置目录的 `recommendations.json`，远程请求失败时继续显示上次保存的推荐内容。
 - 默认配置目录是 `~/Library/Application Support/xxMac`，可在“通用 > 配置”里修改。修改后会把当前配置、应用索引缓存、剪贴板 SQLite 数据库、待办 SQLite 数据库和图片缓存迁移到新目录，并删除旧目录中的 xxMac 数据。
 - 右上角状态栏入口默认显示；如果图标异常消失，或希望隐藏状态栏入口，可在“通用 > 配置”里切换“显示在右上角状态栏”。该区域提供状态栏诊断信息和“刷新/重建”按钮，用于确认 `NSStatusItem` 是否已创建、可见并挂载到系统状态栏。

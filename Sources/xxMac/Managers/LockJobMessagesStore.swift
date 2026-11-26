@@ -3,7 +3,7 @@ import Foundation
 @MainActor
 final class LockJobMessagesStore {
     static let sourceURL = URL(string: "https://cf.xiaomi318.com/xxmac/lockjob.json")!
-    private static let refreshInterval: TimeInterval = 24 * 60 * 60
+    private static let refreshInterval: TimeInterval = 7 * 24 * 60 * 60
 
     private let configDirectory: ConfigDirectoryManager
     private let session: URLSession

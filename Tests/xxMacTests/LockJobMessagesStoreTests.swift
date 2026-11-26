@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class LockJobMessagesStoreTests: XCTestCase {
-    func testRefreshUsesDailyCacheAndKeepsLastValidMessages() async throws {
+    func testRefreshUsesWeeklyCacheAndKeepsLastValidMessages() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         let config = ConfigDirectoryManager(
@@ -24,19 +24,22 @@ final class LockJobMessagesStoreTests: XCTestCase {
         XCTAssertTrue(["Alpha", "Beta"].contains(store.randomMessage()))
         XCTAssertEqual(try Data(contentsOf: config.lockJobMessagesURL), LockJobURLProtocol.response.1)
 
-        await store.refreshIfNeeded(now: now.addingTimeInterval(23 * 60 * 60))
+        await store.refreshIfNeeded(now: now.addingTimeInterval(7 * 24 * 60 * 60 - 1))
         XCTAssertEqual(LockJobURLProtocol.requestCount, 1)
 
-        LockJobURLProtocol.response = (200, Data("[\"Gamma\"]".utf8))
-        let refreshed = await store.refresh(force: true, now: now.addingTimeInterval(23 * 60 * 60))
-        XCTAssertTrue(refreshed)
+        await store.refreshIfNeeded(now: now.addingTimeInterval(7 * 24 * 60 * 60))
         XCTAssertEqual(LockJobURLProtocol.requestCount, 2)
+
+        LockJobURLProtocol.response = (200, Data("[\"Gamma\"]".utf8))
+        let refreshed = await store.refresh(force: true, now: now.addingTimeInterval(7 * 24 * 60 * 60 + 1))
+        XCTAssertTrue(refreshed)
+        XCTAssertEqual(LockJobURLProtocol.requestCount, 3)
         XCTAssertEqual(store.messages, ["Gamma"])
 
         LockJobURLProtocol.response = (200, Data("[]".utf8))
-        let invalidRefresh = await store.refresh(force: true, now: now.addingTimeInterval(24 * 60 * 60))
+        let invalidRefresh = await store.refresh(force: true, now: now.addingTimeInterval(7 * 24 * 60 * 60 + 2))
         XCTAssertFalse(invalidRefresh)
-        XCTAssertEqual(LockJobURLProtocol.requestCount, 3)
+        XCTAssertEqual(LockJobURLProtocol.requestCount, 4)
         XCTAssertEqual(store.messages, ["Gamma"])
 
         let cached = LockJobMessagesStore(configDirectory: config, session: session)
